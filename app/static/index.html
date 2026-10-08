@@ -6,6 +6,9 @@
 .brand{font-weight:760;letter-spacing:.02em}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#94a7c7;margin-bottom:5px}.pill{font-size:12px;padding:6px 10px;border:1px solid #33496b;border-radius:16px;color:#b5c7e7}
 nav{display:flex;gap:9px;padding:14px 28px;border-bottom:1px solid #26344c}button,.navbutton{border:1px solid #344966;background:#17263e;color:#e7effd;border-radius:9px;padding:11px 15px;cursor:pointer}button:hover,.navbutton:hover{border-color:#70adff}.active{background:#2659ae}
 main{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:16px;padding:20px;min-height:calc(100vh - 132px)}
+main.genie-mode{grid-template-columns:minmax(0,1fr)}
+#copilotPanel[hidden]{display:none}
+main.genie-mode iframe{height:calc(100vh - 290px);min-height:560px}
 section{border:1px solid #283952;border-radius:13px;background:#111f34;padding:18px;min-width:0}
 h1{font-size:21px;margin:3px 0 9px}p{color:#abc0df;line-height:1.5}a{color:#94c0ff}
 iframe{width:100%;height:calc(100vh - 270px);border:0;border-radius:8px;background:white}
@@ -19,10 +22,10 @@ textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-c
 </style></head><body>
 <header><div><div class="eyebrow">Databricks / Governed intelligence</div><div class="brand">OLIST <span style="color:#6caeff">/</span> OPERATIONS CONTROL TOWER</div></div><span id="mode" class="pill">Loading configuration</span></header>
 <nav><button id="tabDashboard" class="active" onclick="showTab('dashboard')">AI/BI Dashboard</button><button id="tabGenie" onclick="showTab('genie')">Genie backup</button><span class="muted" style="margin:auto 0 auto auto">Historical Olist snapshot · BRL · provenance-first</span></nav>
-<main><section><div class="eyebrow" id="pageLabel">Published AI/BI dashboard</div><h1 id="pageTitle">Operations, Data Trust & Governance</h1><p id="pageText">This is the native Databricks dashboard, not a recreated chart canvas. Genie remains available on the published dashboard.</p>
+<main id="mainLayout"><section id="dashboardPanel"><div class="eyebrow" id="pageLabel">Published AI/BI dashboard</div><h1 id="pageTitle">Operations, Data Trust & Governance</h1><p id="pageText">This is the native Databricks dashboard, not a recreated chart canvas. Genie remains available on the published dashboard.</p>
 <div id="dashboardMount" class="placeholder">The published AI/BI dashboard URL has not been configured. Set <code>DATABRICKS_DASHBOARD_URL</code> in the Databricks App environment; until then, the right-side Copilot works independently.</div>
 <p class="muted" id="embedNote">Embedding is subject to Databricks workspace permissions and allowed embedding domains. A secure open-in-Databricks fallback is always provided when a dashboard URL is configured.</p></section>
-<section><div class="eyebrow">Primary / Custom AI</div><h1>Evidence-grounded Copilot</h1><p>Read-only SQL tools, governance retrieval, and an optional hosted LLM. Facts come from the published run—not from unconstrained SQL generation.</p>
+<section id="copilotPanel"><div class="eyebrow">Primary / Custom AI</div><h1>Evidence-grounded Copilot</h1><p>Read-only SQL tools, governance retrieval, and an optional hosted LLM. Facts come from the published run—not from unconstrained SQL generation.</p>
 <div class="formgrid"><div><label for="state">Customer state filter</label><select id="state"><option value="ALL">All states</option></select></div><div><label for="page">Dashboard context</label><select id="page"><option value="operations">Operations</option><option value="trust">Data Trust</option><option value="governance">Governance</option></select></div></div>
 <label for="question">Question</label><textarea id="question">Why were records quarantined, and can I trust the delivered GMV?</textarea>
 <div class="actions"><button onclick="ask()" id="askBtn">Ask grounded Copilot</button><button onclick="document.getElementById('question').value='Compare late delivery rates for RJ and SP'">Try RJ vs SP</button></div>
@@ -35,6 +38,8 @@ for(const s of "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS R
 async function setup(){const r=await fetch("/api/config");const c=await r.json();dashboardUrl=c.dashboard_url;document.getElementById("mode").textContent=c.model_configured?"Hosted model configured":"Deterministic mode";showTab("dashboard")}
 function showTab(kind){
 document.getElementById("tabDashboard").classList.toggle("active",kind==="dashboard");document.getElementById("tabGenie").classList.toggle("active",kind==="genie");
+document.getElementById("mainLayout").classList.toggle("genie-mode",kind==="genie");
+document.getElementById("copilotPanel").hidden=kind==="genie";
 document.getElementById("pageTitle").textContent=kind==="genie"?"Genie / Native analytical assistant":"Operations, Data Trust & Governance";
 document.getElementById("pageText").textContent=kind==="genie"?"Genie is an optional backup, accessed via the published Databricks AI/BI dashboard. It does not power the custom Copilot.":"Native AI/BI dashboard with current published metrics and governance facts.";
 const mount=document.getElementById("dashboardMount");mount.replaceChildren();

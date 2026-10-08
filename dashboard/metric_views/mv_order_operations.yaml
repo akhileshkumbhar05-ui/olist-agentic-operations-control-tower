@@ -1,0 +1,64 @@
+version: 1.1
+comment: >-
+  Governed Olist order-grain operations measures. All measures use the currently
+  published, quality-gated historical source snapshot. GMV excludes freight and
+  is not accounting revenue. Delivery lateness uses calendar-date comparison.
+source: workspace.olist_semantic.v_published_orders
+fields:
+  - name: purchase_day
+    expr: purchase_date
+    comment: Date the order was purchased. Source timestamp timezone is unspecified.
+  - name: purchase_month
+    expr: DATE_TRUNC('MONTH', purchase_date)
+    comment: Purchase cohort month, not live operational freshness.
+  - name: customer_state
+    expr: customer_state
+    comment: Customer Brazilian state code; high late rate does not prove causation.
+  - name: order_status
+    expr: order_status
+    comment: Historical final order status.
+measures:
+  - name: total_orders
+    expr: COUNT(1)
+    comment: Accepted order-grain rows in the selected purchase cohort.
+  - name: delivered_orders
+    expr: SUM(CASE WHEN is_delivered THEN 1 ELSE 0 END)
+    comment: Accepted orders whose historical final status is delivered.
+  - name: cancelled_orders
+    expr: SUM(CASE WHEN is_cancelled THEN 1 ELSE 0 END)
+    comment: Accepted orders whose historical final status is canceled.
+  - name: gmv
+    expr: SUM(CASE WHEN is_delivered THEN COALESCE(item_gmv, 0) ELSE 0 END)
+    comment: Delivered item merchandise value in BRL; excludes freight and is not recognized revenue.
+  - name: freight
+    expr: SUM(CASE WHEN is_delivered THEN COALESCE(freight_value, 0) ELSE 0 END)
+    comment: Freight associated with accepted delivered orders in BRL.
+  - name: aov
+    expr: >-
+      SUM(CASE WHEN is_delivered THEN COALESCE(item_gmv, 0) ELSE 0 END)
+      / NULLIF(SUM(CASE WHEN is_delivered AND item_count > 0 THEN 1 ELSE 0 END), 0)
+    comment: Delivered item GMV per delivered order with at least one accepted item, in BRL.
+  - name: on_time_rate
+    expr: >-
+      100.0 * SUM(CASE WHEN delivery_eligible AND NOT is_late THEN 1 ELSE 0 END)
+      / NULLIF(SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END), 0)
+    comment: Percent of eligible delivered orders delivered by the estimated calendar day.
+  - name: late_rate
+    expr: >-
+      100.0 * SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END)
+      / NULLIF(SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END), 0)
+    comment: Percent of eligible delivered orders delivered after the estimated calendar day.
+  - name: delivery_days
+    expr: AVG(CASE WHEN is_delivered AND delivery_days >= 0 THEN delivery_days END)
+    comment: Mean nonnegative elapsed days between purchase and actual customer delivery.
+  - name: delay_days
+    expr: AVG(CASE WHEN delivery_eligible AND is_late THEN delay_days END)
+    comment: Mean positive date-level lateness, among late eligible deliveries only.
+  - name: review_score
+    expr: AVG(review_score)
+    comment: Mean latest answered accepted review per order, where available.
+  - name: negative_review_rate
+    expr: >-
+      100.0 * SUM(CASE WHEN review_score <= 2 THEN 1 ELSE 0 END)
+      / NULLIF(COUNT(review_score), 0)
+    comment: Percent of latest accepted order reviews rated 1 or 2; unrated orders excluded.

@@ -1,0 +1,6 @@
+command: ['uvicorn', 'app.main:app', '--host', '0.0.0.0', '--port', '8000']
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+# Configure DATABRICKS_DASHBOARD_URL after publishing the AI/BI dashboard.
+# Configure DATABRICKS_SERVING_ENDPOINT only after verifying a free available endpoint.

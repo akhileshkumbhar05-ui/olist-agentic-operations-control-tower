@@ -2,5 +2,7 @@ command: ['sh', '-c', 'uvicorn app.main:app --host 0.0.0.0 --port ${DATABRICKS_A
 env:
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: sql-warehouse
-# Configure DATABRICKS_DASHBOARD_URL after publishing the AI/BI dashboard.
+  - name: DATABRICKS_DASHBOARD_URL
+    value: 'https://dbc-ecf93af4-a667.cloud.databricks.com/embed/dashboardsv3/01f1c3585e371844b4165a673d3691d1?o=7474659488161285'
+# Dashboard 02: native Databricks AI/BI embed URL; workspace approved-domain policy still applies.
 # Configure DATABRICKS_SERVING_ENDPOINT only after verifying a free available endpoint.

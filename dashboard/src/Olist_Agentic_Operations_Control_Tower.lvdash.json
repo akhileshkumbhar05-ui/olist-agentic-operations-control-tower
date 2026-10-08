@@ -8,6 +8,7 @@
         "COUNT(*) AS total_orders,\n",
         "SUM(CASE WHEN is_delivered THEN 1 ELSE 0 END) AS delivered_orders,\n",
         "SUM(CASE WHEN is_delivered THEN COALESCE(item_gmv,0) ELSE 0 END) AS delivered_item_gmv,\n",
+        "SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END) AS eligible_deliveries,\n",
         "SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END) AS late_orders\n",
         "FROM workspace.olist_semantic.v_published_orders\n",
         "GROUP BY 1,2,3\n"

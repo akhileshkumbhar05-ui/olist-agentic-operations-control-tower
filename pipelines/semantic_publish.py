@@ -14,7 +14,7 @@ import argparse
 from pathlib import Path
 import re
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__ if "__file__" in globals() else __import__("inspect").currentframe().f_code.co_filename).resolve().parents[1]
 MV_YAML = ROOT / "dashboard" / "metric_views" / "mv_order_operations.yaml"
 PUBLISHED_ORDERS_SQL = ROOT / "sql" / "semantic" / "01_published_orders.sql"
 

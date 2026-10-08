@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import sys
+import logging
 from pathlib import Path
 from functools import lru_cache
 
@@ -19,6 +20,9 @@ from pydantic import BaseModel, Field
 
 from olist_agentic.copilot.queries import Context
 from olist_agentic.copilot.engine import prepare, fallback_answer, model_answer
+from olist_agentic.copilot.sql_diagnostics import sql_failure_category, sql_failure_guidance
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Olist Agentic Operations Control Tower", version="0.2.0")
 
@@ -50,7 +54,18 @@ def sql_query(statement: str) -> list[dict]:
         row_limit=150,
     )
     if result.status and result.status.state != StatementState.SUCCEEDED:
-        raise RuntimeError(f"SQL did not complete successfully: {result.status.state}")
+        state = result.status.state
+        category = sql_failure_category(result.status)
+        err = getattr(result.status, "error", None)
+        logger.error(
+            "Olist SQL statement failed: statement_id=%s state=%s error_code=%s message=%s",
+            getattr(result, "statement_id", "unknown"), state,
+            getattr(err, "error_code", None),
+            getattr(err, "message", None),
+        )
+        if state in (StatementState.PENDING, StatementState.RUNNING):
+            raise RuntimeError("SQL_PENDING: The query was still running after the wait period. Check App Logs.")
+        raise RuntimeError(f"{category}: {sql_failure_guidance(category)}")
     cols = [c.name for c in result.manifest.schema.columns] if result.manifest and result.manifest.schema else []
     raw = result.result.data_array if result.result else []
     return [{k: v for k, v in zip(cols, row)} for row in (raw or [])]

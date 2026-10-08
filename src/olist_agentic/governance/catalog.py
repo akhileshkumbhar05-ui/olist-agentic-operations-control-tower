@@ -8,6 +8,7 @@ from typing import Iterable
 from olist_agentic.domain.metrics import METRICS
 from olist_agentic.domain.rules import RULES, Rule
 from olist_agentic.domain.sources import RELATIONSHIPS, SOURCES
+from olist_agentic.governance.semantics import FIELD_DETAILS, SOURCE_NOTES, failure_condition
 
 
 RULE_OVERRIDES = {
@@ -160,7 +161,7 @@ def dq_rule_records() -> list[dict]:
                 "technical_description": rule.description or rule.rule_name,
                 "plain_english_description": explanation["plain_english_description"],
                 "business_reason": explanation["business_reason"],
-                "failure_condition": rule.description or rule.rule_name,
+                "failure_condition": failure_condition(rule),
                 "severity": rule.severity,
                 "action": rule.action,
                 "why_this_action": explanation["why_this_action"],
@@ -173,49 +174,62 @@ def dq_rule_records() -> list[dict]:
     return rows
 
 
-FIELD_OVERRIDES = {
-    ("orders", "order_id"): ("Order identifier", "Unique source identifier for one order.", "Use as the order-grain key.", "Do not use as a customer identity."),
-    ("orders", "customer_id"): ("Order customer ID", "Order-specific customer identity linked to the customers source.", "Join an order to its customer row.", "Do not use to calculate persistent repeat customers."),
-    ("customers", "customer_unique_id"): ("Persistent customer ID", "Persistent customer identity that can appear across multiple order-specific customer_id values.", "Use for repeat-customer analysis.", "Do not assume one customer_id equals one persistent customer."),
-    ("order_items", "price"): ("Item price", "Merchandise amount for one order item in BRL.", "Use for merchandise GMV after applying governed delivery and quality filters.", "Do not treat as recognized revenue and do not include freight implicitly."),
-    ("order_items", "freight_value"): ("Item freight", "Freight amount associated with one order item in BRL.", "Analyze freight separately from merchandise GMV.", "Do not add raw payment rows before grain-safe aggregation."),
-    ("orders", "order_estimated_delivery_date"): ("Estimated delivery date", "Source estimate for expected delivery; it is not an actual delivery event.", "Use as the delivery deadline in the governed calendar-date lateness definition.", "Do not treat it as proof of actual delivery."),
-    ("orders", "order_delivered_customer_date"): ("Customer delivery timestamp", "Timestamp recording the customer-delivery event when supplied by the source.", "Use to calculate delivered duration and lateness.", "Do not calculate delivered KPIs for delivered orders when this value is missing."),
-    ("geolocation", "geolocation_zip_code_prefix"): ("Geolocation ZIP prefix", "ZIP prefix observed in the geolocation source.", "Use after canonicalization to one governed ZIP-prefix row.", "Do not join raw geolocation observations directly to order-level facts."),
-    ("reviews", "review_score"): ("Review score", "Customer review score from 1 to 5.", "Use the governed latest accepted review per order for customer-experience metrics.", "Do not average every raw review row when multiple reviews exist for an order."),
-    ("payments", "payment_value"): ("Payment amount", "Value of one payment sequence for an order.", "Aggregate payments independently to order grain before comparison or joining.", "Do not directly join raw payments to raw order items because child cardinalities can multiply values."),
-}
-
 
 def source_dictionary_records() -> list[dict]:
-    rows = []
-    key_lookup = {name: set(source.key) for name, source in SOURCES.items()}
+    required_columns: set[tuple[str, str]] = {
+        (rule.dataset, column)
+        for rule in RULES
+        if rule.active_flag and rule.kind == "required"
+        for column in rule.columns
+    }
+    rows: list[dict] = []
     fk_lookup = {(child, fk): f"{parent}.{pk}" for child, fk, parent, pk in RELATIONSHIPS}
     for dataset, source in SOURCES.items():
+        declared = FIELD_DETAILS.get(dataset, {})
+        if set(declared) != set(source.columns):
+            raise ValueError(
+                f"Curated dictionary coverage mismatch for {dataset}: "
+                f"missing={sorted(set(source.columns) - set(declared))}, "
+                f"unexpected={sorted(set(declared) - set(source.columns))}"
+            )
         for column in source.columns:
-            display, definition, recommended, avoid = FIELD_OVERRIDES.get(
-                (dataset, column),
+            definition, recommended, avoid = declared[column]
+            expected_type = (
+                "DOUBLE" if column in source.numeric
+                else "TIMESTAMP" if column in source.timestamps
+                else "STRING"
+            )
+            role = (
+                "candidate key" if column in source.key
+                else "foreign key" if (dataset, column) in fk_lookup
+                else ""
+            )
+            null_action = next(
                 (
-                    _humanize(column).title(),
-                    f"Source field {column} from the {dataset} dataset at grain: {source.grain}.",
-                    f"Use according to the governed {dataset} source contract and downstream transformations.",
-                    "Do not infer semantics beyond the governed source contract.",
+                    rule.action for rule in RULES
+                    if rule.dataset == dataset
+                    and rule.active_flag
+                    and rule.kind == "required"
+                    and column in rule.columns
                 ),
+                "",
             )
             rows.append(
                 {
                     "dataset": dataset,
                     "column_name": column,
-                    "display_name": display,
+                    "display_name": _humanize(column).title(),
                     "business_definition": definition,
-                    "source_type": "STRING in Bronze",
-                    "expected_type": "numeric" if column in source.numeric else "timestamp" if column in source.timestamps else "string",
-                    "nullable": column not in key_lookup[dataset],
-                    "key_role": "candidate key" if column in key_lookup[dataset] else ("foreign key" if (dataset, column) in fk_lookup else ""),
+                    "source_type": "STRING",
+                    "expected_type": expected_type,
+                    # This expresses the configured DQ expectation, not empirical null frequency.
+                    "nullable": (dataset, column) not in required_columns and column not in source.key,
+                    "null_failure_action": null_action,
+                    "key_role": role,
                     "relationship": fk_lookup.get((dataset, column), ""),
                     "sensitivity": "restricted" if dataset in {"customers", "reviews", "geolocation"} else "internal",
                     "example_value": "",
-                    "known_caveat": source.grain,
+                    "known_caveat": SOURCE_NOTES[dataset][0],
                     "recommended_use": recommended,
                     "avoid_use": avoid,
                 }
@@ -231,7 +245,7 @@ def source_contract_records() -> list[dict]:
         {
             "dataset": name,
             "source_file": source.filename,
-            "business_description": source.grain,
+            "business_description": SOURCE_NOTES[name][0],
             "grain": source.grain,
             "candidate_key": ", ".join(source.key),
             "parent_dataset": "; ".join(parents.get(name, [])),
@@ -240,11 +254,7 @@ def source_contract_records() -> list[dict]:
             "update_pattern": "Historical snapshot; POC batch simulation only",
             "sensitivity": "restricted" if name in {"customers", "reviews", "geolocation"} else "internal",
             "known_cardinality": source.grain,
-            "known_limitations": (
-                "Observation grain; many rows can share a ZIP prefix." if name == "geolocation"
-                else "Aggregate child tables independently before order-grain joins." if name in {"order_items", "payments", "reviews"}
-                else ""
-            ),
+            "known_limitations": SOURCE_NOTES[name][1],
             "owner": "Source Data Steward",
         }
         for name, source in SOURCES.items()
@@ -257,7 +267,9 @@ def metric_dictionary_records() -> list[dict]:
             "metric_id": metric.metric_id,
             "metric_name": metric.name,
             "business_definition": metric.definition,
-            "formula_sql": metric.formula,
+            # This is the governed formula description from Phase 1,
+            # NOT executable SQL; metric views will supply executable SQL.
+            "formula_description": metric.formula,
             "grain": metric.grain,
             "population": metric.assumption,
             "inclusions": "Accepted governed records satisfying the metric definition",
@@ -272,34 +284,70 @@ def metric_dictionary_records() -> list[dict]:
     ]
 
 
-RULE_METRIC_IMPACT = {
-    "orders.delivered_time": ["delivered_orders", "on_time_rate", "late_rate", "delivery_days", "delay_days"],
-    "orders.required_events": ["on_time_rate", "late_rate", "delivery_days", "delay_days"],
-    "orders.status": ["delivered_orders", "cancelled_orders", "gmv", "freight", "aov", "on_time_rate", "late_rate"],
-    "orders.required_key": ["total_orders", "delivered_orders", "cancelled_orders", "gmv", "freight", "aov", "on_time_rate", "late_rate"],
-    "orders.unique_key": ["total_orders", "delivered_orders", "cancelled_orders", "gmv", "freight", "aov", "on_time_rate", "late_rate"],
-    "customers.persistent_id": ["repeat_customer_rate"],
-    "reviews.score": ["review_score", "negative_review_rate"],
-    "products.category": [],
-    "products.fk_product_category_name": [],
+# Curated additional interpretation warnings: these do not automatically
+# exclude records, and they must not be advertised as measured KPI errors.
+RULE_IMPACT_OVERRIDES = {
+    "orders.delivered_time": ("delivered_orders", "gmv", "freight", "aov", "on_time_rate", "late_rate", "delivery_days", "delay_days", "review_score", "negative_review_rate", "repeat_customer_rate", "total_orders"),
+    "orders.lifecycle": ("delivery_days", "delay_days"),
+    "orders.payment_reconciliation": ("gmv", "freight", "aov"),
+    "customers.persistent_id": ("repeat_customer_rate",),
+    "reviews.score": ("review_score", "negative_review_rate"),
 }
 
 
+def _potential_metrics(rule: Rule) -> tuple[str, ...]:
+    if rule.rule_id in RULE_IMPACT_OVERRIDES:
+        return RULE_IMPACT_OVERRIDES[rule.rule_id]
+    # These are POTENTIAL dependencies, not observed attribution of a KPI delta.
+    if rule.dataset == "orders":
+        return tuple(m.metric_id for m in METRICS)
+    if rule.dataset == "customers" and rule.action == "QUARANTINE":
+        return tuple(m.metric_id for m in METRICS)  # accepted-parent orders may be excluded
+    if rule.dataset in {"order_items", "products", "sellers"} and rule.action == "QUARANTINE":
+        return ("gmv", "freight", "aov")
+    if rule.dataset == "reviews" and rule.action == "QUARANTINE":
+        return ("review_score", "negative_review_rate")
+    return ()
+
+
 def rule_metric_impact_records() -> list[dict]:
+    metric_ids = {metric.metric_id for metric in METRICS}
     rows = []
-    for rule_id, metric_ids in RULE_METRIC_IMPACT.items():
-        for metric_id in metric_ids:
+    for rule in RULES:
+        if not rule.active_flag:
+            continue
+        impacted = _potential_metrics(rule)
+        if not set(impacted).issubset(metric_ids):
+            raise ValueError(f"Unknown metric dependency for {rule.rule_id}")
+        is_gate = rule.severity == "CRITICAL" or rule.action == "FAIL"
+        action_type = (
+            "PUBLICATION_BLOCK" if is_gate
+            else "POTENTIAL_EXCLUSION" if rule.action == "QUARANTINE"
+            else "QUALITY_WARNING" if impacted
+            else "NO_DIRECT_KPI_EFFECT"
+        )
+        direction = (
+            "current_published_snapshot_retained" if is_gate
+            else "accepted_population_may_shrink" if rule.action == "QUARANTINE"
+            else "no_direct_row_exclusion"
+        )
+        explanation = (
+            "A failed critical/FAIL gate prevents a new Gold snapshot from being published; prior published metrics remain current."
+            if is_gate else
+            "If this rule fails, offending rows are excluded from accepted entities (and dependent rows may be excluded); metric changes depend on the actual affected cohort."
+            if rule.action == "QUARANTINE" else
+            "A failed WARN control retains source rows. The rule is an interpretation/coverage signal, not by itself a measured KPI error."
+        )
+        for metric_id in impacted or (None,):
             rows.append(
                 {
-                    "rule_id": rule_id,
+                    "rule_id": rule.rule_id,
                     "metric_id": metric_id,
-                    "impact_type": "EXCLUSION" if next(r for r in RULES if r.rule_id == rule_id).action == "QUARANTINE" else "QUALITY_SIGNAL",
-                    "impact_direction": "population_reduction" if next(r for r in RULES if r.rule_id == rule_id).action == "QUARANTINE" else "no_direct_exclusion",
-                    "explanation": (
-                        "Records failing this quarantining rule are excluded before the governed metric is calculated."
-                        if next(r for r in RULES if r.rule_id == rule_id).action == "QUARANTINE"
-                        else "The rule is disclosed as a quality signal but does not directly remove records from this metric."
-                    ),
+                    "affected_asset": metric_id or f"{rule.dataset}_quality_and_segmentation",
+                    "impact_type": action_type,
+                    "impact_direction": direction,
+                    "evidence_status": "POTENTIAL_DEPENDENCY_NOT_OBSERVED_DELTA",
+                    "explanation": explanation,
                 }
             )
     return rows

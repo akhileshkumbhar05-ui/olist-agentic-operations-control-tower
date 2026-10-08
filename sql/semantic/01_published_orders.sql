@@ -1,5 +1,5 @@
 -- Phase 2 product writes ONLY to workspace.olist_semantic.
--- The underlying Phase 1 Gold/Quality tables are read-only references.
+-- The underlying independent Phase 2 Gold/Quality tables are read-only references.
 -- This view pins results to the currently published, quality-gated snapshot.
 CREATE SCHEMA IF NOT EXISTS workspace.olist_semantic;
 
@@ -22,7 +22,7 @@ SELECT
   is_late,
   delivery_days,
   delay_days
-FROM workspace.olist_gold.fact_orders
+FROM workspace.olist_agentic_gold.fact_orders
 WHERE pipeline_run_id = (
-  SELECT run_id FROM workspace.olist_quality.published_run
+  SELECT run_id FROM workspace.olist_agentic_quality.published_run
 );

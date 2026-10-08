@@ -1,11 +1,7 @@
-"""One repeatable entry point for Phase 2 governance + semantic publication.
+"""Orchestrated independent Phase 2 ETL, governance and semantic publication.
 
-Future pipeline stages will be added as independently validated tasks instead of
-requiring a new interactive notebook cell for every change.
-
-This job does not run the original POC ETL and does not modify its Bronze,
-Silver, Gold or Quality tables. Semantic views refer to the original published
-snapshot read-only until the independent Phase 2 ETL is implemented.
+--apply executes the source-to-Gold pipeline in isolated olist_agentic_* schemas.
+Neither code nor write paths target Phase 1 data tables.
 """
 
 from __future__ import annotations
@@ -22,6 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from olist_agentic.config import Config
 from pipelines.governance_publish import validate_catalogs, publish as publish_governance
 from pipelines.semantic_publish import statements, publish as publish_semantic
+from pipelines.independent_etl import ETLConfig, execute as execute_etl
 
 
 def plan() -> dict:
@@ -39,11 +36,9 @@ def plan() -> dict:
             "workspace.olist_semantic.v_published_orders",
             "workspace.olist_semantic.mv_order_operations",
         ],
-        "read_only_dependencies": [
-            "workspace.olist_gold.fact_orders",
-            "workspace.olist_quality.published_run",
-        ],
-        "warning": "No independent Phase 2 ETL has been deployed yet.",
+        "write_schemas": ["workspace.olist_agentic_bronze", "workspace.olist_agentic_silver", "workspace.olist_agentic_gold", "workspace.olist_agentic_quality"],
+        "read_only_dependencies": [],
+        "steps": ["independent_etl", "governance_publish", "semantic_publish", "semantic_validation"],
     }
 
 
@@ -56,15 +51,16 @@ def _single_scalar(spark, sql: str):
 
 def deploy(spark) -> dict:
     """Publish only new governance and semantic assets; verify key source KPIs."""
+    etl_audit = execute_etl(spark, ETLConfig())
     current_run = _single_scalar(
         spark,
-        "SELECT run_id FROM workspace.olist_quality.published_run",
+        "SELECT run_id FROM workspace.olist_agentic_quality.published_run",
     )
     if not current_run:
         raise ValueError("No Phase 1 published snapshot exists; do not deploy")
     expected_orders = _single_scalar(
         spark,
-        f"SELECT COUNT(*) FROM workspace.olist_gold.fact_orders "
+        f"SELECT COUNT(*) FROM workspace.olist_agentic_gold.fact_orders "
         f"WHERE pipeline_run_id = '{current_run}'",
     )
     if int(expected_orders) != 99433:
@@ -125,6 +121,7 @@ def deploy(spark) -> dict:
     return {
         "status": "PASSED",
         "source_published_run": str(current_run),
+        "etl_audit": etl_audit,
         "published_governance_tables": governance_counts,
         "published_semantic_objects": semantic_objects,
         "smoke_test_metrics": measured,

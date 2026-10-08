@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__ if "__file__" in globals() else __import__("inspect").currentframe().f_code.co_filename).resolve().parents[1]
 sys.path[:0] = [str(ROOT), str(ROOT / "src")]
 
 from olist_agentic.domain.sources import SOURCES

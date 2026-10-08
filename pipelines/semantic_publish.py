@@ -35,7 +35,7 @@ def statements(catalog: str = "workspace", prefix: str = "olist") -> list[str]:
     # Files are reviewed POC assets with fixed source identifiers. Generic
     # multi-catalog parameterization is intentionally NOT supported yet.
     if catalog != "workspace" or prefix != "olist":
-        raise ValueError("Current semantic assets are pinned to workspace.olist_*; only default catalog/prefix are supported.")
+        raise ValueError("Current semantic assets use fixed workspace.olist_agentic_* sources and workspace.olist_semantic targets; only defaults are supported.")
     base = PUBLISHED_ORDERS_SQL.read_text(encoding="utf-8")
     setup = [
         s.strip() for s in re.sub(r"(?m)^--[^\n]*\n", "", base).split(";")

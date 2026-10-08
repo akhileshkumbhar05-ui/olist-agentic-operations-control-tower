@@ -18,7 +18,7 @@
       "name": "metric_baseline",
       "displayName": "metric_baseline",
       "queryLines": [
-        "SELECT MEASURE(total_orders) AS total_orders,MEASURE(delivered_orders) AS delivered_orders,MEASURE(gmv) AS delivered_item_gmv,MEASURE(late_rate) AS late_rate FROM workspace.olist_semantic.mv_order_operations\n"
+        "SELECT MEASURE(total_orders) AS total_orders,\nMEASURE(delivered_orders) AS delivered_orders,\nMEASURE(gmv) AS delivered_item_gmv,\nMEASURE(late_rate) AS late_rate,\nMEASURE(on_time_rate) AS on_time_rate,\nMEASURE(negative_review_rate) AS negative_review_rate\nFROM workspace.olist_semantic.mv_order_operations\n"
       ]
     },
     {
@@ -40,6 +40,20 @@
       "displayName": "dictionary",
       "queryLines": [
         "SELECT metric_name,business_definition,formula_description,unit,known_caveat FROM workspace.olist_governance.metric_dictionary\n"
+      ]
+    },
+    {
+      "name": "state_delivery_rates",
+      "displayName": "State late-delivery rates (eligible denominator)",
+      "queryLines": [
+        "SELECT customer_state,\nSUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END) AS late_deliveries,\nSUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END) AS eligible_deliveries,\nROUND(100.0 * SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END)\n  / NULLIF(SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END), 0), 4) AS late_rate_pct\nFROM workspace.olist_semantic.v_published_orders\nGROUP BY customer_state\n"
+      ]
+    },
+    {
+      "name": "quality_snapshot",
+      "displayName": "Published-run quality summary",
+      "queryLines": [
+        "SELECT s.quality_score,s.failed_rules,s.quarantined_records,s.readiness\nFROM workspace.olist_agentic_quality.dq_run_summary s\nJOIN workspace.olist_agentic_quality.published_run p ON s.run_id=p.run_id\n"
       ]
     }
   ],
@@ -283,6 +297,225 @@
             "width": 3,
             "height": 6
           }
+        },
+        {
+          "widget": {
+            "name": "ops_late_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "metric_baseline",
+                  "fields": [
+                    {
+                      "name": "late_rate",
+                      "expression": "`late_rate`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "late_rate",
+                  "displayName": "Late delivery rate · eligible (%)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Late delivery rate · eligible (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ops_on_time_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "metric_baseline",
+                  "fields": [
+                    {
+                      "name": "on_time_rate",
+                      "expression": "`on_time_rate`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "on_time_rate",
+                  "displayName": "On-time delivery rate (%)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "On-time delivery rate (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 10,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ops_negative_review",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "metric_baseline",
+                  "fields": [
+                    {
+                      "name": "negative_review_rate",
+                      "expression": "`negative_review_rate`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "negative_review_rate",
+                  "displayName": "Negative review rate (%)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Negative review rate (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 10,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ops_state_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "state_delivery_rates",
+                  "fields": [
+                    {
+                      "name": "customer_state",
+                      "expression": "`customer_state`"
+                    },
+                    {
+                      "name": "late_rate_pct",
+                      "expression": "SUM(`late_rate_pct`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "customer_state",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "late_rate_pct",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Late delivery rate by customer state (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "ops_monthly_orders",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "orders",
+                  "fields": [
+                    {
+                      "name": "purchase_month",
+                      "expression": "`purchase_month`"
+                    },
+                    {
+                      "name": "total_orders",
+                      "expression": "SUM(`total_orders`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "purchase_month",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "total_orders",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Historical orders by purchase month"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
         }
       ],
       "pageType": "PAGE_TYPE_CANVAS"
@@ -401,7 +634,7 @@
           },
           "position": {
             "x": 0,
-            "y": 2,
+            "y": 4,
             "width": 6,
             "height": 10
           }
@@ -467,9 +700,126 @@
           },
           "position": {
             "x": 0,
-            "y": 12,
+            "y": 14,
             "width": 6,
             "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "quality_pass_score",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "quality_snapshot",
+                  "fields": [
+                    {
+                      "name": "quality_score",
+                      "expression": "`quality_score`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "quality_score",
+                  "displayName": "Quality opportunity pass rate (%)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Quality opportunity pass rate (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "quality_rule_failures",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "quality_snapshot",
+                  "fields": [
+                    {
+                      "name": "failed_rules",
+                      "expression": "`failed_rules`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "failed_rules",
+                  "displayName": "Failed DQ rule definitions"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failed DQ rule definitions"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "quality_quarantined",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "quality_snapshot",
+                  "fields": [
+                    {
+                      "name": "quarantined_records",
+                      "expression": "`quarantined_records`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "quarantined_records",
+                  "displayName": "Distinct quarantined records"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Distinct quarantined records"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
           }
         }
       ],

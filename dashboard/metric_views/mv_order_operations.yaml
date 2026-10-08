@@ -1,7 +1,7 @@
 version: 1.1
 comment: >-
   Governed Olist order-grain operations measures. All measures use the currently
-  published, quality-gated historical source snapshot. GMV excludes freight and
+  published, quality-gated independent Phase 2 historical source snapshot. GMV excludes freight and
   is not accounting revenue. Delivery lateness uses calendar-date comparison.
 source: workspace.olist_semantic.v_published_orders
 fields:

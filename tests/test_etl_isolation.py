@@ -42,3 +42,32 @@ def test_foundation_does_not_depend_on_old_poc_tables():
         "semantic_publish",
         "semantic_validation",
     ]
+
+
+def test_audit_finalizer_rejects_invalid_status_and_run_ids():
+    from pipelines.independent_etl import finalize_audit, ETLConfig
+    import pytest
+
+    class FakeSpark:
+        def sql(self, statement):
+            raise AssertionError("Should never write for invalid inputs")
+
+    with pytest.raises(ValueError):
+        finalize_audit(FakeSpark(), ETLConfig(), "invalid", "SUCCEEDED")
+    with pytest.raises(ValueError):
+        finalize_audit(FakeSpark(), ETLConfig(), "a" * 32, "RUNNING")
+
+
+def test_audit_finalizer_targets_only_agentic_quality():
+    from pipelines.independent_etl import finalize_audit, ETLConfig
+
+    class FakeSpark:
+        statements = []
+        def sql(self, statement):
+            self.statements.append(statement)
+
+    spark = FakeSpark()
+    finalize_audit(spark, ETLConfig(), "a" * 32, "SUCCEEDED")
+    assert len(spark.statements) == 1
+    assert "workspace.olist_agentic_quality.pipeline_run_audit" in spark.statements[0]
+    assert "status = 'STAGED'" in spark.statements[0]

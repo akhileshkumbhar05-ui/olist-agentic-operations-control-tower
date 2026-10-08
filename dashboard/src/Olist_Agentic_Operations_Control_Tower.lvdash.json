@@ -1,0 +1,624 @@
+{
+  "datasets": [
+    {
+      "name": "orders",
+      "displayName": "orders",
+      "queryLines": [
+        "SELECT date_trunc('MONTH',purchase_date) AS purchase_month,customer_state,order_status,\n",
+        "COUNT(*) AS total_orders,\n",
+        "SUM(CASE WHEN is_delivered THEN 1 ELSE 0 END) AS delivered_orders,\n",
+        "SUM(CASE WHEN is_delivered THEN COALESCE(item_gmv,0) ELSE 0 END) AS delivered_item_gmv,\n",
+        "SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END) AS late_orders\n",
+        "FROM workspace.olist_semantic.v_published_orders\n",
+        "GROUP BY 1,2,3\n"
+      ]
+    },
+    {
+      "name": "metric_baseline",
+      "displayName": "metric_baseline",
+      "queryLines": [
+        "SELECT MEASURE(total_orders) AS total_orders,MEASURE(delivered_orders) AS delivered_orders,MEASURE(gmv) AS delivered_item_gmv,MEASURE(late_rate) AS late_rate FROM workspace.olist_semantic.mv_order_operations\n"
+      ]
+    },
+    {
+      "name": "rule_results",
+      "displayName": "rule_results",
+      "queryLines": [
+        "SELECT r.rule_id,r.dataset,r.status,r.action,r.records_failed,g.plain_english_description,g.why_this_action,g.downstream_effect FROM workspace.olist_agentic_quality.dq_rule_results r JOIN workspace.olist_agentic_quality.published_run p ON p.run_id=r.run_id LEFT JOIN workspace.olist_governance.dq_rules g ON r.rule_id=g.rule_id\n"
+      ]
+    },
+    {
+      "name": "quarantine",
+      "displayName": "quarantine",
+      "queryLines": [
+        "SELECT q.dataset,q.rule_id,q.source_record_id,q.failure_reason FROM workspace.olist_agentic_quality.quarantine q JOIN workspace.olist_agentic_quality.published_run p ON p.run_id=q.run_id\n"
+      ]
+    },
+    {
+      "name": "dictionary",
+      "displayName": "dictionary",
+      "queryLines": [
+        "SELECT metric_name,business_definition,formula_description,unit,known_caveat FROM workspace.olist_governance.metric_dictionary\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "operations",
+      "displayName": "Operations Analytics",
+      "layout": [
+        {
+          "widget": {
+            "name": "ops_intro",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Operations Intelligence",
+                "Historical Olist dataset; delivered item GMV excludes freight and is not accounting revenue. Use governed published-run data."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ops_orders",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "metric_baseline",
+                  "fields": [
+                    {
+                      "name": "total_orders",
+                      "expression": "`total_orders`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_orders",
+                  "displayName": "Accepted orders"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Accepted orders"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ops_delivered",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "metric_baseline",
+                  "fields": [
+                    {
+                      "name": "delivered_orders",
+                      "expression": "`delivered_orders`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "delivered_orders",
+                  "displayName": "Delivered orders"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Delivered orders"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ops_gmv",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "metric_baseline",
+                  "fields": [
+                    {
+                      "name": "delivered_item_gmv",
+                      "expression": "`delivered_item_gmv`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "delivered_item_gmv",
+                  "displayName": "Delivered item GMV (BRL)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Delivered item GMV (BRL)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ops_state",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "orders",
+                  "fields": [
+                    {
+                      "name": "customer_state",
+                      "expression": "`customer_state`"
+                    },
+                    {
+                      "name": "total_orders",
+                      "expression": "SUM(`total_orders`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "customer_state",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "total_orders",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Orders by customer state"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "ops_late",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "orders",
+                  "fields": [
+                    {
+                      "name": "customer_state",
+                      "expression": "`customer_state`"
+                    },
+                    {
+                      "name": "late_orders",
+                      "expression": "SUM(`late_orders`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "customer_state",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "late_orders",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Late deliveries by customer state (count)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 4,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "quality",
+      "displayName": "Data Trust & Quality",
+      "layout": [
+        {
+          "widget": {
+            "name": "quality_intro",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Data Trust & Explainability",
+                "WARN retains records, QUARANTINE excludes offending records and may cascade to child rows, FAIL blocks new publication. Warnings are not measured KPI errors."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "quality_rules",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "rule_results",
+                  "fields": [
+                    {
+                      "name": "rule_id",
+                      "expression": "`rule_id`"
+                    },
+                    {
+                      "name": "dataset",
+                      "expression": "`dataset`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "action",
+                      "expression": "`action`"
+                    },
+                    {
+                      "name": "records_failed",
+                      "expression": "`records_failed`"
+                    },
+                    {
+                      "name": "plain_english_description",
+                      "expression": "`plain_english_description`"
+                    },
+                    {
+                      "name": "why_this_action",
+                      "expression": "`why_this_action`"
+                    },
+                    {
+                      "name": "downstream_effect",
+                      "expression": "`downstream_effect`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "rule_id",
+                    "title": "rule id",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "dataset",
+                    "title": "dataset",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "status",
+                    "title": "status",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "action",
+                    "title": "action",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "records_failed",
+                    "title": "records failed",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "plain_english_description",
+                    "title": "plain english description",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "why_this_action",
+                    "title": "why this action",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "downstream_effect",
+                    "title": "downstream effect",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "All governed rule results and explanations"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "quality_quarantine",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "quarantine",
+                  "fields": [
+                    {
+                      "name": "dataset",
+                      "expression": "`dataset`"
+                    },
+                    {
+                      "name": "rule_id",
+                      "expression": "`rule_id`"
+                    },
+                    {
+                      "name": "source_record_id",
+                      "expression": "`source_record_id`"
+                    },
+                    {
+                      "name": "failure_reason",
+                      "expression": "`failure_reason`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataset",
+                    "title": "dataset",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "rule_id",
+                    "title": "rule id",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "source_record_id",
+                    "title": "source record id",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "failure_reason",
+                    "title": "failure reason",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Quarantined rows (source ID only; no sensitive payload)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 6,
+            "height": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "governance",
+      "displayName": "Governed Metric Definitions",
+      "layout": [
+        {
+          "widget": {
+            "name": "gov_intro",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Governance & Definitions",
+                "Metric formulas and population rules are exposed so dashboards and the future Copilot can explain every KPI."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "gov_dictionary",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dictionary",
+                  "fields": [
+                    {
+                      "name": "metric_name",
+                      "expression": "`metric_name`"
+                    },
+                    {
+                      "name": "business_definition",
+                      "expression": "`business_definition`"
+                    },
+                    {
+                      "name": "formula_description",
+                      "expression": "`formula_description`"
+                    },
+                    {
+                      "name": "unit",
+                      "expression": "`unit`"
+                    },
+                    {
+                      "name": "known_caveat",
+                      "expression": "`known_caveat`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "metric_name",
+                    "title": "metric name",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "business_definition",
+                    "title": "business definition",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "formula_description",
+                    "title": "formula description",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "unit",
+                    "title": "unit",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  },
+                  {
+                    "fieldName": "known_caveat",
+                    "title": "known caveat",
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Governed metric dictionary"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 10
+          }
+        }
+      ]
+    }
+  ]
+}

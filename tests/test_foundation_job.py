@@ -13,10 +13,9 @@ def test_plan_contains_eight_governance_tables_and_two_semantic_objects():
     assert result["governance_tables"]["dq_rules"] == 88
     assert result["governance_tables"]["source_dictionary"] == 52
     assert result["governance_tables"]["metric_dictionary"] == 13
-    assert result["read_only_dependencies"] == [
-        "workspace.olist_gold.fact_orders",
-        "workspace.olist_quality.published_run",
-    ]
+    assert result["read_only_dependencies"] == []
+    assert "workspace.olist_agentic_gold" in result["write_schemas"]
+    assert result["steps"][0] == "independent_etl"
 
 
 def test_dry_run_requires_no_spark():
@@ -29,4 +28,4 @@ def test_dry_run_requires_no_spark():
         check=True,
     )
     assert '"mode": "DRY_RUN"' in p.stdout
-    assert '"warning": "No independent Phase 2 ETL has been deployed yet."' in p.stdout
+    assert '"steps": [' in p.stdout

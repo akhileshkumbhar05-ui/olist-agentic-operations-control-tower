@@ -52,7 +52,7 @@
             "name": "ops_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Operations Intelligence",
+                "# Operations Intelligence\n\n",
                 "Historical Olist dataset; delivered item GMV excludes freight and is not accounting revenue. Use governed published-run data."
               ]
             }
@@ -283,7 +283,8 @@
             "height": 6
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     },
     {
       "name": "quality",
@@ -294,7 +295,7 @@
             "name": "quality_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Data Trust & Explainability",
+                "# Data Trust & Explainability\n\n",
                 "WARN retains records, QUARANTINE excludes offending records and may cascade to child rows, FAIL blocks new publication. Warnings are not measured KPI errors."
               ]
             }
@@ -353,65 +354,41 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
                   {
                     "fieldName": "rule_id",
-                    "title": "rule id",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "rule id"
                   },
                   {
                     "fieldName": "dataset",
-                    "title": "dataset",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "dataset"
                   },
                   {
                     "fieldName": "status",
-                    "title": "status",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "status"
                   },
                   {
                     "fieldName": "action",
-                    "title": "action",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "action"
                   },
                   {
                     "fieldName": "records_failed",
-                    "title": "records failed",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "records failed"
                   },
                   {
                     "fieldName": "plain_english_description",
-                    "title": "plain english description",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "plain english description"
                   },
                   {
                     "fieldName": "why_this_action",
-                    "title": "why this action",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "why this action"
                   },
                   {
                     "fieldName": "downstream_effect",
-                    "title": "downstream effect",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "downstream effect"
                   }
                 ]
               },
@@ -459,37 +436,25 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
                   {
                     "fieldName": "dataset",
-                    "title": "dataset",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "dataset"
                   },
                   {
                     "fieldName": "rule_id",
-                    "title": "rule id",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "rule id"
                   },
                   {
                     "fieldName": "source_record_id",
-                    "title": "source record id",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "source record id"
                   },
                   {
                     "fieldName": "failure_reason",
-                    "title": "failure reason",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "failure reason"
                   }
                 ]
               },
@@ -506,7 +471,8 @@
             "height": 8
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     },
     {
       "name": "governance",
@@ -517,7 +483,7 @@
             "name": "gov_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Governance & Definitions",
+                "# Governance & Definitions\n\n",
                 "Metric formulas and population rules are exposed so dashboards and the future Copilot can explain every KPI."
               ]
             }
@@ -564,44 +530,29 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
                   {
                     "fieldName": "metric_name",
-                    "title": "metric name",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "metric name"
                   },
                   {
                     "fieldName": "business_definition",
-                    "title": "business definition",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "business definition"
                   },
                   {
                     "fieldName": "formula_description",
-                    "title": "formula description",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "formula description"
                   },
                   {
                     "fieldName": "unit",
-                    "title": "unit",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "unit"
                   },
                   {
                     "fieldName": "known_caveat",
-                    "title": "known caveat",
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true
+                    "displayName": "known caveat"
                   }
                 ]
               },
@@ -618,7 +569,8 @@
             "height": 10
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ]
 }

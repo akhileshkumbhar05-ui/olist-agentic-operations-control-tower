@@ -50,33 +50,110 @@ def prepare(question: str, context: Context, execute_sql) -> dict:
 
 
 def fallback_answer(question: str, evidence: dict) -> str:
-    """Useful deterministic explanation when no hosted LLM is provisioned."""
-    pub = evidence["tools"]["publication"][0]
-    lines = [f"**Published snapshot:** `{evidence['published_run']}`.",
-             f"**Data trust:** {pub['readiness']} ({pub['quality_score']}% rule-record opportunity pass rate). "
-             f"{pub['quarantined_records']} distinct source records quarantined; "
-             f"{pub['failed_rules']} failed quality rules."]
-    for row in evidence["tools"].get("state_delivery", [])[:8]:
-        rate = row.get("late_delivery_rate_pct")
-        rate = float(rate) if rate is not None else None
-        lines.append(f"- **{row['customer_state']}:** {int(row['late_deliveries']):,} late / "
-                     f"{int(row['eligible_deliveries']):,} eligible deliveries "
-                     f"({rate:.2f}% if the denominator is nonzero)."
-                     if rate is not None else f"- **{row['customer_state']}:** No eligible deliveries.")
-    for row in evidence["tools"].get("failed_rules", [])[:8]:
-        lines.append(f"- **{row['rule_id']}** ({row['action']}, {int(row['records_failed']):,} failed evaluations): "
-                     f"{row.get('plain_english_description') or 'See governed DQ definition.'} "
-                     f"{row.get('downstream_effect') or ''}")
-    for row in evidence["tools"].get("quarantine_breakdown", []):
-        lines.append(f"- Quarantine in **{row['dataset']}**: {row['distinct_quarantined']} distinct records.")
-    if evidence["knowledge"]:
-        lines.append("**Governed references:** " + ", ".join(
-            f"`{v['source']}:{v['id']}`" for v in evidence["knowledge"][:5]))
-    else:
-        lines.append("No matching governance text was retrieved.")
-    lines.append("Numbers are computed by allowlisted SQL. Explanatory language is rule metadata, not a causal inference.")
-    return "\n\n".join(lines)
+    """Question-focused deterministic explanation with governed SQL provenance.
 
+    Keep this useful when model inference is unavailable. This answer is intentionally
+    plain text because the App UI currently renders text safely without Markdown.
+    """
+    from decimal import Decimal
+
+    tools = evidence["tools"]
+    pub = tools["publication"][0]
+    lines = [f"Published Olist snapshot: {evidence['published_run']}"]
+
+    gmv = tools.get("gmv_summary", [])
+    if gmv:
+        row = gmv[0]
+        value = Decimal(str(row.get("delivered_item_gmv_brl") or 0))
+        lines.append(
+            f"Delivered item GMV: BRL {value:,.2f} across "
+            f"{int(row.get('delivered_orders') or 0):,} delivered orders "
+            f"({int(row.get('accepted_orders') or 0):,} accepted orders in scope)."
+        )
+        lines.append(
+            "Definition: merchandise value of delivered items in the accepted, "
+            "published data. Freight is excluded; GMV is not accounting revenue. "
+            "The figure reflects the selected geographic and date scope."
+        )
+
+    # For a geography question, compare the correct eligible-delivery denominators.
+    # Avoid flooding a GMV/trust question with unrelated state rankings.
+    delivery_rows = tools.get("state_delivery", []) if not gmv else []
+    by_state = {}
+    for row in delivery_rows[:27]:
+        state = str(row["customer_state"])
+        late = int(row["late_deliveries"])
+        eligible = int(row["eligible_deliveries"])
+        rate = (100 * late / eligible) if eligible else None
+        by_state[state] = rate
+        if rate is None:
+            lines.append(f"{state}: No eligible deliveries; late-delivery rate undefined.")
+        else:
+            lines.append(
+                f"{state}: {late:,} late out of {eligible:,} eligible deliveries "
+                f"({rate:.2f}% late)."
+            )
+    if len(by_state) == 2 and "RJ" in by_state and "SP" in by_state:
+        rj, sp = by_state["RJ"], by_state["SP"]
+        if rj is not None and sp is not None:
+            higher = "RJ" if rj > sp else "SP" if sp > rj else None
+            if higher:
+                lines.append(
+                    f"Comparison: {higher} has the higher late-delivery rate by "
+                    f"{abs(rj - sp):.2f} percentage points. The rates use eligible "
+                    "deliveries, not all orders."
+                )
+
+    failed = tools.get("failed_rules", [])
+    if failed:
+        # Present actual quarantining rules first, rather than leading with WARN counts.
+        quarantine_rules = [r for r in failed if r.get("action") == "QUARANTINE"]
+        if quarantine_rules:
+            lines.append("Why records were quarantined:")
+            for row in quarantine_rules:
+                lines.append(
+                    f"{row['rule_id']} ({int(row['records_failed']):,} failed evaluations): "
+                    f"{row.get('plain_english_description') or 'See governance rule metadata.'} "
+                    f"{row.get('downstream_effect') or ''}".strip()
+                )
+        warn = [r for r in failed if r.get("action") == "WARN"]
+        if warn:
+            lines.append(
+                f"Additional warnings: {len(warn)} warning-rule definitions failed. "
+                "Warnings remain visible and must not be treated as proof that "
+                "every source record is flawless."
+            )
+
+    quarantine = tools.get("quarantine_breakdown", [])
+    if quarantine:
+        breakdown = ", ".join(
+            f"{row['dataset']}: {int(row['distinct_quarantined']):,}"
+            for row in quarantine
+        )
+        lines.append(f"Quarantined source records by dataset: {breakdown}.")
+
+    if evidence.get("route") in ("TRUST", "HYBRID"):
+        lines.append(
+            f"Trust assessment: {pub['readiness']} readiness; "
+            f"{pub['quality_score']}% rule-record opportunity pass rate; "
+            f"{int(pub['quarantined_records']):,} distinct source records quarantined; "
+            f"{int(pub['failed_rules'])} failed quality-rule definitions. "
+            "The published metric is usable with these data-quality qualifications; "
+            "this is not an independent financial audit or a guarantee of correctness."
+        )
+
+    sources = ["workspace.olist_agentic_quality.published_run",
+               "workspace.olist_agentic_quality.dq_run_summary"]
+    if "state_delivery" in tools or gmv:
+        sources.append("workspace.olist_semantic.v_published_orders")
+    if failed:
+        sources.extend(["workspace.olist_agentic_quality.dq_rule_results",
+                        "workspace.olist_governance.dq_rules"])
+    if quarantine:
+        sources.append("workspace.olist_agentic_quality.quarantine")
+    lines.append("SQL evidence sources: " + ", ".join(sources) + ".")
+    lines.append("This is a historical Olist dataset, not live operations.")
+    return "\n\n".join(lines)
 
 def model_answer(question: str, evidence: dict, client, endpoint: str) -> str:
     """Use configured hosted endpoint solely for grounded narrative, never SQL."""

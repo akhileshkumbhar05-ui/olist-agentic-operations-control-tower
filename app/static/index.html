@@ -39,9 +39,20 @@ document.getElementById("pageTitle").textContent=kind==="genie"?"Genie / Native 
 document.getElementById("pageText").textContent=kind==="genie"?"Genie is an optional backup, accessed via the published Databricks AI/BI dashboard. It does not power the custom Copilot.":"Native AI/BI dashboard with current published metrics and governance facts.";
 const mount=document.getElementById("dashboardMount");mount.replaceChildren();
 if(!dashboardUrl){mount.textContent="Set DATABRICKS_DASHBOARD_URL in the Databricks App configuration to connect the published dashboard.";return}
-const link=document.createElement("a");link.href=dashboardUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent=kind==="genie"?"Open published dashboard and Ask Genie ↗":"Open native Databricks dashboard ↗";
+const link=document.createElement("a");link.href=dashboardUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent=kind==="genie"?"Open Genie-enabled published dashboard ↗":"Open published dashboard ↗";
 mount.appendChild(link);
-if(kind==="dashboard"){const frame=document.createElement("iframe");frame.src=dashboardUrl;frame.title="Published Databricks AI/BI dashboard";frame.loading="lazy";mount.appendChild(frame)}
+const frame=document.createElement("iframe");
+frame.src=dashboardUrl;
+frame.title=kind==="genie"?"Genie-enabled published Databricks dashboard":"Published Databricks AI/BI dashboard";
+frame.loading="lazy";
+frame.setAttribute("referrerpolicy","strict-origin-when-cross-origin");
+mount.appendChild(frame);
+if(kind==="genie"){
+  const tip=document.createElement("p");
+  tip.className="muted";
+  tip.textContent="Use the dashboard's Ask Genie control inside the frame if available. If your browser or workspace policy blocks it, open the dashboard in a new tab.";
+  mount.appendChild(tip)
+}
 }
 async function ask(){
 const button=document.getElementById("askBtn");button.disabled=true;document.getElementById("status").textContent="Running allowlisted SQL tools…";

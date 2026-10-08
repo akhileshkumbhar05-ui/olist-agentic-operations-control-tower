@@ -1,4 +1,4 @@
-command: ['uvicorn', 'app.main:app', '--host', '0.0.0.0', '--port', 'DATABRICKS_APP_PORT']
+command: ['sh', '-c', 'uvicorn app.main:app --host 0.0.0.0 --port ${DATABRICKS_APP_PORT:-8000}']
 env:
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: sql-warehouse

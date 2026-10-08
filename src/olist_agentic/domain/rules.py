@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+import json
 
 from olist_agentic.domain.sources import RELATIONSHIPS, SOURCES
 
@@ -24,6 +25,15 @@ class Rule:
     owner: str = "Data Quality Steward"
     active_flag: bool = True
     version: int = 1
+
+    def record(self):
+        result = asdict(self)
+        result['column_or_relationship'] = ', '.join(self.columns)
+        result['expected_condition'] = self.description or self.rule_name
+        result['rule_description'] = self.description or self.rule_name
+        for key in ('columns', 'values'):
+            result[key] = json.dumps(result[key])
+        return result
 
 
 def catalog() -> list[Rule]:

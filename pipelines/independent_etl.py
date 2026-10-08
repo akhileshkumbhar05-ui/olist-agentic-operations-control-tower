@@ -212,6 +212,24 @@ def execute(spark, config: ETLConfig, source: Path | None = None, *, publish: bo
     return audit
 
 
+
+def finalize_audit(spark, config: ETLConfig, run_id: str, status: str) -> None:
+    """Mark the ETL audit only after the orchestrator validates publication.
+
+    An ETL that merely materialized Gold stays STAGED until the semantic
+    checks pass; a failed validation is never recorded as SUCCEEDED.
+    """
+    if not re.fullmatch(r"[0-9a-f]{32}", run_id):
+        raise ValueError("Invalid ETL run ID")
+    if status not in {"SUCCEEDED", "VALIDATION_FAILED"}:
+        raise ValueError("Unsupported final audit status")
+    table = config.table("quality", "pipeline_run_audit")
+    spark.sql(
+        f"UPDATE {table} SET status = '{status}' "
+        f"WHERE run_id = '{run_id}' AND status = 'STAGED'"
+    )
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--catalog", default="workspace")

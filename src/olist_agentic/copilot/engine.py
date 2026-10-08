@@ -55,12 +55,13 @@ def fallback_answer(question: str, evidence: dict) -> str:
              f"{pub['failed_rules']} failed quality rules."]
     for row in evidence["tools"].get("state_delivery", [])[:8]:
         rate = row.get("late_delivery_rate_pct")
-        lines.append(f"- **{row['customer_state']}:** {row['late_deliveries']:,} late / "
-                     f"{row['eligible_deliveries']:,} eligible deliveries "
+        rate = float(rate) if rate is not None else None
+        lines.append(f"- **{row['customer_state']}:** {int(row['late_deliveries']):,} late / "
+                     f"{int(row['eligible_deliveries']):,} eligible deliveries "
                      f"({rate:.2f}% if the denominator is nonzero)."
                      if rate is not None else f"- **{row['customer_state']}:** No eligible deliveries.")
     for row in evidence["tools"].get("failed_rules", [])[:8]:
-        lines.append(f"- **{row['rule_id']}** ({row['action']}, {row['records_failed']:,} failed evaluations): "
+        lines.append(f"- **{row['rule_id']}** ({row['action']}, {int(row['records_failed']):,} failed evaluations): "
                      f"{row.get('plain_english_description') or 'See governed DQ definition.'} "
                      f"{row.get('downstream_effect') or ''}")
     for row in evidence["tools"].get("quarantine_breakdown", []):

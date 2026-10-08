@@ -50,83 +50,68 @@ def _single_scalar(spark, sql: str):
 
 
 def deploy(spark) -> dict:
-    """Publish only new governance and semantic assets; verify key source KPIs."""
-    etl_audit = execute_etl(spark, ETLConfig())
-    current_run = _single_scalar(
-        spark,
-        "SELECT run_id FROM workspace.olist_agentic_quality.published_run",
-    )
-    if not current_run:
-        raise ValueError("No Phase 1 published snapshot exists; do not deploy")
-    expected_orders = _single_scalar(
-        spark,
-        f"SELECT COUNT(*) FROM workspace.olist_agentic_gold.fact_orders "
-        f"WHERE pipeline_run_id = '{current_run}'",
-    )
-    if int(expected_orders) != 99433:
-        raise ValueError(
-            "Source snapshot differs from validated POC baseline "
-            f"(observed {expected_orders}; expected 99433); halt and investigate"
-        )
-
-    governance_counts = publish_governance(
-        spark,
-        Config(catalog="workspace", schema_prefix="olist"),
-    )
-    semantic_objects = publish_semantic(spark)
-
-    semantic_count = _single_scalar(
-        spark,
-        "SELECT COUNT(*) FROM workspace.olist_semantic.v_published_orders",
-    )
-    if int(semantic_count) != int(expected_orders):
-        raise ValueError(
-            f"Published-orders view count mismatch: {semantic_count} vs {expected_orders}"
-        )
-
-    metric_values = spark.sql(
-        "SELECT MEASURE(total_orders) AS total_orders, "
-        "MEASURE(delivered_orders) AS delivered_orders, "
-        "MEASURE(gmv) AS gmv, "
-        "MEASURE(late_rate) AS late_rate "
-        "FROM workspace.olist_semantic.mv_order_operations"
+    """Validate isolated staged data BEFORE advancing the publication pointer."""
+    from pyspark.sql import functions as F
+    config = ETLConfig()
+    audit = execute_etl(spark, config, publish=False)
+    run_id = audit["run_id"]
+    if audit["status"] != "STAGED":
+        raise ValueError(f"Independent ETL was not staged: {audit['status']}")
+    fact = spark.table(config.table("gold", "fact_orders")).filter(F.col("pipeline_run_id") == run_id)
+    count = fact.count()
+    if count != 99433:
+        raise ValueError(f"Staged order count mismatch: {count}, expected 99433")
+    checks = fact.agg(
+        F.sum(F.when(F.col("is_delivered"), 1).otherwise(0)).alias("delivered"),
+        F.sum(F.when(F.col("is_delivered"), F.coalesce(F.col("item_gmv"), F.lit(0))).otherwise(0)).alias("gmv"),
+        F.sum(F.when(F.col("delivery_eligible"), 1).otherwise(0)).alias("eligible"),
+        F.sum(F.when(F.col("delivery_eligible") & F.col("is_late"), 1).otherwise(0)).alias("late")
     ).first()
-    if metric_values is None:
-        raise ValueError("Metric view returned no values")
-    measured = {
-        "total_orders": int(metric_values["total_orders"]),
-        "delivered_orders": int(metric_values["delivered_orders"]),
-        "gmv": float(metric_values["gmv"]),
-        "late_rate": float(metric_values["late_rate"]),
-    }
-    expected = {
-        "total_orders": 99433,
-        "delivered_orders": 96470,
-        "gmv": 13220248.93,
-        "late_rate": 6.7731,
-    }
-    tolerances = {
-        "total_orders": 0,
-        "delivered_orders": 0,
-        "gmv": 0.01,
-        "late_rate": 0.001,
-    }
-    for metric, value in measured.items():
-        if abs(value - expected[metric]) > tolerances[metric]:
-            raise ValueError(
-                f"Semantic KPI mismatch: {metric}: observed {value}, "
-                f"validated {expected[metric]}"
-            )
+    if checks["delivered"] != 96470 or abs(float(checks["gmv"]) - 13220248.93) > 0.01:
+        raise ValueError(f"Staged KPI mismatch: {checks}")
+    late_rate = 100.0 * checks["late"] / checks["eligible"]
+    if abs(late_rate - 6.7731) > 0.001:
+        raise ValueError(f"Staged late rate mismatch: {late_rate}")
 
+    governance_counts = publish_governance(spark, Config(catalog="workspace", schema_prefix="olist"))
+    # The semantic published-run view can be created with an empty pointer.
+    pointer_table = config.table("quality", "published_run")
+    if not spark.catalog.tableExists(pointer_table):
+        spark.createDataFrame([], "run_id STRING").write.format("delta").saveAsTable(pointer_table)
+    previous = [r["run_id"] for r in spark.table(pointer_table).select("run_id").collect()]
+    if len(previous) > 1:
+        raise ValueError("Multiple published-run pointer rows")
+    semantic_objects = publish_semantic(spark)
+    # Promote only after staging, governance, semantic DDL and staged KPI checks pass.
+    spark.createDataFrame([(run_id,)], "run_id STRING").write.format("delta").mode("overwrite").saveAsTable(pointer_table)
+    try:
+        semantic_count = _single_scalar(spark, "SELECT COUNT(*) FROM workspace.olist_semantic.v_published_orders")
+        if int(semantic_count) != count:
+            raise ValueError(f"Published-orders view mismatch: {semantic_count} vs {count}")
+        row = spark.sql(
+            "SELECT MEASURE(total_orders) AS total_orders, "
+            "MEASURE(delivered_orders) AS delivered_orders, MEASURE(gmv) AS gmv, "
+            "MEASURE(late_rate) AS late_rate "
+            "FROM workspace.olist_semantic.mv_order_operations"
+        ).first()
+        observed = {k: float(row[k]) for k in ("total_orders", "delivered_orders", "gmv", "late_rate")}
+        target = {"total_orders": 99433, "delivered_orders": 96470, "gmv": 13220248.93, "late_rate": 6.7731}
+        tolerance = {"total_orders": 0, "delivered_orders": 0, "gmv": 0.01, "late_rate": 0.001}
+        for key in target:
+            if abs(observed[key] - target[key]) > tolerance[key]:
+                raise ValueError(f"Metric view mismatch for {key}: {observed[key]} vs {target[key]}")
+    except Exception:
+        # Restore the prior pointer; a first-run failure reverts to no published run.
+        if previous:
+            spark.createDataFrame([(previous[0],)], "run_id STRING").write.format("delta").mode("overwrite").saveAsTable(pointer_table)
+        else:
+            spark.sql(f"DELETE FROM {pointer_table}")
+        raise
     return {
-        "status": "PASSED",
-        "source_published_run": str(current_run),
-        "etl_audit": etl_audit,
-        "published_governance_tables": governance_counts,
-        "published_semantic_objects": semantic_objects,
-        "smoke_test_metrics": measured,
+        "status": "PASSED", "published_run": run_id,
+        "staged_etl_audit": audit, "governance": governance_counts,
+        "semantic": semantic_objects, "metrics": observed,
     }
-
 
 def main() -> None:
     parser = argparse.ArgumentParser()

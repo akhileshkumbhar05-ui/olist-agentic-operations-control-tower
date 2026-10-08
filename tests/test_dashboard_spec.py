@@ -32,3 +32,19 @@ def test_dashboard_uses_published_run_and_governance_not_raw():
     assert "workspace.olist_agentic_bronze" not in queries
     assert "workspace.olist_bronze" not in queries
     assert "original_values" not in queries
+
+
+def test_table_widgets_use_current_lakeview_spec_and_headers_have_breaks():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    tables = []
+    for page in dash["pages"]:
+        for item in page["layout"]:
+            widget = item["widget"]
+            if widget.get("spec", {}).get("widgetType") == "table":
+                tables.append(widget)
+                assert widget["spec"]["version"] == 2
+                assert all("fieldName" in col and "displayName" in col
+                           for col in widget["spec"]["encodings"]["columns"])
+            if "multilineTextboxSpec" in widget and len(widget["multilineTextboxSpec"]["lines"]) > 1:
+                assert widget["multilineTextboxSpec"]["lines"][0].endswith("\\n\\n")
+    assert len(tables) == 3

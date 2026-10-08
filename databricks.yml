@@ -1,0 +1,45 @@
+bundle:
+  name: olist-agentic-operations-control-tower
+  databricks_cli_version: ">= 0.270.0"
+
+variables:
+  workspace_host:
+    description: Databricks workspace URL
+  serverless_environment_version:
+    description: Runtime environment version supported by this workspace
+    default: "2"
+
+workspace:
+  host: ${var.workspace_host}
+
+resources:
+  jobs:
+    foundation:
+      name: Olist Agentic — isolated ETL and semantic foundation
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: isolated_medallion_governance_semantic
+          spark_python_task:
+            python_file: ./pipelines/foundation_job.py
+            parameters: ["--apply"]
+          environment_key: olist_foundation_env
+      environments:
+        - environment_key: olist_foundation_env
+          spec:
+            environment_version: ${var.serverless_environment_version}
+            dependencies:
+              - kagglehub==0.3.13
+              - pandas==2.2.3
+              - pyarrow==19.0.1
+
+sync:
+  exclude:
+    - .venv/**
+    - node_modules/**
+    - .pytest_cache/**
+    - tests/**
+    - data/**
+    - artifacts/**
+targets:
+  dev:
+    default: true

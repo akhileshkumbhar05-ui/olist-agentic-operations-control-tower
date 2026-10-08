@@ -1,0 +1,2 @@
+# Databricks Apps installs requirements.txt at deployment.
+-r requirements-app.txt

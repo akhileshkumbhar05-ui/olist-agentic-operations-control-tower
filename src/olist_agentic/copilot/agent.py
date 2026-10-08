@@ -81,7 +81,9 @@ def _required_tools(question: str, context: Context) -> set[str]:
     selected_route = route(question, context)
     required: set[str] = set()
     if selected_route in ("ANALYTICS", "HYBRID"):
-        if any(x in q for x in ("late", "deliver", "rate", "compare", "state")):
+        # A request about *delivered GMV* alone does not need delivery-lateness
+        # breakdowns. Reserve state_delivery for comparisons and delivery rates.
+        if any(x in q for x in ("late", "rate", "compare", "by state", "rj", "sp")):
             required.add("state_delivery")
         if any(x in q for x in ("gmv", "revenue", "merchandise")):
             required.update(("gmv_summary", "metric_dictionary"))

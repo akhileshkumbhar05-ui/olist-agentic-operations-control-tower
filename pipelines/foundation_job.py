@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from olist_agentic.config import Config
 from pipelines.governance_publish import validate_catalogs, publish as publish_governance
 from pipelines.semantic_publish import statements, publish as publish_semantic
-from pipelines.independent_etl import ETLConfig, execute as execute_etl
+from pipelines.independent_etl import ETLConfig, execute as execute_etl, finalize_audit
 
 
 def plan() -> dict:
@@ -101,12 +101,15 @@ def deploy(spark) -> dict:
             if abs(observed[key] - target[key]) > tolerance[key]:
                 raise ValueError(f"Metric view mismatch for {key}: {observed[key]} vs {target[key]}")
     except Exception:
+        finalize_audit(spark, config, run_id, "VALIDATION_FAILED")
         # Restore the prior pointer; a first-run failure reverts to no published run.
         if previous:
             spark.createDataFrame([(previous[0],)], "run_id STRING").write.format("delta").mode("overwrite").saveAsTable(pointer_table)
         else:
             spark.sql(f"DELETE FROM {pointer_table}")
         raise
+    finalize_audit(spark, config, run_id, "SUCCEEDED")
+    audit["status"] = "SUCCEEDED"
     return {
         "status": "PASSED", "published_run": run_id,
         "staged_etl_audit": audit, "governance": governance_counts,

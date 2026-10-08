@@ -77,7 +77,7 @@ def metadata_frame(spark, frame):
     return spark.createDataFrame(rows, StructType(fields))
 
 
-def execute(spark, config: ETLConfig, source: Path | None = None):
+def execute(spark, config: ETLConfig, source: Path | None = None, *, publish: bool = False):
     from functools import reduce
     from pyspark.sql import functions as F
     config = ETLConfig(config.catalog, config.prefix, config.volume)
@@ -189,10 +189,11 @@ def execute(spark, config: ETLConfig, source: Path | None = None):
             gold = gold_spark(governed)
             for name, frame in gold.items():
                 append("gold", name, frame.withColumn("pipeline_run_id", F.lit(run_id)))
-            pointer_table = config.table("quality", "published_run")
-            pointer = metadata_frame(spark, pd.DataFrame([{"run_id": run_id}]))
-            pointer.write.format("delta").mode("overwrite").saveAsTable(pointer_table)
-            audit["status"] = "SUCCEEDED"
+            if publish:
+                pointer_table = config.table("quality", "published_run")
+                pointer = metadata_frame(spark, pd.DataFrame([{"run_id": run_id}]))
+                pointer.write.format("delta").mode("overwrite").saveAsTable(pointer_table)
+            audit["status"] = "SUCCEEDED" if publish else "STAGED"
             audit["latest_source_event"] = str(
                 governed["orders"].agg(F.max("order_purchase_timestamp")).first()[0]
             )
@@ -230,7 +231,7 @@ def main():
         }, indent=2))
         return
     from pyspark.sql import SparkSession
-    print(json.dumps(execute(SparkSession.builder.getOrCreate(), config), indent=2))
+    print(json.dumps(execute(SparkSession.builder.getOrCreate(), config, publish=False), indent=2))
 
 
 if __name__ == "__main__":

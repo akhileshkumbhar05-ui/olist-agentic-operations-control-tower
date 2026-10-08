@@ -7,7 +7,7 @@ SPEC = ROOT / "dashboard/src/Olist_Agentic_Operations_Control_Tower.lvdash.json"
 def test_dashboard_source_json_structure_and_references():
     dashboard = json.loads(SPEC.read_text(encoding="utf-8"))
     datasets = {d["name"] for d in dashboard["datasets"]}
-    assert datasets == {"orders", "metric_baseline", "rule_results", "quarantine", "dictionary"}
+    assert datasets == {"orders", "metric_baseline", "rule_results", "quarantine", "dictionary", "state_delivery_rates", "quality_snapshot"}
     assert len(dashboard["pages"]) == 3
     names = set()
     for page in dashboard["pages"]:
@@ -48,3 +48,12 @@ def test_table_widgets_use_current_lakeview_spec_and_headers_have_breaks():
             if "multilineTextboxSpec" in widget and len(widget["multilineTextboxSpec"]["lines"]) > 1:
                 assert widget["multilineTextboxSpec"]["lines"][0].endswith("\n\n")
     assert len(tables) == 3
+
+
+def test_dashboard_rates_use_eligible_deliveries():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    state_sql = "".join(next(d["queryLines"] for d in dash["datasets"] if d["name"] == "state_delivery_rates"))
+    assert "NULLIF(SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END), 0)" in state_sql
+    assert "AS eligible_deliveries" in state_sql
+    ops = next(p for p in dash["pages"] if p["name"] == "operations")
+    assert len(ops["layout"]) >= 10

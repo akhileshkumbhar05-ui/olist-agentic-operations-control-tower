@@ -8,8 +8,8 @@ def test_semantic_publisher_targets_new_schema_only():
     assert "CREATE OR REPLACE VIEW workspace.olist_semantic.v_published_orders" in sql[1]
     assert "CREATE OR REPLACE VIEW workspace.olist_semantic.mv_order_operations" in sql[2]
     assert "WITH METRICS LANGUAGE YAML" in sql[2]
-    assert "FROM workspace.olist_gold.fact_orders" in sql[1]
-    assert "workspace.olist_quality.published_run" in sql[1]
+    assert "FROM workspace.olist_agentic_gold.fact_orders" in sql[1]
+    assert "workspace.olist_agentic_quality.published_run" in sql[1]
     assert "CREATE OR REPLACE VIEW workspace.olist_gold." not in "\n".join(sql)
 
 

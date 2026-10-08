@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__ if "__file__" in globals() else __import__("inspect").currentframe().f_code.co_filename).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from olist_agentic.config import Config

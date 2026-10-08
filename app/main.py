@@ -21,10 +21,11 @@ from pydantic import BaseModel, Field
 from olist_agentic.copilot.queries import Context
 from olist_agentic.copilot.engine import prepare, fallback_answer, model_answer
 from olist_agentic.copilot.sql_diagnostics import sql_failure_category, sql_failure_guidance
+from olist_agentic.copilot.agent import run_agent
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Olist Agentic Operations Control Tower", version="0.2.0")
+app = FastAPI(title="Olist Agentic Operations Control Tower", version="0.3.0")
 
 
 class AskRequest(BaseModel):
@@ -40,6 +41,12 @@ class AskRequest(BaseModel):
 def client():
     from databricks.sdk import WorkspaceClient
     return WorkspaceClient()
+
+
+@lru_cache(maxsize=1)
+def gateway_model_client():
+    from databricks_openai import DatabricksOpenAI
+    return DatabricksOpenAI(workspace_client=client())
 
 
 def sql_query(statement: str) -> list[dict]:
@@ -73,34 +80,49 @@ def sql_query(statement: str) -> list[dict]:
 
 @app.get("/healthz")
 def health():
-    return {"status": "ok", "model_configured": bool(os.getenv("DATABRICKS_SERVING_ENDPOINT")),
+    return {"status": "ok", "model_configured": bool(os.getenv("DATABRICKS_MODEL_SERVICE")),
             "warehouse_configured": bool(os.getenv("DATABRICKS_WAREHOUSE_ID")),
             "dashboard_configured": bool(os.getenv("DATABRICKS_DASHBOARD_URL"))}
 
 
 @app.post("/api/ask")
 def ask(body: AskRequest):
+
     try:
         context = Context(page=body.page, visual=body.visual, state=body.state,
                           start_date=body.start_date, end_date=body.end_date)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    model_service = os.getenv("DATABRICKS_MODEL_SERVICE", "").strip()
+    if model_service:
+        try:
+            result = run_agent(
+                body.question, context, sql_query, gateway_model_client(), model_service
+            )
+            return {"generation": "agentic_tool_calling", **result}
+        except Exception:
+            # Fail closed: never present an unverified model answer as grounded.
+            # Full details stay in App Logs, not the user-facing response.
+            logger.exception("Olist Unity Gateway agent failed; using deterministic SQL fallback")
+
+    try:
         evidence = prepare(body.question, context, sql_query)
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=422 if isinstance(exc, ValueError) else 503,
                             detail=str(exc)) from exc
-    endpoint = os.getenv("DATABRICKS_SERVING_ENDPOINT", "").strip()
+
     answer = fallback_answer(body.question, evidence)
-    generation = "deterministic_template"
-    if endpoint:
-        try:
-            answer = model_answer(body.question, evidence, client(), endpoint)
-            generation = "hosted_llm"
-        except Exception:
-            # Intentional fail-safe: no uncited speculative answer is emitted.
-            generation = "deterministic_fallback_model_unavailable"
-    return {"answer": answer, "generation": generation, "route": evidence["route"],
-            "published_run": evidence["published_run"], "context": evidence["context"],
-            "evidence": {"tool_names": evidence["sql_tools"], "knowledge": evidence["knowledge"],
+    return {"answer": answer,
+            "generation": ("deterministic_fallback_model_unavailable"
+                           if model_service else "deterministic_template"),
+            "route": evidence["route"], "published_run": evidence["published_run"],
+            "context": evidence["context"],
+            "evidence": {"tool_names": evidence["sql_tools"],
+                         "model_selected_tools": [],
+                         "knowledge": evidence["knowledge"],
                          "limitations": evidence["limitations"]}}
+
 
 
 @app.get("/api/config")

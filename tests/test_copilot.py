@@ -114,5 +114,5 @@ def test_delivery_comparison_fallback_uses_eligible_delivery_denominator():
     result = fallback_answer(q, prepare(q, Context(), db))
     assert "SP: 1,820 late out of 40,494 eligible deliveries (4.49% late)" in result
     assert "RJ: 1,495 late out of 12,350 eligible deliveries (12.11% late)" in result
-    assert "7.62 percentage points" in result
+    assert "7.61 percentage points" in result
     assert "No matching governance text" not in result

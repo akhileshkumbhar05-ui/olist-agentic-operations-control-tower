@@ -122,6 +122,18 @@ def statements(question: str, context: Context, chosen_route: str) -> dict[str, 
             {where}
             GROUP BY customer_state ORDER BY accepted_orders DESC LIMIT 27
         """
+    if chosen_route in ("ANALYTICS", "HYBRID") and re.search(r"\b(gmv|revenue|merchandise)\b", question, re.I):
+        # One-row scoped measure; don't infer a national total from truncated state lists.
+        # Use exactly the same validated state/date filters as the geographic tool.
+        where = _where(context, _state_filter(question, context))
+        statements_by_tool["gmv_summary"] = f"""
+            SELECT COUNT(*) AS accepted_orders,
+                   SUM(CASE WHEN is_delivered THEN 1 ELSE 0 END) AS delivered_orders,
+                   SUM(CASE WHEN is_delivered THEN COALESCE(item_gmv, 0) ELSE 0 END)
+                       AS delivered_item_gmv_brl
+            FROM workspace.olist_semantic.v_published_orders
+            {where}
+        """
     if chosen_route in ("TRUST", "HYBRID"):
         statements_by_tool["failed_rules"] = """
             SELECT r.rule_id, r.dataset, r.action, r.severity, r.records_failed,

@@ -33,7 +33,10 @@ def prepare(question: str, context: Context, execute_sql) -> dict:
     outputs = {}
     for tool, sql in sqls.items():
         assert_read_only(sql)
-        outputs[tool] = execute_sql(sql)
+        try:
+            outputs[tool] = execute_sql(sql)
+        except RuntimeError as exc:
+            raise RuntimeError(f"Copilot tool '{tool}' failed: {exc}") from exc
     pub = outputs.get("publication", [])
     if len(pub) != 1:
         raise ValueError("Expected exactly one published snapshot")

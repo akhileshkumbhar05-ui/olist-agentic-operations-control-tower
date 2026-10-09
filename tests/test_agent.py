@@ -196,3 +196,88 @@ def test_hybrid_final_without_required_evidence_retrieves_it_first():
 ])
 def test_state_delivery_intent_uses_whole_words(question, expected):
     assert _needs_state_delivery(question) is expected
+
+
+
+def test_model_can_combine_semantic_search_with_approved_sql_tools():
+    """The model decides when to retrieve documents and query SQL facts."""
+    retrieved = []
+    def semantic(question):
+        retrieved.append(question)
+        return [{
+            "id": "rule:orders.delivered_time",
+            "source": "workspace.olist_governance.dq_rules",
+            "text": "Delivered orders missing a delivery timestamp are quarantined.",
+            "retrieval": "ai_search_hybrid",
+        }]
+    model = FakeModelClient([
+        response([
+            model_item("search_governance_knowledge",
+                       {"question": "missing delivered timestamp quarantine rules"},
+                       call_id="search-1"),
+            model_item("fetch_governed_evidence", {"tool": "failed_rules"},
+                       call_id="sql-1"),
+        ]),
+        response(text="The delivery timestamp rule quarantines invalid rows. "
+                      "Source: workspace.olist_governance.dq_rules."),
+        response(text="The 8 invalid orders are excluded from published facts. "
+                      "Source: workspace.olist_governance.dq_rules."),
+    ])
+    result = run_agent(
+        "Why were orders missing delivery timestamps quarantined?",
+        Context(), fake_sql, model, "system.ai.gpt-oss-120b",
+        search_knowledge=semantic,
+    )
+    assert retrieved == ["missing delivered timestamp quarantine rules"]
+    assert "search_governance_knowledge" in result["evidence"]["model_selected_tools"]
+    assert "failed_rules" in result["evidence"]["model_selected_tools"]
+    assert result["evidence"]["retrieval_mode"] == "ai_search_hybrid"
+    assert result["evidence"]["knowledge"][0]["id"] == "rule:orders.delivered_time"
+    assert "workspace.olist_governance.dq_rules" in result["evidence"]["sources"]
+    assert {x["name"] for x in model.requests[0]["tools"]} == {
+        "fetch_governed_evidence", "search_governance_knowledge",
+    }
+    assert any(x.get("call_id") == "search-1" and
+               x.get("type") == "function_call_output"
+               for x in model.requests[1]["input"])
+
+
+def test_agent_requires_semantic_evidence_for_governance_question():
+    """Guard against model finishing a governance answer without retrieval."""
+    queries = []
+    def semantic(question):
+        queries.append(question)
+        return [{"id": "metric:gmv",
+                 "source": "workspace.olist_governance.metric_dictionary",
+                 "text": "Delivered-item merchandise GMV excludes freight."}]
+    model = FakeModelClient([
+        response([model_item("fetch_governed_evidence", {"tool": "gmv_summary"})]),
+        response(text="Unverified model answer"),
+        response(text="GMV is governed merchandise value, not audited revenue. "
+                      "Source workspace.olist_governance.metric_dictionary."),
+    ])
+    result = run_agent(
+        "Can I trust delivered GMV despite quality failures?",
+        Context(), fake_sql, model, "system.ai.gpt-oss-120b",
+        search_knowledge=semantic,
+    )
+    assert len(queries) == 1
+    assert result["answer"] != "Unverified model answer"
+    assert result["evidence"]["retrieval_mode"] == "ai_search_hybrid"
+    assert "metric:gmv" in {v["id"] for v in result["evidence"]["knowledge"]}
+    assert "tools" not in model.requests[-1]
+
+
+def test_model_cannot_supply_arbitrary_search_index_or_filters():
+    calls = []
+    def semantic(question):
+        calls.append(question)
+        return []
+    model = FakeModelClient([
+        response([model_item("search_governance_knowledge",
+                             {"question": "rules", "index_name": "other"})]),
+    ])
+    with pytest.raises(ValueError, match="invalid search arguments"):
+        run_agent("Why are orders quarantined?", Context(), fake_sql,
+                  model, "system.ai.gpt-oss-120b", search_knowledge=semantic)
+    assert calls == []

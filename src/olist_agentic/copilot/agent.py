@@ -183,10 +183,10 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         prompt = (
             "Answer the original question now using ONLY the verified evidence "
             "below. Do not call any further tools or add unrelated metrics. "
-            "Cite actual tables/views. Distinguish 32 distinct quarantined "
-            "source records from five failed quality-rule definitions. "
+            "Cite actual tables/views. Distinguish distinct quarantined "
+            "source records from failed rule evaluations/definitions. "
             "Do not imply an independent financial audit. "
-            "Use plain text without Markdown tables.\\n" +
+            "Use plain text without Markdown tables.\n" +
             json.dumps(facts, default=str)[:26000]
         )
         final_response = model_client.responses.create(
@@ -224,7 +224,7 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             if not isinstance(args, dict) or set(args) != {"tool"}:
                 raise ValueError("Model returned invalid tool arguments")
             tool = args["tool"]
-            if not isinstance(tool, str) or tool not in sql_by_tool:
+            if not isinstance(tool, str) or tool not in available:
                 raise ValueError("Model requested an unauthorized tool")
             selected_by_model.append(tool)
             rows = fetch(tool)

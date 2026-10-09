@@ -20,6 +20,25 @@ MAX_MODEL_STEPS = 5
 MAX_MODEL_SELECTED_TOOLS = 8
 MAX_RESULT_CHARS = 12000
 
+
+def summarize_failed_rule_definitions(rows: list[dict]) -> dict:
+    """Deterministic quality summary; definitions are not failed source records."""
+    actions: dict[str, int] = {}
+    evaluations: dict[str, int] = {}
+    for row in rows:
+        action = str(row.get("action") or "UNKNOWN").upper()
+        actions[action] = actions.get(action, 0) + 1
+        count = row.get("records_failed")
+        if count is not None:
+            evaluations[action] = evaluations.get(action, 0) + int(count)
+    return {
+        "failed_rule_definitions": len(rows),
+        "rule_definitions_by_action": dict(sorted(actions.items())),
+        "failed_rule_evaluations_by_action": dict(sorted(evaluations.items())),
+        "note": "Rule evaluations can overlap and must not be described as distinct quarantined source records.",
+    }
+
+
 TOOL_SOURCES = {
     "publication": ["workspace.olist_agentic_quality.published_run",
                     "workspace.olist_agentic_quality.dq_run_summary"],
@@ -69,6 +88,10 @@ cannot affect GMV or that the metric is guaranteed correct. Distinguish
 "computed according to the published governed definition" from "independently
 audited/verified as financially accurate". Do not assert causal independence
 between warning rules and KPIs without evidence. Say when evidence is missing.
+When discussing failed rule definitions, copy the action breakdown provided by
+verified_quality_summary; NEVER label the total failed-rule count as WARN-only.
+The record-failure totals are rule evaluations, NOT distinct quarantined source
+records. Do not invent missing totals.
 Do not claim an independent financial audit, zero warning impact, or automatic
 dashboard filter sync occurred.
 Respond concisely in plain text suitable for the application's text display."""
@@ -260,6 +283,9 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             {"tool": name, "sources": TOOL_SOURCES[name], "rows": observations[name]}
             for name in relevant if name in observations
         ]
+        if "failed_rules" in observations:
+            facts.append({"verified_quality_summary":
+                          summarize_failed_rule_definitions(observations["failed_rules"])})
         if search_knowledge is not None and route(question, context) in ("TRUST", "HYBRID", "KNOWLEDGE"):
             fetch_semantic(question)
         if semantic_hits:
@@ -327,6 +353,8 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
                 selected_by_model.append(tool)
                 rows = fetch(tool)
                 result = {"tool": tool, "sources": TOOL_SOURCES[tool], "rows": rows}
+                if tool == "failed_rules":
+                    result["verified_quality_summary"] = summarize_failed_rule_definitions(rows)
             elif call.name == "search_governance_knowledge" and search_knowledge is not None:
                 if set(args) != {"question"} or not isinstance(args["question"], str):
                     raise ValueError("Model returned invalid search arguments")
@@ -373,6 +401,10 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             "retrieval_trigger": (
                 "model_selected" if "search_governance_knowledge" in selected_by_model
                 else "evidence_guard" if semantic_requested else "not_used"
+            ),
+            "verified_quality_summary": (
+                summarize_failed_rule_definitions(observations["failed_rules"])
+                if "failed_rules" in observations else None
             ),
             "verified_metrics": [
                 {"name": "Delivered-item GMV", "display": row["verified_gmv_display"],

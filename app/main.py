@@ -120,7 +120,7 @@ def ask(body: AskRequest):
 
     answer = fallback_answer(body.question, evidence)
     return {"answer": answer,
-            "generation": ("deterministic_fallback_model_unavailable"
+            "generation": ("deterministic_fallback_agent_error"
                            if model_service else "deterministic_template"),
             "route": evidence["route"], "published_run": evidence["published_run"],
             "context": evidence["context"],

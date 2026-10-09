@@ -149,9 +149,15 @@ function renderAnswer(raw){
 }
 function renderEvidence(evidence){
   const summary=document.getElementById("evidenceSummary");summary.replaceChildren();
+  const searchPath=evidence?.retrieval_mode==="ai_search_hybrid"
+    ? (evidence?.retrieval_trigger==="model_selected"
+       ? "Model-selected hybrid search"
+       : "Mandatory evidence guard: hybrid search") : "";
   const items=[
+    ["Verified governed business metrics",(evidence?.verified_metrics||[]).map(x=>x.display+" · "+x.source)],
+    ["Semantic retrieval mechanism",searchPath?[searchPath]:[]],
     ["Model-selected agent tools",evidence?.model_selected_tools||[]],
-    ["Executed governed tools",evidence?.tool_names||[]],
+    ["Executed governed SQL tools",evidence?.tool_names||[]],
     ["Unity Catalog evidence sources",evidence?.sources||[]]
   ];
   let nonempty=false;

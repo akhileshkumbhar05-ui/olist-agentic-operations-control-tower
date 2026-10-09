@@ -7,6 +7,7 @@ Unity Gateway uses the App's existing service-principal credentials.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict
 from typing import Any
 
@@ -75,6 +76,22 @@ def _tool_spec(allowed: list[str]) -> dict:
         },
     }
 
+def _needs_state_delivery(question: str) -> bool:
+    """Identify geographic/delivery-rate questions without false substrings.
+
+    E.g., the letters 'sp' inside 'despite' must not mean Sao Paulo;
+    the phrase 'quality pass rate' is not a delivery-rate request.
+    """
+    q = question.lower()
+    geography = re.search(r"\b(?:rj|sp|states?|rio de janeiro|s[aã]o paulo)\b", q)
+    late_delivery = re.search(r"\b(?:late|lateness|delays?|delayed|on[- ]time)\b", q)
+    delivery_rate = (
+        re.search(r"\b(?:delivery|deliveries|delivered|shipping)\b", q)
+        and re.search(r"\b(?:rates?|compare|comparison|percentages?)\b", q)
+    )
+    return bool(geography or late_delivery or delivery_rate)
+
+
 def _required_tools(question: str, context: Context) -> set[str]:
     """Minimum evidence coverage, independent of model preferences.
 
@@ -87,7 +104,7 @@ def _required_tools(question: str, context: Context) -> set[str]:
     if selected_route in ("ANALYTICS", "HYBRID"):
         # A request about *delivered GMV* alone does not need delivery-lateness
         # breakdowns. Reserve state_delivery for comparisons and delivery rates.
-        if any(x in q for x in ("late", "rate", "compare", "by state", "rj", "sp")):
+        if _needs_state_delivery(question):
             required.add("state_delivery")
         if any(x in q for x in ("gmv", "revenue", "merchandise")):
             required.update(("gmv_summary", "metric_dictionary"))
@@ -152,7 +169,7 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         available.difference_update(("failed_rules", "quarantine_breakdown", "rule_dictionary"))
     if not any(x in q for x in ("gmv", "revenue", "merchandise")):
         available.discard("gmv_summary")
-    if not any(x in q for x in ("late", "rate", "compare", "by state", "rj", "sp")):
+    if not _needs_state_delivery(question):
         available.discard("state_delivery")
     if not any(x in q for x in ("field", "column", "source dictionary", "source data")):
         available.discard("source_dictionary")

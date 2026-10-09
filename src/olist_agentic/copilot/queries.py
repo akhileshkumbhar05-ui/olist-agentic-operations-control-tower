@@ -116,8 +116,9 @@ def statements(question: str, context: Context, chosen_route: str) -> dict[str, 
                        / NULLIF(SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END), 0), 4)
                        AS late_delivery_rate_pct,
                    COUNT(*) AS accepted_orders,
-                   SUM(CASE WHEN is_delivered THEN COALESCE(item_gmv, 0) ELSE 0 END)
-                       AS delivered_item_gmv_brl
+                   CAST(ROUND(SUM(CASE WHEN is_delivered
+                           THEN COALESCE(item_gmv, 0) ELSE 0 END), 2)
+                       AS DECIMAL(20,2)) AS delivered_item_gmv_brl
             FROM workspace.olist_semantic.v_published_orders
             {where}
             GROUP BY customer_state ORDER BY accepted_orders DESC LIMIT 27
@@ -129,8 +130,9 @@ def statements(question: str, context: Context, chosen_route: str) -> dict[str, 
         statements_by_tool["gmv_summary"] = f"""
             SELECT COUNT(*) AS accepted_orders,
                    SUM(CASE WHEN is_delivered THEN 1 ELSE 0 END) AS delivered_orders,
-                   SUM(CASE WHEN is_delivered THEN COALESCE(item_gmv, 0) ELSE 0 END)
-                       AS delivered_item_gmv_brl
+                   CAST(ROUND(SUM(CASE WHEN is_delivered
+                           THEN COALESCE(item_gmv, 0) ELSE 0 END), 2)
+                       AS DECIMAL(20,2)) AS delivered_item_gmv_brl
             FROM workspace.olist_semantic.v_published_orders
             {where}
         """

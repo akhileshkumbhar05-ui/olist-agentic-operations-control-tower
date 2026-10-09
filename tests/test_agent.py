@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import json
 import pytest
 
-from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES, _needs_state_delivery
+from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES, _needs_state_delivery, summarize_failed_rule_definitions
 from olist_agentic.copilot.queries import Context
 
 
@@ -306,3 +306,43 @@ def test_gmv_display_uses_verified_decimal_not_floating_artifact():
                for item in model.requests[1]["input"]
                if item.get("type") == "function_call_output")
     assert result["evidence"]["retrieval_trigger"] == "not_used"
+
+
+
+def test_quality_action_counts_do_not_conflate_warn_and_quarantine():
+    failures = [
+        {"rule_id": "orders.delivered_time", "action": "QUARANTINE", "records_failed": 8},
+        {"rule_id": "orders.lifecycle", "action": "WARN", "records_failed": 10},
+        {"rule_id": "products.category", "action": "WARN", "records_failed": 11},
+        {"rule_id": "orders.payment_reconciliation", "action": "WARN", "records_failed": 12},
+        {"rule_id": "products.fk_product_category_name", "action": "WARN", "records_failed": 13},
+    ]
+    summary = summarize_failed_rule_definitions(failures)
+    assert summary["failed_rule_definitions"] == 5
+    assert summary["rule_definitions_by_action"] == {"QUARANTINE": 1, "WARN": 4}
+    assert summary["failed_rule_evaluations_by_action"] == {"QUARANTINE": 8, "WARN": 46}
+
+
+def test_quality_breakdown_is_in_tool_output_and_evidence():
+    def sql(statement):
+        if "dq_rule_results" in statement:
+            return [
+                {"rule_id": "orders.delivered_time", "action": "QUARANTINE",
+                 "records_failed": 8},
+                {"rule_id": "orders.lifecycle", "action": "WARN",
+                 "records_failed": 19},
+            ]
+        return fake_sql(statement)
+    model = FakeModelClient([
+        response([model_item("fetch_governed_evidence", {"tool": "failed_rules"})]),
+        response(text="The rule definition breakdown includes one QUARANTINE "
+                      "and one WARN failure; see workspace.olist_governance.dq_rules."),
+    ])
+    result = run_agent("Why were records quarantined?", Context(),
+                       sql, model, "system.ai.gpt-oss-120b")
+    assert result["evidence"]["verified_quality_summary"]["rule_definitions_by_action"] == {
+        "QUARANTINE": 1, "WARN": 1,
+    }
+    tool_outputs = [x["output"] for x in model.requests[1]["input"]
+                    if x.get("type") == "function_call_output"]
+    assert any('"verified_quality_summary"' in x for x in tool_outputs)

@@ -335,6 +335,7 @@ def test_quality_breakdown_is_in_tool_output_and_evidence():
         return fake_sql(statement)
     model = FakeModelClient([
         response([model_item("fetch_governed_evidence", {"tool": "failed_rules"})]),
+        response(text="This answer lacks quarantine count evidence."),
         response(text="The rule definition breakdown includes one QUARANTINE "
                       "and one WARN failure; see workspace.olist_governance.dq_rules."),
     ])

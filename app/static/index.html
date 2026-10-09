@@ -15,8 +15,20 @@ iframe{width:100%;height:calc(100vh - 270px);border:0;border-radius:8px;backgrou
 .placeholder{border:1px dashed #52627b;border-radius:9px;padding:26px;margin-top:22px;color:#bdcdeb}
 label{display:block;color:#9eb6d5;font-size:12px;margin:9px 0 5px}select,input,textarea{background:#0e1a2c;color:#e8f0ff;border:1px solid #3a506e;padding:10px;border-radius:7px;width:100%;font:inherit}
 textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-#answer{white-space:pre-wrap;overflow-wrap:anywhere;background:#0d192c;padding:16px;border-radius:9px;min-height:150px;line-height:1.7}
-#evidence{white-space:pre-wrap;font:12px ui-monospace,monospace;color:#b0c4df;max-height:155px;overflow:auto}
+#answer{white-space:normal;overflow-wrap:anywhere;background:#0d192c;padding:16px;border-radius:9px;min-height:150px;line-height:1.65}
+#answer p{margin:0 0 12px;color:#e7effd}#answer h4{font-size:15px;margin:17px 0 8px;color:#f2f7ff}
+#answer ul,#answer ol{padding-left:20px;margin:8px 0 14px}#answer li{margin:5px 0}
+#answer code{font:12px ui-monospace,monospace;white-space:normal;overflow-wrap:anywhere;background:#1a2b45;color:#b9dbff;border-radius:4px;padding:1px 4px}
+#answer table{border-collapse:collapse;display:block;overflow-x:auto;width:100%;font-size:12px;margin:12px 0 16px}
+#answer th,#answer td{border:1px solid #3c5271;padding:7px 9px;text-align:left;min-width:70px}
+#answer th{background:#182a44;color:#e8f0ff}
+#evidenceSummary{display:grid;gap:12px;color:#c3d7f1;font-size:12px}
+.evidence-group{background:#0d192c;border-radius:8px;padding:11px}
+.evidence-title{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a4bada;margin-bottom:7px}
+.evidence-chips{display:flex;flex-wrap:wrap;gap:6px}
+.evidence-chip{border:1px solid #355070;background:#162a45;border-radius:6px;padding:5px 7px;overflow-wrap:anywhere}
+#rawEvidence{margin-top:12px;font-size:12px;color:#a8c0dc}
+#rawEvidence summary{cursor:pointer}#evidence{white-space:pre-wrap;overflow-wrap:anywhere;font:11px ui-monospace,monospace;color:#b0c4df;max-height:210px;overflow:auto;margin-top:8px}
 .actions{display:flex;gap:8px;margin-top:12px}.muted{color:#91a9c5;font-size:12px}
 @media(max-width:1000px){main{grid-template-columns:1fr}iframe{height:430px}}
 </style></head><body>
@@ -30,7 +42,7 @@ textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-c
 <label for="question">Question</label><textarea id="question">Why were records quarantined, and can I trust the delivered GMV?</textarea>
 <div class="actions"><button onclick="ask()" id="askBtn">Ask grounded Copilot</button><button onclick="document.getElementById('question').value='Compare late delivery rates for RJ and SP'">Try RJ vs SP</button></div>
 <p id="status" class="muted">No model endpoint assumed. A deterministic cited answer is available when configured SQL access works.</p>
-<div id="answer" aria-live="polite">Ask a question to retrieve the current published-run evidence.</div><h3>Traceable sources</h3><div id="evidence">No query executed.</div>
+<div id="answer" aria-live="polite">Ask a question to retrieve the current published-run evidence.</div><h3>Traceable sources</h3><div id="evidenceSummary">No query executed.</div><details id="rawEvidence"><summary>Raw technical evidence (JSON)</summary><pre id="evidence">No query executed.</pre></details>
 </section></main>
 <script>
 let dashboardUrl="";
@@ -59,15 +71,110 @@ if(kind==="genie"){
   mount.appendChild(tip)
 }
 }
+// Text-only Markdown renderer: no model-supplied HTML is ever evaluated.
+function appendInline(target, text){
+  const spans=String(text).split(/(\*\*[^*]+\*\*|\x60[^\x60]+\x60|\*[^*\n]+\*)/g);
+  for(const span of spans){
+    if(!span)continue;
+    let node=null;
+    if(span.startsWith("**")&&span.endsWith("**")&&span.length>4){
+      node=document.createElement("strong");node.textContent=span.slice(2,-2);
+    }else if(span.charCodeAt(0)===96&&span.charCodeAt(span.length-1)===96&&span.length>2){
+      node=document.createElement("code");node.textContent=span.slice(1,-1);
+    }else if(span.startsWith("*")&&span.endsWith("*")&&span.length>2){
+      node=document.createElement("em");node.textContent=span.slice(1,-1);
+    }
+    target.appendChild(node||document.createTextNode(span));
+  }
+}
+function renderAnswer(raw){
+  const box=document.getElementById("answer");box.replaceChildren();
+  const lines=String(raw||"").replace(/\r\n/g,"\n").split("\n");
+  let paragraph=[],list=null,table=null,tableBody=null;
+  function flush(){
+    if(!paragraph.length)return;
+    const p=document.createElement("p");
+    appendInline(p,paragraph.join(" ").trim());
+    box.appendChild(p);paragraph=[];
+  }
+  function tableCells(line){
+    const cells=line.trim().split("|").map(x=>x.trim());
+    if(cells[0]==="")cells.shift();
+    if(cells[cells.length-1]==="")cells.pop();
+    return cells;
+  }
+  for(const line of lines){
+    const trimmed=line.trim();
+    if(!trimmed){flush();list=null;table=null;tableBody=null;continue;}
+    if(trimmed.startsWith("|")&&trimmed.includes("|",1)){
+      flush();list=null;
+      if(/^[\s|:\-]+$/.test(trimmed))continue;
+      const cells=tableCells(trimmed);
+      if(!table){
+        table=document.createElement("table");const head=document.createElement("thead");
+        const row=document.createElement("tr");
+        for(const value of cells){const cell=document.createElement("th");appendInline(cell,value);row.appendChild(cell);}
+        head.appendChild(row);table.appendChild(head);
+        tableBody=document.createElement("tbody");table.appendChild(tableBody);box.appendChild(table);
+      }else{
+        const row=document.createElement("tr");
+        for(const value of cells){const cell=document.createElement("td");appendInline(cell,value);row.appendChild(cell);}
+        tableBody.appendChild(row);
+      }
+      continue;
+    }
+    table=null;tableBody=null;
+    const heading=trimmed.match(/^#{1,4}\s+(.+)$/);
+    const boldHeading=trimmed.match(/^\*\*(.+)\*\*$/);
+    if(heading||boldHeading){
+      flush();list=null;
+      const h=document.createElement("h4");appendInline(h,heading?heading[1]:boldHeading[1]);
+      box.appendChild(h);continue;
+    }
+    const bullet=trimmed.match(/^([-*]|\d+[.)])\s+(.+)$/);
+    if(bullet){
+      flush();
+      const ordered=/^\d/.test(bullet[1]);const kind=ordered?"OL":"UL";
+      if(!list||list.tagName!==kind){
+        list=document.createElement(ordered?"ol":"ul");box.appendChild(list);
+      }
+      const li=document.createElement("li");appendInline(li,bullet[2]);list.appendChild(li);continue;
+    }
+    list=null;paragraph.push(trimmed);
+  }
+  flush();
+}
+function renderEvidence(evidence){
+  const summary=document.getElementById("evidenceSummary");summary.replaceChildren();
+  const items=[
+    ["Model-selected SQL tools",evidence?.model_selected_tools||[]],
+    ["Executed governed tools",evidence?.tool_names||[]],
+    ["Unity Catalog evidence sources",evidence?.sources||[]]
+  ];
+  let nonempty=false;
+  for(const [label,values] of items){
+    if(!values.length)continue;
+    nonempty=true;
+    const group=document.createElement("div");group.className="evidence-group";
+    const title=document.createElement("div");title.className="evidence-title";title.textContent=label;
+    const chips=document.createElement("div");chips.className="evidence-chips";
+    for(const value of values){
+      const chip=document.createElement("span");chip.className="evidence-chip";chip.textContent=value;chips.appendChild(chip);
+    }
+    group.append(title,chips);summary.appendChild(group);
+  }
+  if(!nonempty)summary.textContent="No evidence sources returned.";
+}
+
 async function ask(){
 const button=document.getElementById("askBtn");button.disabled=true;document.getElementById("status").textContent="Running allowlisted SQL tools…";
 try{
 const body={question:document.getElementById("question").value,page:document.getElementById("page").value,state:document.getElementById("state").value,visual:"overview"};
 const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
 const data=await r.json();if(!r.ok)throw new Error(data.detail||"Copilot request failed");
-document.getElementById("answer").textContent=data.answer;
+renderAnswer(data.answer);
 document.getElementById("status").textContent=data.route+" · "+data.generation+" · published "+data.published_run;
-document.getElementById("evidence").textContent=JSON.stringify(data.evidence,null,2);
+renderEvidence(data.evidence);document.getElementById("evidence").textContent=JSON.stringify(data.evidence,null,2);
 }catch(e){document.getElementById("status").textContent="Request could not be completed";document.getElementById("answer").textContent=String(e.message||e)}
 finally{button.disabled=false}
 }

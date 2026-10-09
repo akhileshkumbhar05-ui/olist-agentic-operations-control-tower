@@ -57,8 +57,14 @@ NOT recognized accounting revenue. When answering late-delivery questions use
 eligible_deliveries, NOT delivered_orders. A quality-score rate is a rule-record
 opportunity pass rate, NOT the proportion of error-free orders. Distinguish rule
 failure evaluations from distinct quarantined source records; modeled downstream
-impact is not proven causation. Say when evidence is missing. Do not claim
-that an independent financial audit or automatic dashboard filter sync occurred.
+impact is not proven causation. WARNING-level records remain in the
+published facts; without impact-specific validation, NEVER claim warnings
+cannot affect GMV or that the metric is guaranteed correct. Distinguish
+"computed according to the published governed definition" from "independently
+audited/verified as financially accurate". Do not assert causal independence
+between warning rules and KPIs without evidence. Say when evidence is missing.
+Do not claim an independent financial audit, zero warning impact, or automatic
+dashboard filter sync occurred.
 Respond concisely in plain text suitable for the application's text display."""
 
 def _tool_spec(allowed: list[str]) -> dict:
@@ -207,8 +213,11 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             "below. Do not call any further tools or add unrelated metrics. "
             "Cite actual tables/views. Distinguish distinct quarantined "
             "source records from failed rule evaluations/definitions. "
-            "Do not imply an independent financial audit. "
-            "Use plain text without Markdown tables.\n" +
+            "Do not imply an independent financial audit or guarantee that "
+            "WARN-level records cannot affect GMV; warnings remain in the "
+            "published facts and their impact has not been independently "
+            "excluded. Keep conclusions qualified and evidence-specific. "
+            "Use concise plain text without Markdown tables.\n" +
             json.dumps(facts, default=str)[:26000]
         )
         final_response = model_client.responses.create(

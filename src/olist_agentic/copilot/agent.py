@@ -147,6 +147,11 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
     # work and unnecessary model rounds. Publication is already pre-fetched.
     q = question.lower()
     available = set(sql_by_tool) - {"publication"}
+    selected_route = route(question, context)
+    if selected_route not in ("TRUST", "HYBRID"):
+        available.difference_update(("failed_rules", "quarantine_breakdown", "rule_dictionary"))
+    if not any(x in q for x in ("gmv", "revenue", "merchandise")):
+        available.discard("gmv_summary")
     if not any(x in q for x in ("late", "rate", "compare", "by state", "rj", "sp")):
         available.discard("state_delivery")
     if not any(x in q for x in ("field", "column", "source dictionary", "source data")):

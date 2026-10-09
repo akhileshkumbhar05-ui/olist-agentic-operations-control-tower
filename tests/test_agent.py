@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import json
 import pytest
 
-from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES
+from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES, _needs_state_delivery
 from olist_agentic.copilot.queries import Context
 
 
@@ -182,3 +182,17 @@ def test_hybrid_final_without_required_evidence_retrieves_it_first():
     assert {"failed_rules", "metric_dictionary", "gmv_summary"} <= set(
         result["evidence"]["tool_names"])
     assert result["answer"] != "I could guess a total from memory"
+
+
+
+@pytest.mark.parametrize("question, expected", [
+    ("Can I trust delivered GMV despite quality failures?", False),
+    ("What is the rule-record quality pass rate?", False),
+    ("Why were 32 source records quarantined, and can I trust delivered GMV despite these data-quality failures?", False),
+    ("Compare late-delivery rates for RJ and SP", True),
+    ("Compare late delivery rates for Rio de Janeiro and São Paulo", True),
+    ("How many deliveries were late?", True),
+    ("Show delivery rates across customer states", True),
+])
+def test_state_delivery_intent_uses_whole_words(question, expected):
+    assert _needs_state_delivery(question) is expected

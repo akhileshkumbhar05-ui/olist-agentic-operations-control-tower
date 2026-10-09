@@ -4,6 +4,8 @@ env:
     valueFrom: sql-warehouse
   - name: DATABRICKS_MODEL_SERVICE
     valueFrom: llm-model
+  - name: DATABRICKS_GOVERNANCE_SEARCH_INDEX
+    valueFrom: governance-search-index
   - name: DATABRICKS_DASHBOARD_URL
     value: 'https://dbc-ecf93af4-a667.cloud.databricks.com/embed/dashboardsv3/01f1c3585e371844b4165a673d3691d1?o=7474659488161285'
 # Dashboard 02: native Databricks AI/BI embed URL; workspace approved-domain policy still applies.

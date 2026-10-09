@@ -116,3 +116,14 @@ def test_delivery_comparison_fallback_uses_eligible_delivery_denominator():
     assert "RJ: 1,495 late out of 12,350 eligible deliveries (12.11% late)" in result
     assert "7.61 percentage points" in result
     assert "No matching governance text" not in result
+
+
+
+def test_currency_aggregates_use_two_decimal_sql_not_raw_float():
+    """Published GMV must not expose extra double-precision digits to the LLM."""
+    sql_by_tool = statements("Show delivered GMV by state", Context(), "ANALYTICS")
+    for key in ("state_delivery", "gmv_summary"):
+        sql = sql_by_tool[key]
+        assert "ROUND(SUM(CASE WHEN is_delivered" in sql
+        assert "AS DECIMAL(20,2)) AS delivered_item_gmv_brl" in sql
+        assert_read_only(sql)

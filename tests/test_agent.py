@@ -98,7 +98,7 @@ def test_unrequested_mandatory_hybrid_evidence_fetched_before_final():
         result["evidence"]["tool_names"])
     assert result["answer"] != "Premature unsupported answer"
     assert len(model.requests) == 3
-    assert "Mandatory audited evidence" in model.requests[2]["input"][-1]["content"]
+    assert "using ONLY the verified evidence" in model.requests[2]["input"][-1]["content"]
 
 
 def test_unknown_model_tool_does_not_execute_sql():
@@ -132,3 +132,53 @@ def test_model_tool_allowlist_covers_reviewed_sql_templates():
         "failed_rules", "quarantine_breakdown",
         "metric_dictionary", "rule_dictionary", "source_dictionary",
     }
+
+
+def test_hybrid_five_sequential_tools_forces_grounded_synthesis():
+    """Regression: multi-tool question must not fail on the old 3-round cap."""
+    selected = ["gmv_summary", "failed_rules", "quarantine_breakdown",
+                "metric_dictionary", "rule_dictionary"]
+    outputs = [
+        response([model_item(
+            "fetch_governed_evidence", {"tool": tool}, call_id=f"call-{i}")])
+        for i, tool in enumerate(selected)
+    ]
+    outputs.append(response(
+        text="32 distinct quarantined source rows, five failed rule definitions; "
+             "delivered item GMV is BRL 13,220,248.93, not audited revenue. "
+             "Sources: workspace.olist_agentic_quality.quarantine and "
+             "workspace.olist_semantic.v_published_orders."
+    ))
+    model = FakeModelClient(outputs)
+    q = ("Why were 32 source records quarantined, and can I trust delivered "
+         "GMV despite data-quality failures? Explain published quality rules.")
+    result = run_agent(q, Context(), fake_sql, model, "system.ai.gpt-oss-120b")
+
+    assert result["evidence"]["model_selected_tools"] == selected
+    assert {"publication", "gmv_summary", "failed_rules",
+            "quarantine_breakdown", "metric_dictionary", "rule_dictionary"} <= set(
+                result["evidence"]["tool_names"])
+    assert "state_delivery" not in result["evidence"]["tool_names"]
+    assert "not audited revenue" in result["answer"]
+    assert len(model.requests) == 6
+    assert "tools" not in model.requests[-1]  # forced, no further tool calls
+    assert "verified evidence" in model.requests[-1]["input"][-1]["content"]
+    first_available = model.requests[0]["tools"][0]["parameters"]["properties"]["tool"]["enum"]
+    assert "state_delivery" not in first_available
+    assert "source_dictionary" not in first_available
+    assert "publication" not in first_available
+
+
+def test_hybrid_final_without_required_evidence_retrieves_it_first():
+    model = FakeModelClient([
+        response([model_item("fetch_governed_evidence", {"tool": "quarantine_breakdown"})]),
+        response(text="I could guess a total from memory"),
+        response(text="The rules quarantined 32 source records; the scoped "
+                      "delivered-item GMV comes from workspace.olist_semantic.v_published_orders."),
+    ])
+    result = run_agent("Why were records quarantined and can I trust delivered GMV?",
+                       Context(), fake_sql, model, "system.ai.gpt-oss-120b")
+    assert len(model.requests) == 3
+    assert {"failed_rules", "metric_dictionary", "gmv_summary"} <= set(
+        result["evidence"]["tool_names"])
+    assert result["answer"] != "I could guess a total from memory"

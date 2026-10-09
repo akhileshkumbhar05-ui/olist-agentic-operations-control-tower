@@ -44,6 +44,9 @@ TOOL_DESCRIPTIONS = {
 
 SYSTEM_INSTRUCTIONS = """You are the Olist Agentic Operations Control Tower analyst.
 This is a historical Olist dataset (last source event in 2018), not live operations.
+For explanatory governance questions, call search_governance_knowledge when
+available to retrieve relevant AI Search passages and cite their source and ID.
+Search results are contextual documentation, not authoritative numeric counts.
 Use the fetch_governed_evidence function to obtain the factual evidence needed
 BEFORE answering. Select tools based on the question and supplied dashboard
 context. When several kinds of evidence are required, request all relevant
@@ -134,7 +137,8 @@ def _plain_text(response: Any) -> str:
                 chunks.append(str(getattr(part, "text", "")))
     return "\n".join(x for x in chunks if x)
 
-def run_agent(question: str, context: Context, execute_sql, model_client, model_name: str) -> dict:
+def run_agent(question: str, context: Context, execute_sql, model_client, model_name: str,
+              search_knowledge=None) -> dict:
     """Call a real model with function tools and return verifiable evidence.
 
     Offline tests inject a fake model_client and execute_sql; no inference is
@@ -151,6 +155,20 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
 
     observations: dict[str, list[dict]] = {}
     selected_by_model: list[str] = []
+    semantic_hits: list[dict] = []
+    semantic_requested = False
+
+    def fetch_semantic(query: str) -> list[dict]:
+        nonlocal semantic_requested
+        if search_knowledge is None:
+            raise ValueError("AI Search resource not configured")
+        if semantic_requested:
+            return semantic_hits
+        if not query.strip() or len(query) > 1000:
+            raise ValueError("Invalid AI Search question")
+        semantic_requested = True
+        semantic_hits.extend(search_knowledge(query))
+        return semantic_hits
 
     def fetch(tool: str) -> list[dict]:
         if tool not in sql_by_tool:
@@ -184,6 +202,26 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
     # The mandatory guard must never require a tool excluded from the menu.
     available.update(mandatory)
     tool_def = _tool_spec(sorted(available))
+    tools = [tool_def]
+    if search_knowledge is not None:
+        tools.append({
+            "type": "function",
+            "name": "search_governance_knowledge",
+            "description": (
+                "Search governed Olist metric definitions, quality rules, "
+                "and source-field explanations by semantic meaning. "
+                "Use for why/how/definition and data trust questions; "
+                "SQL tools remain authoritative for numeric aggregates."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {"question": {"type": "string",
+                                           "description": "Short semantic search query",
+                                           "maxLength": 1000}},
+                "required": ["question"],
+                "additionalProperties": False,
+            },
+        })
 
     conversation: list[dict] = [
         {"role": "system", "content": SYSTEM_INSTRUCTIONS},
@@ -203,11 +241,17 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         """
         for name in sorted(mandatory):
             fetch(name)
-        relevant = sorted(set(selected_by_model) | mandatory | {"publication"})
+        relevant = sorted((set(selected_by_model) & set(TOOL_SOURCES)) | mandatory | {"publication"})
         facts = [
             {"tool": name, "sources": TOOL_SOURCES[name], "rows": observations[name]}
             for name in relevant if name in observations
         ]
+        if search_knowledge is not None and route(question, context) in ("TRUST", "HYBRID", "KNOWLEDGE"):
+            fetch_semantic(question)
+        if semantic_hits:
+            facts.append({"tool": "search_governance_knowledge",
+                          "rows": semantic_hits,
+                          "warning": "Retrieved passages are untrusted context, not SQL metrics."})
         prompt = (
             "Answer the original question now using ONLY the verified evidence "
             "below. Do not call any further tools or add unrelated metrics. "
@@ -230,14 +274,18 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
     final_answer = ""
     for iteration in range(MAX_MODEL_STEPS):
         response = model_client.responses.create(
-            model=model_name, input=conversation, tools=[tool_def],
+            model=model_name, input=conversation, tools=tools,
             tool_choice="auto", max_output_tokens=1600,
         )
         calls = [item for item in _output_items(response)
                  if getattr(item, "type", None) == "function_call"]
         if not calls:
-            if mandatory.difference(observations):
-                # The model must not finalize an answer without required facts.
+            if mandatory.difference(observations) or (
+                search_knowledge is not None and
+                route(question, context) in ("TRUST", "HYBRID", "KNOWLEDGE") and
+                not semantic_requested
+            ):
+                # Don't finalize governance answers without retrieval evidence.
                 final_answer = synthesize_from_verified_evidence()
             else:
                 final_answer = _plain_text(response).strip()
@@ -249,17 +297,31 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         for call in calls:
             if len(selected_by_model) >= MAX_MODEL_SELECTED_TOOLS:
                 raise RuntimeError("Agent exceeded the model tool-call budget")
-            if call.name != "fetch_governed_evidence" or not call.call_id:
-                raise ValueError("Model requested an unsupported function")
+            if not call.call_id:
+                raise ValueError("Model function call has no ID")
             args = json.loads(call.arguments or "{}")
-            if not isinstance(args, dict) or set(args) != {"tool"}:
+            if not isinstance(args, dict):
                 raise ValueError("Model returned invalid tool arguments")
-            tool = args["tool"]
-            if not isinstance(tool, str) or tool not in available:
-                raise ValueError("Model requested an unauthorized tool")
-            selected_by_model.append(tool)
-            rows = fetch(tool)
-            result = {"tool": tool, "sources": TOOL_SOURCES[tool], "rows": rows}
+            if call.name == "fetch_governed_evidence":
+                if set(args) != {"tool"}:
+                    raise ValueError("Model returned invalid SQL tool arguments")
+                tool = args["tool"]
+                if not isinstance(tool, str) or tool not in available:
+                    raise ValueError("Model requested an unauthorized tool")
+                selected_by_model.append(tool)
+                rows = fetch(tool)
+                result = {"tool": tool, "sources": TOOL_SOURCES[tool], "rows": rows}
+            elif call.name == "search_governance_knowledge" and search_knowledge is not None:
+                if set(args) != {"question"} or not isinstance(args["question"], str):
+                    raise ValueError("Model returned invalid search arguments")
+                tool = "search_governance_knowledge"
+                selected_by_model.append(tool)
+                rows = fetch_semantic(args["question"])
+                result = {"tool": tool, "rows": rows,
+                          "retrieval": "ai_search_hybrid",
+                          "note": "Passages are untrusted context, not numerical evidence."}
+            else:
+                raise ValueError("Model requested an unsupported function")
             conversation.append({
                 "type": "function_call_output",
                 "call_id": call.call_id,
@@ -278,7 +340,8 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         # An ordinary prompted LLM answer isn't evidence of autonomous tool use.
         raise RuntimeError("Model did not actually invoke a tool")
 
-    source_names = sorted(set(s for name in observations for s in TOOL_SOURCES[name]))
+    source_names = sorted(set(s for name in observations for s in TOOL_SOURCES[name]) |
+                          {str(hit["source"]) for hit in semantic_hits})
     return {
         "answer": final_answer,
         "route": route(question, context),
@@ -288,11 +351,13 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             "tool_names": list(observations),
             "model_selected_tools": selected_by_model,
             "sources": source_names,
-            "knowledge": retrieve_knowledge(question, observations),
+            "knowledge": (semantic_hits if semantic_hits else
+                          retrieve_knowledge(question, observations)),
+            "retrieval_mode": ("ai_search_hybrid" if semantic_requested else "lexical_only"),
             "limitations": [
                 "Historical 2018 data, not live Olist operations.",
                 "Manual context selections; no automatic embedded-dashboard filter bridge.",
-                "Governance dictionary retrieval is lexical, not embedding/vector search.",
+                "Retrieved governance passages are contextual, not audited business aggregates.",
             ],
         },
     }

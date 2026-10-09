@@ -289,7 +289,10 @@ def test_model_cannot_supply_arbitrary_search_index_or_filters():
 
 def test_gmv_display_uses_verified_decimal_not_floating_artifact():
     model = FakeModelClient([
-        response([model_item("fetch_governed_evidence", {"tool": "gmv_summary"})]),
+        response([
+            model_item("fetch_governed_evidence", {"tool": "gmv_summary"}, call_id="gmv-1"),
+            model_item("fetch_governed_evidence", {"tool": "metric_dictionary"}, call_id="dict-1"),
+        ]),
         response(text="The delivered item GMV is BRL 13,220,248.93. "
                       "Source workspace.olist_semantic.v_published_orders."),
     ])
@@ -299,6 +302,7 @@ def test_gmv_display_uses_verified_decimal_not_floating_artifact():
         {"name": "Delivered-item GMV", "display": "BRL 13,220,248.93",
          "source": "workspace.olist_semantic.v_published_orders"}
     ]
-    assert model.requests[1]["input"][-1]["output"].find(
-        '"verified_gmv_display": "BRL 13,220,248.93"') >= 0
+    assert any('"verified_gmv_display": "BRL 13,220,248.93"' in item.get("output", "")
+               for item in model.requests[1]["input"]
+               if item.get("type") == "function_call_output")
     assert result["evidence"]["retrieval_trigger"] == "not_used"

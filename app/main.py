@@ -22,6 +22,7 @@ from olist_agentic.copilot.queries import Context
 from olist_agentic.copilot.engine import prepare, fallback_answer, model_answer
 from olist_agentic.copilot.sql_diagnostics import sql_failure_category, sql_failure_guidance
 from olist_agentic.copilot.agent import run_agent
+from olist_agentic.copilot.semantic_search import search_governance
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,13 @@ def gateway_model_client():
     workspace = client()
     gateway_url = workspace.config.host.rstrip("/") + "/ai-gateway/mlflow/v1"
     return DatabricksOpenAI(workspace_client=workspace, base_url=gateway_url)
+
+
+def semantic_query(question: str) -> list[dict]:
+    index = os.getenv("DATABRICKS_GOVERNANCE_SEARCH_INDEX", "").strip()
+    if not index:
+        raise RuntimeError("Olist governance AI Search resource has not been configured")
+    return search_governance(client(), index, question)
 
 
 def sql_query(statement: str) -> list[dict]:
@@ -101,10 +109,12 @@ def ask(body: AskRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     model_service = os.getenv("DATABRICKS_MODEL_SERVICE", "").strip()
+    semantic_enabled = bool(os.getenv("DATABRICKS_GOVERNANCE_SEARCH_INDEX", "").strip())
     if model_service:
         try:
             result = run_agent(
-                body.question, context, sql_query, gateway_model_client(), model_service
+                body.question, context, sql_query, gateway_model_client(), model_service,
+                search_knowledge=semantic_query if semantic_enabled else None,
             )
             return {"generation": "agentic_tool_calling", **result}
         except Exception:
@@ -142,7 +152,8 @@ def config():
               p.hostname.endswith(".azuredatabricks.net") or
               p.hostname.endswith(".gcp.databricks.com")))
     return {"dashboard_url": value if valid else "", "genie_backup_available": valid,
-            "model_configured": bool(os.getenv("DATABRICKS_MODEL_SERVICE"))}
+            "model_configured": bool(os.getenv("DATABRICKS_MODEL_SERVICE")),
+            "semantic_search_configured": bool(os.getenv("DATABRICKS_GOVERNANCE_SEARCH_INDEX"))}
 
 
 @app.get("/", response_class=HTMLResponse)

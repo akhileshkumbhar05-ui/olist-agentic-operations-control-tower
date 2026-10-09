@@ -232,6 +232,7 @@ def test_model_can_combine_semantic_search_with_approved_sql_tools():
     assert "search_governance_knowledge" in result["evidence"]["model_selected_tools"]
     assert "failed_rules" in result["evidence"]["model_selected_tools"]
     assert result["evidence"]["retrieval_mode"] == "ai_search_hybrid"
+    assert result["evidence"]["retrieval_trigger"] == "model_selected"
     assert result["evidence"]["knowledge"][0]["id"] == "rule:orders.delivered_time"
     assert "workspace.olist_governance.dq_rules" in result["evidence"]["sources"]
     assert {x["name"] for x in model.requests[0]["tools"]} == {
@@ -264,6 +265,8 @@ def test_agent_requires_semantic_evidence_for_governance_question():
     assert len(queries) == 1
     assert result["answer"] != "Unverified model answer"
     assert result["evidence"]["retrieval_mode"] == "ai_search_hybrid"
+    assert result["evidence"]["retrieval_trigger"] == "evidence_guard"
+    assert result["evidence"]["verified_metrics"][0]["display"] == "BRL 13,220,248.93"
     assert "metric:gmv" in {v["id"] for v in result["evidence"]["knowledge"]}
     assert "tools" not in model.requests[-1]
 
@@ -281,3 +284,21 @@ def test_model_cannot_supply_arbitrary_search_index_or_filters():
         run_agent("Why are orders quarantined?", Context(), fake_sql,
                   model, "system.ai.gpt-oss-120b", search_knowledge=semantic)
     assert calls == []
+
+
+
+def test_gmv_display_uses_verified_decimal_not_floating_artifact():
+    model = FakeModelClient([
+        response([model_item("fetch_governed_evidence", {"tool": "gmv_summary"})]),
+        response(text="The delivered item GMV is BRL 13,220,248.93. "
+                      "Source workspace.olist_semantic.v_published_orders."),
+    ])
+    result = run_agent("What is the delivered GMV?", Context(),
+                       fake_sql, model, "system.ai.gpt-oss-120b")
+    assert result["evidence"]["verified_metrics"] == [
+        {"name": "Delivered-item GMV", "display": "BRL 13,220,248.93",
+         "source": "workspace.olist_semantic.v_published_orders"}
+    ]
+    assert model.requests[1]["input"][-1]["output"].find(
+        '"verified_gmv_display": "BRL 13,220,248.93"') >= 0
+    assert result["evidence"]["retrieval_trigger"] == "not_used"

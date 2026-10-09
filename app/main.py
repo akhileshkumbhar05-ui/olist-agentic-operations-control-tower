@@ -46,7 +46,13 @@ def client():
 @lru_cache(maxsize=1)
 def gateway_model_client():
     from databricks_openai import DatabricksOpenAI
-    return DatabricksOpenAI(workspace_client=client())
+    # system.ai.* names are Unity Gateway model services, NOT classic serving
+    # endpoints. DatabricksOpenAI defaults to /serving-endpoints; override
+    # the base URL to Unity Gateway's MLflow-compatible Responses API.
+    # Keep the App service principal's WorkspaceClient for OAuth (no PAT).
+    workspace = client()
+    gateway_url = workspace.config.host.rstrip("/") + "/ai-gateway/mlflow/v1"
+    return DatabricksOpenAI(workspace_client=workspace, base_url=gateway_url)
 
 
 def sql_query(statement: str) -> list[dict]:
@@ -136,7 +142,7 @@ def config():
               p.hostname.endswith(".azuredatabricks.net") or
               p.hostname.endswith(".gcp.databricks.com")))
     return {"dashboard_url": value if valid else "", "genie_backup_available": valid,
-            "model_configured": bool(os.getenv("DATABRICKS_SERVING_ENDPOINT"))}
+            "model_configured": bool(os.getenv("DATABRICKS_MODEL_SERVICE"))}
 
 
 @app.get("/", response_class=HTMLResponse)

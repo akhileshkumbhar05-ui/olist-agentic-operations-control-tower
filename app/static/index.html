@@ -27,6 +27,9 @@ textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-c
 .evidence-title{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a4bada;margin-bottom:7px}
 .evidence-chips{display:flex;flex-wrap:wrap;gap:6px}
 .evidence-chip{border:1px solid #355070;background:#162a45;border-radius:6px;padding:5px 7px;overflow-wrap:anywhere}
+.evidence-chunk{margin-top:9px;padding:9px;background:#14263d;border:1px solid #314a68;border-radius:6px;line-height:1.5}
+.evidence-chunk strong{display:block;color:#dcecff;font-size:12px}
+.evidence-chunk p{margin:5px 0 0;color:#b9cce5;overflow-wrap:anywhere}
 #rawEvidence{margin-top:12px;font-size:12px;color:#a8c0dc}
 #rawEvidence summary{cursor:pointer}#evidence{white-space:pre-wrap;overflow-wrap:anywhere;font:11px ui-monospace,monospace;color:#b0c4df;max-height:210px;overflow:auto;margin-top:8px}
 .actions{display:flex;gap:8px;margin-top:12px}.muted{color:#91a9c5;font-size:12px}
@@ -147,7 +150,7 @@ function renderAnswer(raw){
 function renderEvidence(evidence){
   const summary=document.getElementById("evidenceSummary");summary.replaceChildren();
   const items=[
-    ["Model-selected SQL tools",evidence?.model_selected_tools||[]],
+    ["Model-selected agent tools",evidence?.model_selected_tools||[]],
     ["Executed governed tools",evidence?.tool_names||[]],
     ["Unity Catalog evidence sources",evidence?.sources||[]]
   ];
@@ -162,6 +165,22 @@ function renderEvidence(evidence){
       const chip=document.createElement("span");chip.className="evidence-chip";chip.textContent=value;chips.appendChild(chip);
     }
     group.append(title,chips);summary.appendChild(group);
+  }
+  const chunks=(evidence?.knowledge||[]).filter(x=>x.retrieval==="ai_search_hybrid");
+  if(chunks.length){
+    nonempty=true;
+    const group=document.createElement("div");group.className="evidence-group";
+    const title=document.createElement("div");title.className="evidence-title";
+    title.textContent="AI Search governance passages";group.appendChild(title);
+    for(const hit of chunks.slice(0,4)){
+      const card=document.createElement("div");card.className="evidence-chunk";
+      const id=document.createElement("strong");
+      id.textContent=hit.id+" · "+hit.source;
+      const preview=document.createElement("p");
+      preview.textContent=String(hit.text||"").slice(0,280);
+      card.append(id,preview);group.appendChild(card);
+    }
+    summary.appendChild(group);
   }
   if(!nonempty)summary.textContent="No evidence sources returned.";
 }

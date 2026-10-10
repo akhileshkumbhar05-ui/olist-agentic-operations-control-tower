@@ -1,0 +1,40 @@
+[
+  {
+    "id": "gmv_definition",
+    "question": "What is delivered GMV, and can I call it revenue?",
+    "expected_route": "ANALYTICS",
+    "required_tools": ["publication", "gmv_summary", "metric_dictionary"],
+    "required_sources": ["workspace.olist_semantic.v_published_orders"],
+    "required_answer_terms": ["BRL 13,220,248.93", "freight", "revenue"],
+    "forbidden_answer_terms": ["is independently audited", "is guaranteed correct"]
+  },
+  {
+    "id": "quality_distinctions",
+    "question": "Why were source records quarantined, and can I trust the GMV?",
+    "expected_route": "HYBRID",
+    "required_tools": ["publication", "gmv_summary", "failed_rules", "quarantine_breakdown", "metric_dictionary"],
+    "required_sources": ["workspace.olist_agentic_quality.quarantine", "workspace.olist_governance.dq_rules"],
+    "expected_quality_summary": {"failed_rule_definitions": 5, "rule_definitions_by_action": {"QUARANTINE": 1, "WARN": 4}},
+    "required_answer_terms": ["32", "QUARANTINE", "WARN"],
+    "forbidden_answer_terms": ["5 WARN rules", "warnings cannot affect GMV", "is independently audited"]
+  },
+  {
+    "id": "delivery_denominator",
+    "question": "Compare late delivery rates for RJ and SP.",
+    "expected_route": "ANALYTICS",
+    "required_tools": ["publication", "state_delivery"],
+    "required_sources": ["workspace.olist_semantic.v_published_orders"],
+    "required_answer_terms": ["RJ", "SP", "eligible deliveries"],
+    "forbidden_answer_terms": []
+  },
+  {
+    "id": "governance_retrieval",
+    "question": "Explain the formula and definition of freight.",
+    "expected_route": "KNOWLEDGE",
+    "required_tools": ["publication", "metric_dictionary"],
+    "required_sources": ["workspace.olist_governance.metric_dictionary"],
+    "expected_retrieval_mode": "ai_search_hybrid",
+    "required_answer_terms": ["GMV", "freight"],
+    "forbidden_answer_terms": ["is accounting revenue"]
+  }
+]

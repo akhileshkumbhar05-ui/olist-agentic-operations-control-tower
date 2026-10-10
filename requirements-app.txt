@@ -3,3 +3,4 @@ uvicorn>=0.30,<1
 databricks-sdk>=0.57,<1
 pydantic>=2.8,<3
 databricks-openai>=0.1
+mlflow-skinny>=3.3,<4

@@ -35,3 +35,8 @@ The Phase 1 repository, `olist-data-trust-control-tower`, remains unchanged as t
 This repository starts by making the existing source contracts, 88 data-quality controls, 13 governed KPIs, source-field semantics, rule-to-metric impact, and dashboard visual semantics explicit and machine-queryable.
 
 See [IMPLEMENTATION_SPEC.md](IMPLEMENTATION_SPEC.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+The current App agent uses Unity Gateway GPT-OSS 120B, governed SQL tools,
+hybrid governance AI Search, and a deterministic fallback. See
+[tracing and offline evaluation](docs/TRACING_EVALUATION.md) for the MLflow
+experiment binding, trace boundaries, four-case evaluation, and redeploy checks.

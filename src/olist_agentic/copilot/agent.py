@@ -14,6 +14,7 @@ from typing import Any
 
 from .engine import retrieve_knowledge
 from .queries import Context, assert_read_only, route, statements
+from .tracing import trace_span, set_span_attributes
 
 # Hard limits bound cost/latency; terminal synthesis is allowed after the final tool round.
 MAX_MODEL_STEPS = 5
@@ -193,7 +194,13 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         if not query.strip() or len(query) > 1000:
             raise ValueError("Invalid AI Search question")
         semantic_requested = True
-        semantic_hits.extend(search_knowledge(query))
+        with trace_span("governance.retrieval", "RETRIEVER",
+                        {"index": "workspace.olist_governance.knowledge_search_index",
+                         "mode": "hybrid"}) as span:
+            semantic_hits.extend(search_knowledge(query))
+            set_span_attributes(span, {"hit_count": len(semantic_hits),
+                                       "source_ids": ",".join(str(hit.get("id", ""))
+                                                              for hit in semantic_hits)[:500]})
         return semantic_hits
 
     def fetch(tool: str) -> list[dict]:
@@ -202,7 +209,10 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         if tool not in observations:
             sql = sql_by_tool[tool]
             assert_read_only(sql)
-            observations[tool] = execute_sql(sql)
+            with trace_span("governed_sql." + tool, "TOOL",
+                            {"tool": tool, "sources": ",".join(TOOL_SOURCES[tool])}) as span:
+                observations[tool] = execute_sql(sql)
+                set_span_attributes(span, {"row_count": len(observations[tool])})
             if tool == "gmv_summary":
                 for row in observations[tool]:
                     amount = row.get("delivered_item_gmv_brl")
@@ -306,19 +316,24 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             "Use concise plain text without Markdown tables.\n" +
             json.dumps(facts, default=str)[:26000]
         )
-        final_response = model_client.responses.create(
-            model=model_name,
+        final_response = invoke_model(
             input=conversation + [{"role": "user", "content": prompt}],
-            max_output_tokens=1800,
-        )
+            max_output_tokens=1800)
         return _plain_text(final_response).strip()
+
+    def invoke_model(**kwargs):
+        with trace_span("gateway.model", "LLM",
+                        {"model": model_name, "max_output_tokens": kwargs["max_output_tokens"]}) as span:
+            response = model_client.responses.create(model=model_name, **kwargs)
+            set_span_attributes(span, {"function_call_count": sum(
+                getattr(item, "type", None) == "function_call"
+                for item in _output_items(response))})
+            return response
 
     final_answer = ""
     for iteration in range(MAX_MODEL_STEPS):
-        response = model_client.responses.create(
-            model=model_name, input=conversation, tools=tools,
-            tool_choice="auto", max_output_tokens=1600,
-        )
+        response = invoke_model(input=conversation, tools=tools,
+                                tool_choice="auto", max_output_tokens=1600)
         calls = [item for item in _output_items(response)
                  if getattr(item, "type", None) == "function_call"]
         if not calls:

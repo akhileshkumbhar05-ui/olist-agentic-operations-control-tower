@@ -23,6 +23,7 @@ from olist_agentic.copilot.engine import prepare, fallback_answer, model_answer
 from olist_agentic.copilot.sql_diagnostics import sql_failure_category, sql_failure_guidance
 from olist_agentic.copilot.agent import run_agent
 from olist_agentic.copilot.semantic_search import search_governance
+from olist_agentic.copilot.tracing import trace_span, set_span_attributes
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,14 @@ def health():
 
 @app.post("/api/ask")
 def ask(body: AskRequest):
+    with trace_span("olist.ask", "CHAIN", {"endpoint": "/api/ask"}) as span:
+        result = _ask(body)
+        set_span_attributes(span, {"generation": result["generation"],
+                                   "route": result["route"]})
+        return result
+
+
+def _ask(body: AskRequest):
 
     try:
         context = Context(page=body.page, visual=body.visual, state=body.state,

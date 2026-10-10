@@ -18,7 +18,10 @@ def _mlflow():
         return None
     try:
         import mlflow
+        mlflow.set_tracking_uri("databricks")
         mlflow.set_experiment(experiment_id=os.environ["MLFLOW_EXPERIMENT_ID"])
+        logger.info("MLflow tracing initialized for experiment %s",
+                    os.environ["MLFLOW_EXPERIMENT_ID"])
         return mlflow
     except Exception:
         logger.exception("MLflow trace setup failed; continuing without tracing")

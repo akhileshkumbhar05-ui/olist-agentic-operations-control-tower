@@ -1,5 +1,6 @@
 """Tracing checks use a fake MLflow SDK and never contact Databricks."""
 import json
+import sys
 from types import SimpleNamespace
 
 from olist_agentic.copilot import tracing
@@ -74,3 +75,20 @@ def test_trace_export_failure_does_not_change_result(monkeypatch):
     with tracing.trace_span("olist.ask", "CHAIN"):
         result = 42
     assert result == 42
+
+
+def test_mlflow_initializes_databricks_tracking_before_experiment(monkeypatch):
+    calls = []
+    fake = SimpleNamespace(
+        set_tracking_uri=lambda uri: calls.append(("tracking", uri)),
+        set_experiment=lambda **kw: calls.append(("experiment", kw["experiment_id"])),
+    )
+    monkeypatch.setenv("MLFLOW_EXPERIMENT_ID", "2462690133412615")
+    monkeypatch.setitem(sys.modules, "mlflow", fake)
+    tracing._mlflow.cache_clear()
+    try:
+        assert tracing._mlflow() is fake
+        assert calls == [("tracking", "databricks"),
+                         ("experiment", "2462690133412615")]
+    finally:
+        tracing._mlflow.cache_clear()

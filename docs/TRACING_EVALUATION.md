@@ -2,7 +2,8 @@
 
 The Databricks App uses the saved `olist-agentic-rag-tracing` experiment resource
 (`experiment` key, `Can edit`). `app.yaml` maps its ID to
-`MLFLOW_EXPERIMENT_ID`. No notebook cluster or separate evaluation compute is
+`MLFLOW_EXPERIMENT_ID` and selects the Databricks tracking server with
+`MLFLOW_TRACKING_URI=databricks`. No notebook cluster or separate evaluation compute is
 required to serve the App.
 
 ## Trace behavior

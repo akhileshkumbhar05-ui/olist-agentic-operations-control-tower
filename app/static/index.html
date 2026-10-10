@@ -48,9 +48,9 @@ textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-c
 <div id="answer" aria-live="polite">Ask a question to retrieve the current published-run evidence.</div><h3>Traceable sources</h3><div id="evidenceSummary">No query executed.</div><details id="rawEvidence"><summary>Raw technical evidence (JSON)</summary><pre id="evidence">No query executed.</pre></details>
 </section></main>
 <script>
-let dashboardUrl="";
+let dashboardUrl="",dashboardEmbedUrl="";
 for(const s of "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ")){const o=document.createElement("option");o.value=s;o.textContent=s;document.getElementById("state").appendChild(o)}
-async function setup(){const r=await fetch("/api/config");const c=await r.json();dashboardUrl=c.dashboard_url;document.getElementById("mode").textContent=c.model_configured?"Hosted model configured":"Deterministic mode";showTab("dashboard")}
+async function setup(){const r=await fetch("/api/config");const c=await r.json();dashboardUrl=c.dashboard_url;dashboardEmbedUrl=c.dashboard_embed_url;document.getElementById("mode").textContent=c.model_configured?"Hosted model configured":"Deterministic mode";showTab("dashboard")}
 function showTab(kind){
 document.getElementById("tabDashboard").classList.toggle("active",kind==="dashboard");document.getElementById("tabGenie").classList.toggle("active",kind==="genie");
 document.getElementById("mainLayout").classList.toggle("genie-mode",kind==="genie");
@@ -61,12 +61,14 @@ const mount=document.getElementById("dashboardMount");mount.replaceChildren();
 if(!dashboardUrl){mount.textContent="Set DATABRICKS_DASHBOARD_URL in the Databricks App configuration to connect the published dashboard.";return}
 const link=document.createElement("a");link.href=dashboardUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent=kind==="genie"?"Open Genie-enabled published dashboard ↗":"Open published dashboard ↗";
 mount.appendChild(link);
-const frame=document.createElement("iframe");
-frame.src=dashboardUrl;
-frame.title=kind==="genie"?"Genie-enabled published Databricks dashboard":"Published Databricks AI/BI dashboard";
-frame.loading="lazy";
-frame.setAttribute("referrerpolicy","strict-origin-when-cross-origin");
-mount.appendChild(frame);
+if(dashboardEmbedUrl){
+  const frame=document.createElement("iframe");
+  frame.src=dashboardEmbedUrl;
+  frame.title=kind==="genie"?"Genie-enabled published Databricks dashboard":"Published Databricks AI/BI dashboard";
+  frame.loading="lazy";
+  frame.setAttribute("referrerpolicy","strict-origin-when-cross-origin");
+  mount.appendChild(frame);
+}
 if(kind==="genie"){
   const tip=document.createElement("p");
   tip.className="muted";

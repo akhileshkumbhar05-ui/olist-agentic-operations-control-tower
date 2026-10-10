@@ -154,13 +154,18 @@ def _ask(body: AskRequest):
 def config():
     # Explicitly allow only a Databricks workspace URL supplied via configuration.
     import urllib.parse
-    value = os.getenv("DATABRICKS_DASHBOARD_URL", "")
-    p = urllib.parse.urlparse(value)
-    valid = (p.scheme == "https" and bool(p.hostname) and
-             (p.hostname.endswith(".cloud.databricks.com") or
-              p.hostname.endswith(".azuredatabricks.net") or
-              p.hostname.endswith(".gcp.databricks.com")))
-    return {"dashboard_url": value if valid else "", "genie_backup_available": valid,
+    def approved(name: str) -> str:
+        value = os.getenv(name, "")
+        p = urllib.parse.urlparse(value)
+        valid = (p.scheme == "https" and bool(p.hostname) and
+                 (p.hostname.endswith(".cloud.databricks.com") or
+                  p.hostname.endswith(".azuredatabricks.net") or
+                  p.hostname.endswith(".gcp.databricks.com")))
+        return value if valid else ""
+    dashboard_url = approved("DATABRICKS_DASHBOARD_URL")
+    embed_url = approved("DATABRICKS_DASHBOARD_EMBED_URL")
+    return {"dashboard_url": dashboard_url, "dashboard_embed_url": embed_url,
+            "genie_backup_available": bool(dashboard_url),
             "model_configured": bool(os.getenv("DATABRICKS_MODEL_SERVICE")),
             "semantic_search_configured": bool(os.getenv("DATABRICKS_GOVERNANCE_SEARCH_INDEX"))}
 

@@ -15,6 +15,7 @@ def test_genie_backup_uses_full_width_native_dashboard_without_primary_sidebar()
 def test_dashboard_keeps_custom_copilot_and_genie_fallback():
     assert 'onclick="showTab(\'dashboard\')"' in HTML
     assert 'onclick="showTab(\'genie\')"' in HTML
-    assert "frame.src=dashboardUrl" in HTML
+    assert "link.href=dashboardUrl" in HTML
+    assert "frame.src=dashboardEmbedUrl" in HTML
     assert "Open Genie-enabled published dashboard" in HTML
     assert 'id="askBtn"' in HTML

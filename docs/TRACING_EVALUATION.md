@@ -44,6 +44,38 @@ questions from `evals/cases.json` with dashboard context `operations`,
 uses deterministic fallback, record that separately; some trace and evidence
 fields are specific to the agent path.
 
+## Live validation checkpoint (2026-10-10)
+
+The four cases were checked visually in the running App. This is manual QA,
+**not** a run of `offline_eval.py`, because the raw `/api/ask` JSON responses
+were not captured:
+
+| Case | Observed result |
+| --- | --- |
+| Delivered GMV | `BRL 13,220,248.93`; merchandise value, excluding freight, not accounting revenue; governed SQL and AI Search evidence shown. |
+| Quality distinctions | 32 distinct quarantined source records (8 in each of four tables); five failed rule definitions, split 1 QUARANTINE + 4 WARN; GMV trust qualified by remaining WARN-level anomalies. |
+| RJ versus SP | RJ: 1,495 / 12,350 eligible deliveries = 12.1053%; SP: 1,820 / 40,494 = 4.4945%; historical-data caveat and governed source shown. |
+| Freight definition | `sum(freight_value)` where `is_delivered`; freight reported separately from merchandise GMV; metric dictionary and hybrid search evidence shown. |
+
+The saved MLflow experiment displayed a successful trace row, but its detailed
+view said **No trace data available**. App logs showed that upload of the trace
+artifact to `us-east-2.storage.cloud.databricks.com:443` failed with
+`Connection refused`. The trace row therefore does **not** verify the nested
+spans. This was an artifact-storage network failure, not an agent answer or
+model-endpoint failure. The log already reported `tracking URI: databricks`,
+so changing that URI alone is not a supported fix; do not redeploy solely to
+test that setting again.
+
+Databricks Free Edition restricts outbound internet and does not provide
+custom networking controls. A Unity Catalog-backed experiment is a possible
+supported trace-storage path, but it requires a trace-enabled experiment,
+MLflow 3.14+, a SQL warehouse, and four trace-table App resources with MODIFY
+permissions. Check workspace support and resource cost before changing the
+experiment. The empty artifact trace cannot be counted as a successful
+end-to-end trace. See [Free Edition limits](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations),
+[Unity Catalog trace storage](https://docs.databricks.com/aws/en/mlflow3/genai/tracing/trace-unity-catalog),
+and [App experiment resources](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/mlflow).
+
 ## Deploy and verify in the existing Databricks App
 
 1. Confirm GitHub CI for the new commit is green before deployment. In the
@@ -72,3 +104,4 @@ fields are specific to the agent path.
 The dataset is historical Olist data, not live operations. Dashboard context
 is selected manually. Rule failure evaluations can overlap; they are not the
 32 distinct quarantined source records.
+

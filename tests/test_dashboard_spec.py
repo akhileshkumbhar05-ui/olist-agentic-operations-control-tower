@@ -89,3 +89,17 @@ def test_operations_percent_kpis_show_percent_suffix():
         value = widgets[name]["spec"]["encodings"]["value"]
         assert value["format"]["type"] == "number-plain"
         assert value["formatTemplate"] == "{{@formatted}}%"
+
+
+
+def test_sparse_trailing_months_excluded_only_from_monthly_trend():
+    dashboard = json.loads(SPEC.read_text(encoding="utf-8"))
+    datasets = {d["name"]: "".join(d["queryLines"]) for d in dashboard["datasets"]}
+    assert "orders_trend_through_aug_2018" in datasets
+    assert "WHERE purchase_date < DATE '2018-09-01'" in datasets["orders_trend_through_aug_2018"]
+    assert "WHERE purchase_date < DATE '2018-09-01'" not in datasets["orders"]
+    ops = next(p for p in dashboard["pages"] if p["name"] == "operations")
+    widgets = {row["widget"]["name"]: row["widget"] for row in ops["layout"]}
+    assert widgets["ops_monthly_orders"]["queries"][0]["query"]["datasetName"] == "orders_trend_through_aug_2018"
+    assert widgets["ops_state"]["queries"][0]["query"]["datasetName"] == "orders"
+    assert "Sep (16 orders) and Oct (4 orders)" in "".join(widgets["ops_intro"]["multilineTextboxSpec"]["lines"])

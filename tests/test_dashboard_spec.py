@@ -237,7 +237,7 @@ def test_operations_kpis_share_the_chart_cross_filter_dataset():
         assert query["disaggregated"] is False, name
         alias = f"measure({measure})"
         assert query["fields"] == [
-            {"name": alias, "expression": f"MEASURE(\`{measure}\`)"}
+            {"name": alias, "expression": f"MEASURE(`{measure}`)"}
         ], name
         assert widget["spec"]["encodings"]["value"]["fieldName"] == alias
     for name in ("ops_state", "ops_late", "ops_state_rate", "ops_monthly_orders"):
@@ -263,18 +263,18 @@ def test_filtered_kpi_measures_reaggregate_counts_and_use_weighted_denominators(
     assert "SUM(CASE WHEN review_score IS NOT NULL THEN 1 ELSE 0 END) AS scored_reviews" in sql
     cols = {m["displayName"]: m["expression"] for m in ds["columns"]}
     assert cols == {
-        "Accepted Orders": "SUM(\`total_orders\`)",
-        "Delivered Orders": "SUM(\`delivered_orders\`)",
-        "Delivered Item GMV": "SUM(\`delivered_item_gmv\`)",
+        "Accepted Orders": "SUM(`total_orders`)",
+        "Delivered Orders": "SUM(`delivered_orders`)",
+        "Delivered Item GMV": "SUM(`delivered_item_gmv`)",
         "Late Delivery Rate": (
-            "100.0 * SUM(\`late_orders\`) / NULLIF(SUM(\`eligible_deliveries\`), 0)"
+            "100.0 * SUM(`late_orders`) / NULLIF(SUM(`eligible_deliveries`), 0)"
         ),
         "On-Time Delivery Rate": (
-            "100.0 * (SUM(\`eligible_deliveries\`) - SUM(\`late_orders\`)) "
-            "/ NULLIF(SUM(\`eligible_deliveries\`), 0)"
+            "100.0 * (SUM(`eligible_deliveries`) - SUM(`late_orders`)) "
+            "/ NULLIF(SUM(`eligible_deliveries`), 0)"
         ),
         "Negative Review Rate": (
-            "100.0 * SUM(\`negative_reviews\`) / NULLIF(SUM(\`scored_reviews\`), 0)"
+            "100.0 * SUM(`negative_reviews`) / NULLIF(SUM(`scored_reviews`), 0)"
         ),
     }
     assert all("AVG(" not in expr for expr in cols.values())

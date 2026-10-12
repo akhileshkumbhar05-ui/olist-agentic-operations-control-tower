@@ -44,8 +44,12 @@ def score(case: dict, response: dict) -> list[str]:
         for key, value in expected_quality.items():
             if actual.get(key) != value:
                 failures.append("quality_summary:" + key)
-    if case.get("expected_retrieval_mode") != evidence.get("retrieval_mode") and case.get("expected_retrieval_mode"):
+    if case.get("expected_retrieval_mode") and case["expected_retrieval_mode"] != evidence.get("retrieval_mode"):
         failures.append("retrieval_mode")
+    if case.get("expected_retrieval_trigger") and case["expected_retrieval_trigger"] != evidence.get("retrieval_trigger"):
+        failures.append("retrieval_trigger")
+    if not set(case.get("required_model_selected_tools", [])) <= set(evidence.get("model_selected_tools") or []):
+        failures.append("model_selected_tools")
     if case["id"] == "gmv_definition":
         metrics = evidence.get("verified_metrics") or []
         if not any(m.get("display") == "BRL 13,220,248.93" for m in metrics):

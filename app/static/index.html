@@ -33,6 +33,9 @@ textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-c
 #rawEvidence{margin-top:12px;font-size:12px;color:#a8c0dc}
 #rawEvidence summary{cursor:pointer}#evidence{white-space:pre-wrap;overflow-wrap:anywhere;font:11px ui-monospace,monospace;color:#b0c4df;max-height:210px;overflow:auto;margin-top:8px}
 .actions{display:flex;gap:8px;margin-top:12px}.muted{color:#91a9c5;font-size:12px}
+.question-count{text-align:right;margin:3px 0 0;font-size:11px;color:#91a9c5}
+.question-count.over-limit{color:#ffb5b5}
+.error-text{color:#ffd6d6}
 @media(max-width:1000px){main{grid-template-columns:1fr}iframe{height:430px}}
 </style></head><body>
 <header><div><div class="eyebrow">Databricks / Governed intelligence</div><div class="brand">OLIST <span style="color:#6caeff">/</span> OPERATIONS CONTROL TOWER</div></div><span id="mode" class="pill">Loading configuration</span></header>
@@ -42,7 +45,7 @@ textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-c
 <p class="muted" id="embedNote">Embedding is subject to Databricks workspace permissions and allowed embedding domains. A secure open-in-Databricks fallback is always provided when a dashboard URL is configured.</p></section>
 <section id="copilotPanel"><div class="eyebrow">Primary / Custom AI</div><h1>Evidence-grounded Copilot</h1><p>Read-only SQL tools, governance retrieval, and an optional hosted LLM. Facts come from the published run—not from unconstrained SQL generation.</p>
 <div class="formgrid"><div><label for="state">Customer state filter</label><select id="state"><option value="ALL">All states</option></select></div><div><label for="page">Dashboard context</label><select id="page"><option value="operations">Operations</option><option value="trust">Data Trust</option><option value="governance">Governance</option></select></div></div>
-<label for="question">Question</label><textarea id="question">Why were records quarantined, and can I trust the delivered GMV?</textarea>
+<label for="question">Question</label><textarea id="question" aria-describedby="questionCount">Why were records quarantined, and can I trust the delivered GMV?</textarea><div id="questionCount" class="question-count" aria-live="polite"></div>
 <div class="actions"><button onclick="ask()" id="askBtn">Ask grounded Copilot</button><button onclick="document.getElementById('question').value='Compare late delivery rates for RJ and SP'">Try RJ vs SP</button></div>
 <p id="status" class="muted">No model endpoint assumed. A deterministic cited answer is available when configured SQL access works.</p>
 <div id="answer" aria-live="polite">Ask a question to retrieve the current published-run evidence.</div><h3>Traceable sources</h3><div id="evidenceSummary">No query executed.</div><details id="rawEvidence"><summary>Raw technical evidence (JSON)</summary><pre id="evidence">No query executed.</pre></details>
@@ -193,17 +196,56 @@ function renderEvidence(evidence){
   if(!nonempty)summary.textContent="No evidence sources returned.";
 }
 
-async function ask(){
-const button=document.getElementById("askBtn");button.disabled=true;document.getElementById("status").textContent="Running allowlisted SQL tools…";
-try{
-const body={question:document.getElementById("question").value,page:document.getElementById("page").value,state:document.getElementById("state").value,visual:"overview"};
-const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-const data=await r.json();if(!r.ok)throw new Error(data.detail||"Copilot request failed");
-renderAnswer(data.answer);
-document.getElementById("status").textContent=data.route+" · "+data.generation+" · published "+data.published_run;
-renderEvidence(data.evidence);document.getElementById("evidence").textContent=JSON.stringify(data.evidence,null,2);
-}catch(e){document.getElementById("status").textContent="Request could not be completed";document.getElementById("answer").textContent=String(e.message||e)}
-finally{button.disabled=false}
+const MAX_QUESTION_CHARS=2000;
+function updateQuestionCount(){
+  const question=document.getElementById("question");
+  const count=document.getElementById("questionCount");
+  count.textContent=question.value.length+" / "+MAX_QUESTION_CHARS+" characters";
+  count.classList.toggle("over-limit",question.value.length>MAX_QUESTION_CHARS);
 }
+function apiErrorMessage(data,status){
+  const detail=data&&data.detail;
+  if(Array.isArray(detail)){
+    const issues=detail.slice(0,4).map(x=>{
+      const loc=Array.isArray(x.loc)?x.loc.filter(v=>v!=="body").join("."):"request";
+      return (loc?loc+": ":"")+(typeof x.msg==="string"?x.msg:"Invalid value");
+    });
+    return issues.join("; ")||"Invalid request ("+status+").";
+  }
+  if(typeof detail==="string"&&detail.trim())return detail;
+  if(typeof data?.message==="string"&&data.message.trim())return data.message;
+  return "Request failed (HTTP "+status+"). Check Databricks App Logs.";
+}
+async function ask(){
+ const button=document.getElementById("askBtn");
+ button.disabled=true;
+ document.getElementById("status").textContent="Running allowlisted SQL tools…";
+ try{
+   const question=document.getElementById("question").value;
+   if(!question.trim())throw new Error("Enter a question first.");
+   if(question.length>MAX_QUESTION_CHARS)throw new Error(
+     "Question is too long ("+question.length+" characters). Limit: "+MAX_QUESTION_CHARS+".");
+   const body={question,page:document.getElementById("page").value,state:document.getElementById("state").value,visual:"overview"};
+   const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+   const data=await r.json().catch(()=>null);
+   if(!r.ok)throw new Error(apiErrorMessage(data,r.status));
+   if(!data||typeof data.answer!=="string")throw new Error("The server returned an unexpected response.");
+   document.getElementById("answer").classList.remove("error-text");
+   renderAnswer(data.answer);
+   document.getElementById("status").textContent=data.route+" · "+data.generation+" · published "+data.published_run;
+   renderEvidence(data.evidence);document.getElementById("evidence").textContent=JSON.stringify(data.evidence,null,2);
+ }catch(e){
+   document.getElementById("status").textContent="Request could not be completed";
+   const box=document.getElementById("answer");
+   box.replaceChildren();
+   box.classList.add("error-text");
+   box.textContent=e instanceof Error?e.message:"An unexpected error occurred.";
+ }finally{
+   button.disabled=false;
+   updateQuestionCount();
+ }
+}
+document.getElementById("question").addEventListener("input",updateQuestionCount);
+updateQuestionCount();
 setup().catch(()=>document.getElementById("mode").textContent="Configuration unavailable");
 </script></body></html>

@@ -67,8 +67,8 @@
             "name": "ops_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Operations Intelligence\n\n",
-                "Historical Olist dataset; delivered item GMV excludes freight and is not accounting revenue. Use governed published-run data."
+                "# Operations Intelligence | Historical Snapshot\n\n",
+                "Governed Olist data (2016–2018) · Delivered Item GMV excludes freight and is not recognized accounting revenue. Charts reflect the published run."
               ]
             }
           },
@@ -102,12 +102,12 @@
               "encodings": {
                 "value": {
                   "fieldName": "total_orders",
-                  "displayName": "Accepted orders"
+                  "displayName": "Accepted Orders"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Accepted orders"
+                "title": "Accepted Orders"
               }
             }
           },
@@ -141,12 +141,12 @@
               "encodings": {
                 "value": {
                   "fieldName": "delivered_orders",
-                  "displayName": "Delivered orders"
+                  "displayName": "Delivered Orders"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Delivered orders"
+                "title": "Delivered Orders"
               }
             }
           },
@@ -180,12 +180,12 @@
               "encodings": {
                 "value": {
                   "fieldName": "delivered_item_gmv",
-                  "displayName": "Delivered item GMV (BRL)"
+                  "displayName": "Delivered Item GMV (BRL)"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Delivered item GMV (BRL)"
+                "title": "Delivered Item GMV (BRL)"
               }
             }
           },
@@ -225,18 +225,20 @@
                   "fieldName": "customer_state",
                   "scale": {
                     "type": "categorical"
-                  }
+                  },
+                  "displayName": "Customer State"
                 },
                 "y": {
                   "fieldName": "total_orders",
                   "scale": {
                     "type": "quantitative"
-                  }
+                  },
+                  "displayName": "Total Orders"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Orders by customer state"
+                "title": "Orders by Customer State"
               }
             }
           },
@@ -276,18 +278,20 @@
                   "fieldName": "customer_state",
                   "scale": {
                     "type": "categorical"
-                  }
+                  },
+                  "displayName": "Customer State"
                 },
                 "y": {
                   "fieldName": "late_orders",
                   "scale": {
                     "type": "quantitative"
-                  }
+                  },
+                  "displayName": "Late Deliveries"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Late deliveries by customer state (count)"
+                "title": "Late Deliveries by Customer State"
               }
             }
           },
@@ -321,12 +325,20 @@
               "encodings": {
                 "value": {
                   "fieldName": "late_rate",
-                  "displayName": "Late delivery rate · eligible (%)"
+                  "displayName": "Late Delivery Rate (%)",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  },
+                  "formatTemplate": "{{@formatted}}%"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Late delivery rate · eligible (%)"
+                "title": "Late Delivery Rate (%)"
               }
             }
           },
@@ -360,12 +372,20 @@
               "encodings": {
                 "value": {
                   "fieldName": "on_time_rate",
-                  "displayName": "On-time delivery rate (%)"
+                  "displayName": "On-Time Delivery Rate (%)",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  },
+                  "formatTemplate": "{{@formatted}}%"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "On-time delivery rate (%)"
+                "title": "On-Time Delivery Rate (%)"
               }
             }
           },
@@ -399,12 +419,20 @@
               "encodings": {
                 "value": {
                   "fieldName": "negative_review_rate",
-                  "displayName": "Negative review rate (%)"
+                  "displayName": "Negative Review Rate (%)",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  },
+                  "formatTemplate": "{{@formatted}}%"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Negative review rate (%)"
+                "title": "Negative Review Rate (%)"
               }
             }
           },
@@ -430,9 +458,10 @@
                     },
                     {
                       "name": "late_rate_pct",
-                      "expression": "SUM(`late_rate_pct`)"
+                      "expression": "`late_rate_pct`"
                     }
-                  ]
+                  ],
+                  "disaggregated": true
                 }
               }
             ],
@@ -444,18 +473,20 @@
                   "fieldName": "customer_state",
                   "scale": {
                     "type": "categorical"
-                  }
+                  },
+                  "displayName": "Customer State"
                 },
                 "y": {
                   "fieldName": "late_rate_pct",
                   "scale": {
                     "type": "quantitative"
-                  }
+                  },
+                  "displayName": "Late Delivery Rate (%)"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Late delivery rate by customer state (%)"
+                "title": "Late Delivery Rate by Customer State"
               }
             }
           },
@@ -489,24 +520,26 @@
             ],
             "spec": {
               "version": 3,
-              "widgetType": "bar",
+              "widgetType": "line",
               "encodings": {
                 "x": {
                   "fieldName": "purchase_month",
                   "scale": {
-                    "type": "categorical"
-                  }
+                    "type": "temporal"
+                  },
+                  "displayName": "Purchase Month"
                 },
                 "y": {
                   "fieldName": "total_orders",
                   "scale": {
                     "type": "quantitative"
-                  }
+                  },
+                  "displayName": "Total Orders"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Historical orders by purchase month"
+                "title": "Monthly Order Volume"
               }
             }
           },

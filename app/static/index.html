@@ -256,13 +256,153 @@ main.dashboard-focus-mode iframe{min-height:720px;height:calc(100vh - 245px)}
  *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important;scroll-behavior:auto!important}
 }
 
+
+/* Copilot experience v3 — quieter surfaces, conversational hierarchy. Presentation only. */
+#copilotPanel{
+  background:linear-gradient(166deg,#152747 0%,#101e35 50%,#0e1b30 100%);
+  padding:22px clamp(16px,1.5vw,26px) 25px;
+}
+#copilotPanel .assistant-header{
+  min-height:112px;border:0;border-radius:0;background:none;padding:3px 0 13px;
+  gap:13px;overflow:visible;align-items:center;position:relative;
+}
+#copilotPanel .assistant-header::after{display:none}
+#copilotPanel .assistant-visual{flex:0 0 106px;width:106px;height:106px}
+#copilotPanel .assistant-identity{padding-right:10px}
+#copilotPanel .assistant-identity .eyebrow{font-size:10px;margin:0 0 7px;letter-spacing:.15em;color:#79ccff}
+#copilotPanel .assistant-identity h1{font-size:clamp(19px,1.34vw,23px);margin:0 0 5px;line-height:1.17;letter-spacing:-.02em}
+#copilotPanel .assistant-identity p{font-size:12px;line-height:1.48;margin:0;color:#b8c9e2}
+#copilotPanel .assistant-header #focusBtn{
+  position:absolute;top:0;right:0;z-index:4;padding:7px 9px;
+  border-color:rgba(119,161,226,.23);background:rgba(34,56,91,.52);
+}
+#copilotPanel .assistant-livebar{margin:10px 0 0;font-size:11px;gap:4px}
+#copilotPanel .assistant-trust{
+  display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:1px 0 23px;padding:0 0 20px;
+  border-bottom:1px solid rgba(138,165,207,.18)
+}
+#copilotPanel .assistant-trust>span{font-size:10px;color:#bdd6f1;display:flex;align-items:center;gap:6px;padding:5px 8px;
+  background:rgba(90,128,184,.08);border-radius:30px}
+#copilotPanel .trust-check{color:#77ddb9;font-weight:700}
+#copilotPanel .prompt-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 10px}
+#copilotPanel .prompt-heading>span{font-size:13px;font-weight:660;color:#e6f1ff}
+#copilotPanel .prompt-heading small{font-size:10px;color:#8da9ca}
+#copilotPanel .prompt-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:20px}
+#copilotPanel .prompt-suggestions button{
+  display:flex;align-items:flex-start;gap:10px;text-align:left;border-radius:11px;
+  border:1px solid rgba(99,143,194,.2);background:rgba(29,55,91,.37);
+  padding:12px 10px;color:#f1f6ff;font-size:12px;line-height:1.25;min-width:0
+}
+#copilotPanel .prompt-suggestions button:hover{
+  background:rgba(41,84,133,.54);border-color:rgba(72,185,253,.52);
+  transform:translateY(-1px)
+}
+#copilotPanel .prompt-suggestions button>span:last-child{min-width:0}
+#copilotPanel .prompt-suggestions button small{display:block;font-size:10px;color:#99b5d6;
+  margin-top:4px;font-weight:400;line-height:1.3}
+#copilotPanel .prompt-suggestions .prompt-prefix{
+  flex:0 0 21px;display:grid;place-items:center;width:21px;height:21px;border-radius:7px;
+  color:#7bd0ff;background:rgba(78,151,236,.12);margin:0;font-size:12px
+}
+#copilotPanel .composer-card{
+  border:1px solid #486184;border-radius:17px;padding:0;
+  background:linear-gradient(165deg,rgba(13,29,54,.97),rgba(11,24,44,.99));
+  box-shadow:0 12px 32px rgba(1,9,24,.17),inset 0 1px 0 rgba(196,224,255,.055);
+  overflow:hidden;
+}
+#copilotPanel .composer-heading{display:flex;justify-content:space-between;align-items:center;
+  padding:14px 15px 8px;color:#f2f7ff;font-size:13px;font-weight:650}
+#copilotPanel .composer-mode{font:600 9px Roboto,"Segoe UI",sans-serif;letter-spacing:.11em;color:#79bada}
+#copilotPanel .composer-card textarea{
+  display:block;margin:0;width:100%;min-height:114px;max-height:320px;
+  padding:5px 15px 17px;border:0;border-radius:0;resize:vertical;background:transparent;
+  color:#eaf4ff;font-size:13px;line-height:1.7;box-shadow:none
+}
+#copilotPanel .composer-card textarea:focus{outline:0;background:rgba(41,74,124,.1)}
+#copilotPanel .composer-card textarea::placeholder{color:#7896b9}
+#copilotPanel .context-bar{
+  border-top:1px solid rgba(128,158,205,.16);padding:10px 14px;
+  background:rgba(25,48,78,.3)
+}
+#copilotPanel .context-bar .formgrid{gap:12px}
+#copilotPanel .context-bar label{font-size:10px;margin:0 0 6px;color:#8fb4d7;letter-spacing:.015em}
+#copilotPanel .context-bar select{font-size:12px;height:35px;padding:6px 10px;color:#dfedff;
+  background:#112743;border:1px solid rgba(94,137,191,.29);border-radius:8px}
+#copilotPanel .composer-footer{
+  margin:0;gap:8px;padding:12px 14px;border-top:1px solid rgba(120,156,199,.15);
+  background:rgba(17,33,55,.42);justify-content:space-between
+}
+#copilotPanel .composer-footer .actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+#copilotPanel .composer-footer #askBtn{padding:10px 15px;border-radius:10px}
+#copilotPanel .keyboard-hint{font-size:10px;color:#8ea9ca;white-space:nowrap}
+#copilotPanel .composer-footer .question-count{font-size:10px;color:#89a5c7;min-width:85px}
+#copilotPanel .answer-shell{
+  margin-top:23px;padding:18px 0 0;border:0;border-top:1px solid rgba(122,157,200,.25);
+  background:none;border-radius:0
+}
+#copilotPanel .answer-shell .answer-toolbar{margin:0 0 10px;gap:12px}
+#copilotPanel .answer-title{display:flex;align-items:center;gap:9px;color:#f2f7ff;font-size:14px;font-weight:680}
+#copilotPanel .response-spark{color:#7bd1ff;font-size:17px}
+#copilotPanel .answer-shell #status{
+  display:inline-block;max-width:100%;font-size:10px;padding:0;margin:0 0 12px;
+  border:0;background:none;color:#92b5d6
+}
+#copilotPanel .answer-shell #answer{
+  min-height:154px;padding:18px 16px;border-radius:12px;
+  border:1px solid rgba(93,139,197,.3);box-shadow:none;
+  background:linear-gradient(145deg,rgba(9,24,46,.74),rgba(13,30,56,.78));
+  font-size:13px;line-height:1.75;color:#e2eeff
+}
+#copilotPanel .answer-shell #answer:not(.error-text){border-left:2px solid rgba(72,185,253,.55)}
+#copilotPanel .answer-actions button{background:rgba(41,63,101,.55);font-size:11px}
+#copilotPanel .evidence-drawer{
+  margin-top:12px;padding:8px 0 0;border-top:1px solid rgba(116,154,206,.13)
+}
+#copilotPanel .evidence-details{border:0;border-radius:0;background:none;margin:0}
+#copilotPanel .evidence-details>summary{
+  padding:12px 2px;font-size:12px;font-weight:650;color:#bdd7f2;
+  justify-content:space-between;gap:10px;border:0
+}
+#copilotPanel .evidence-details>summary>span:first-child{display:flex;align-items:center;gap:8px}
+#copilotPanel .evidence-details>summary::before{display:none}
+#copilotPanel .evidence-details .evidence-meta{font-size:10px;color:#8ca9ca;text-align:right}
+#copilotPanel .evidence-details[open]>summary{border-bottom:0}
+#copilotPanel .evidence-details>#evidenceSummary{padding:5px 0 11px}
+#copilotPanel #rawEvidence{margin:0 0 0 2px;padding:5px 0 4px}
+#copilotPanel #rawEvidence>summary{font-size:11px;color:#86a5c8;cursor:pointer}
+#copilotPanel #rawEvidence pre{padding:12px;background:rgba(9,21,39,.65);border-radius:9px}
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;
+  margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:1350px){
+ #copilotPanel .assistant-header{flex-wrap:nowrap;gap:9px;padding-top:9px}
+ #copilotPanel .assistant-identity{order:initial;flex:1 1 170px;padding-right:0}
+ #copilotPanel .assistant-visual{width:94px;height:94px;flex-basis:94px}
+ #copilotPanel .assistant-identity h1{font-size:19px}
+ #copilotPanel .assistant-header #focusBtn{top:-10px}
+}
+@media(max-width:680px){
+ #copilotPanel .assistant-header{flex-wrap:nowrap;padding-top:20px}
+ #copilotPanel .assistant-identity{order:initial!important}
+ #copilotPanel .assistant-visual{width:88px;height:88px;flex:0 0 88px}
+ #copilotPanel .prompt-suggestions{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #copilotPanel .composer-footer .keyboard-hint{display:none}
+ #copilotPanel .assistant-trust{gap:3px}
+ #copilotPanel .assistant-trust>span{padding:5px 6px}
+}
+@media(max-width:390px){
+ #copilotPanel .assistant-header{flex-wrap:wrap}
+ #copilotPanel .assistant-visual{margin:auto}
+ #copilotPanel .prompt-suggestions{grid-template-columns:1fr}
+ #copilotPanel .context-bar .formgrid{grid-template-columns:1fr}
+}
+
 </style></head><body>
 
 <header class="app-header">
   <div class="brand-lockup">
     <div class="brand-mark" aria-hidden="true"></div>
     <div>
-      <div class="eyebrow">WorldLink-inspired · Governed intelligence</div>
+      
       <div class="brand">OLIST <span>/</span> OPERATIONS CONTROL TOWER</div>
       <div class="brand-caption">Operational clarity. Evidence-backed decisions.</div>
     </div>
@@ -306,45 +446,60 @@ main.dashboard-focus-mode iframe{min-height:720px;height:calc(100vh - 245px)}
         <div class="agent-orb"></div><i class="orb-particle"></i><i class="orb-particle second"></i>
       </div>
       <div class="assistant-identity">
-        <div class="eyebrow">Your intelligence co-pilot</div>
-        <h1>Ask. Analyze. Understand.</h1>
-        <p>Evidence-grounded Copilot for operations, quality, and trusted business definitions.</p>
+        <div class="eyebrow">INTELLIGENCE WORKSPACE</div>
+        <h1>Evidence-grounded Copilot</h1>
+        <p>Your AI analyst for governed operations, quality and business metrics.</p>
+        <div class="assistant-livebar">
+          <div class="live-signal" id="agentSignal" data-state="idle"><span class="signal-dot" aria-hidden="true"></span><span id="avatarStateLabel">Ready for your question</span></div>
+        </div>
       </div>
       <button id="focusBtn" class="tiny-button" type="button" onclick="toggleCopilotFocus()">Expand view ↗</button>
     </div>
-    <div class="assistant-livebar">
-      <div class="live-signal" id="agentSignal" data-state="idle"><span class="signal-dot" aria-hidden="true"></span><span id="avatarStateLabel">Ready for your question</span></div>
-      <span class="trust-label">◈ Read-only · Governed sources</span>
+    <div class="assistant-trust" aria-label="Governance protections">
+      <span><span class="trust-check" aria-hidden="true">✓</span> Read-only tools</span>
+      <span><span class="trust-check" aria-hidden="true">✓</span> Governed data</span>
+      <span><span class="trust-check" aria-hidden="true">✓</span> Traceable sources</span>
     </div>
-    <div class="eyebrow">Try an executive question</div>
+
+    <div class="prompt-heading"><span>Explore with Copilot</span><small>Start with a question</small></div>
     <div class="prompt-suggestions" aria-label="Suggested prompts">
-      <button type="button" onclick="setQuestion('What is delivered GMV, and why is it not accounting revenue?')"><span class="prompt-prefix">↗</span> Explain GMV</button>
-      <button type="button" onclick="setQuestion('Compare late delivery rates for RJ and SP')"><span class="prompt-prefix">↗</span> RJ vs SP</button>
-      <button type="button" onclick="setQuestion('Why were 32 source records quarantined, and can I trust the delivered GMV?')"><span class="prompt-prefix">↗</span> Quality risks</button>
-      <button type="button" onclick="setQuestion('What is Delivered Freight, and how does it differ from GMV?')"><span class="prompt-prefix">↗</span> Freight policy</button>
+      <button type="button" onclick="setQuestion('What is delivered GMV, and why is it not accounting revenue?')"><span class="prompt-prefix">↗</span><span>Explain GMV<small>Understand the value</small></span></button>
+      <button type="button" onclick="setQuestion('Compare late delivery rates for RJ and SP')"><span class="prompt-prefix">↗</span><span>Compare RJ &amp; SP<small>Delivery performance</small></span></button>
+      <button type="button" onclick="setQuestion('Why were 32 source records quarantined, and can I trust the delivered GMV?')"><span class="prompt-prefix">↗</span><span>Quality risks<small>Audit what was excluded</small></span></button>
+      <button type="button" onclick="setQuestion('What is Delivered Freight, and how does it differ from GMV?')"><span class="prompt-prefix">↗</span><span>Freight definition<small>Governed metric context</small></span></button>
     </div>
+
     <div class="composer-card">
-      <div class="formgrid">
-        <div><label for="state">Customer state filter</label><select id="state"><option value="ALL">All states</option></select></div>
-        <div><label for="page">Dashboard context</label><select id="page"><option value="operations">Operations</option><option value="trust">Data Trust</option><option value="governance">Governance</option></select></div>
+      <div class="composer-heading"><span>Ask a question</span><span class="composer-mode">GOVERNED QUERY</span></div>
+      <label class="visually-hidden" for="question">Your question</label>
+      <textarea id="question" aria-describedby="questionCount" placeholder="Ask anything about published operations, data quality or metric definitions…">Why were records quarantined, and can I trust the delivered GMV?</textarea>
+      <div class="context-bar">
+        <div class="formgrid">
+          <div><label for="state">Customer state</label><select id="state"><option value="ALL">All states</option></select></div>
+          <div><label for="page">Dashboard context</label><select id="page"><option value="operations">Operations</option><option value="trust">Data Trust</option><option value="governance">Governance</option></select></div>
+        </div>
       </div>
-      <label for="question">Your question</label>
-      <textarea id="question" aria-describedby="questionCount">Why were records quarantined, and can I trust the delivered GMV?</textarea>
       <div class="composer-footer">
         <div class="actions">
           <button onclick="ask()" id="askBtn" type="button">Ask grounded Copilot ↗</button>
-          <span class="muted" style="margin:auto 0">Ctrl / ⌘ + Enter to send</span>
+          <span class="keyboard-hint">Ctrl / ⌘ + Enter</span>
         </div>
         <div id="questionCount" class="question-count" aria-live="polite"></div>
       </div>
     </div>
+
     <div class="answer-shell">
-      <div class="answer-toolbar"><span class="eyebrow">Grounded response</span><div class="answer-actions"><span id="answerMode" class="run-pill" hidden></span><button class="tiny-button" type="button" onclick="copyAnswer()" id="copyAnswerBtn" disabled>Copy answer</button></div></div>
+      <div class="answer-toolbar">
+        <div class="answer-title"><span class="response-spark" aria-hidden="true">✦</span><span>Copilot response</span></div>
+        <div class="answer-actions"><span id="answerMode" class="run-pill" hidden></span><button class="tiny-button" type="button" onclick="copyAnswer()" id="copyAnswerBtn" disabled>Copy answer</button></div>
+      </div>
       <p id="status" class="muted" role="status">Ready to query the published Olist snapshot.</p>
       <div id="answer" aria-live="polite">Ask a question to retrieve the current published-run evidence.</div>
     </div>
-    <details id="evidenceDetails" class="evidence-details"><summary>Traceable sources <span class="evidence-meta" id="evidenceMeta">Available after a question</span></summary><div id="evidenceSummary">No query executed.</div></details>
-    <details id="rawEvidence"><summary>Raw technical evidence (JSON)</summary><pre id="evidence">No query executed.</pre></details>
+    <div class="evidence-drawer">
+      <details id="evidenceDetails" class="evidence-details"><summary><span><span aria-hidden="true">◇</span> Traceable sources</span><span class="evidence-meta" id="evidenceMeta">Available after a question</span></summary><div id="evidenceSummary">No query executed.</div></details>
+      <details id="rawEvidence" class="raw-evidence"><summary>Raw technical evidence (JSON)</summary><pre id="evidence">No query executed.</pre></details>
+    </div>
   </section>
 </main>
 <footer class="app-footer">

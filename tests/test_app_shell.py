@@ -97,3 +97,42 @@ def test_existing_backend_request_contract_is_unchanged():
     assert 'renderEvidence(data.evidence)' in HTML
     assert 'frame.src=dashboardEmbedUrl' in HTML
     assert 'if(kind==="genie")' in HTML
+
+
+
+def test_copilot_v3_is_unboxed_and_preserves_the_animated_avatar():
+    assert "WorldLink-inspired · Governed intelligence" not in HTML
+    assert "Evidence-grounded Copilot</h1>" in HTML
+    assert 'id="agentAvatar"' in HTML
+    assert 'class="agent-orb"' in HTML
+    assert 'id="agentSignal"' in HTML
+    assert "INTELLIGENCE WORKSPACE" in HTML
+    assert 'class="assistant-trust"' in HTML
+    assert 'class="prompt-heading"' in HTML
+    assert 'class="prompt-suggestions"' in HTML
+    assert 'class="composer-card"' in HTML
+    assert 'class="context-bar"' in HTML
+    assert 'class="answer-shell"' in HTML
+    assert 'class="answer-title"' in HTML
+    assert 'class="evidence-drawer"' in HTML
+    assert "#copilotPanel .assistant-header{" in HTML
+    assert "#copilotPanel .answer-shell{" in HTML
+    assert "#copilotPanel .evidence-details{border:0" in HTML
+
+
+def test_copilot_v3_preserves_input_and_output_dom_ids():
+    for name in (
+        "state", "page", "question", "questionCount", "askBtn",
+        "status", "answer", "answerMode", "copyAnswerBtn",
+        "evidenceDetails", "evidenceMeta", "evidenceSummary",
+        "rawEvidence", "evidence", "agentAvatar", "agentSignal",
+        "avatarStateLabel", "focusBtn",
+    ):
+        assert HTML.count(f'id="{name}"') == 1, name
+    assert 'aria-describedby="questionCount"' in HTML
+    assert 'onclick="ask()"' in HTML
+    assert 'onclick="copyAnswer()"' in HTML
+    assert 'onclick="toggleCopilotFocus()"' in HTML
+    assert "setAgentVisualState(\"thinking\")" in HTML
+    assert "setAgentVisualState(\"ready\")" in HTML
+    assert "setAgentVisualState(\"error\")" in HTML

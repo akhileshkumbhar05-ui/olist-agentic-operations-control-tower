@@ -7,7 +7,7 @@ SPEC = ROOT / "dashboard/src/Olist_Agentic_Operations_Control_Tower.lvdash.json"
 def test_dashboard_source_json_structure_and_references():
     dashboard = json.loads(SPEC.read_text(encoding="utf-8"))
     datasets = {d["name"] for d in dashboard["datasets"]}
-    assert datasets == {"orders", "metric_baseline", "rule_results", "quarantine", "dictionary", "state_delivery_rates", "quality_snapshot"}
+    assert datasets == {"orders", "metric_baseline", "rule_results", "quarantine", "dictionary", "state_delivery_rates", "quality_snapshot", "failed_rule_chart", "quarantine_dataset_counts", "metric_unit_counts"}
     assert len(dashboard["pages"]) == 3
     names = set()
     for page in dashboard["pages"]:
@@ -107,3 +107,92 @@ def test_all_historical_months_are_included_and_sparse_coverage_is_disclosed():
     assert "Final-month coverage may be incomplete" in "".join(
         widgets["ops_intro"]["multilineTextboxSpec"]["lines"]
     )
+
+
+
+def test_native_worldlink_palette_is_used_without_affecting_sql_metrics():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    theme = dash["uiSettings"]["theme"]
+    assert theme["selectionColor"]["light"] == "#EE2D3D"
+    assert theme["canvasBackgroundColor"]["light"] == "#F5F8FF"
+    assert theme["widgetBackgroundColor"]["light"] == "#FFFFFF"
+    assert theme["visualizationColors"][:4] == [
+        "#287DC2", "#EE2D3D", "#602CF3", "#C10D68"
+    ]
+    assert theme["fontFamily"] == "Roboto"
+    assert theme["widgetHeaderAlignment"] == "LEFT"
+    ops = next(p for p in dash["pages"] if p["name"] == "operations")
+    assert len(ops["layout"]) == 11
+    assert "Sep 2018 (16 orders), Oct 2018 (4)" in "".join(
+        next(w["widget"]["multilineTextboxSpec"]["lines"]
+             for w in ops["layout"] if w["widget"]["name"] == "ops_intro")
+    )
+
+
+def test_quality_page_has_distinct_rule_and_quarantine_visualizations():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    datasets = {d["name"]: "".join(d["queryLines"]) for d in dash["datasets"]}
+    assert "r.records_failed > 0" in datasets["failed_rule_chart"]
+    assert "workspace.olist_agentic_quality.published_run" in datasets["failed_rule_chart"]
+    assert "COUNT(DISTINCT q.source_record_id)" in datasets["quarantine_dataset_counts"]
+    assert "workspace.olist_agentic_quality.published_run" in datasets["quarantine_dataset_counts"]
+
+    quality = next(p for p in dash["pages"] if p["name"] == "quality")
+    widgets = {x["widget"]["name"]: x["widget"] for x in quality["layout"]}
+    for name in ("quality_pass_score", "quality_rule_failures", "quality_quarantined",
+                 "quality_rules", "quality_quarantine", "quality_failed_rule_chart",
+                 "quality_quarantine_chart", "quality_interpretation"):
+        assert name in widgets
+
+    failures = widgets["quality_failed_rule_chart"]
+    assert failures["spec"]["widgetType"] == "bar"
+    assert failures["spec"]["encodings"]["x"]["displayName"] == "Failed Rule Evaluations"
+    assert failures["spec"]["encodings"]["y"]["displayName"] == "Governed Rule"
+    mapping = {x["value"]: x["color"]
+               for x in failures["spec"]["encodings"]["color"]["scale"]["mappings"]}
+    assert mapping == {"QUARANTINE": "#EE2D3D", "WARN": "#E39B2C"}
+    assert "not distinct quarantined" in failures["spec"]["frame"]["description"]
+
+    q = widgets["quality_quarantine_chart"]
+    assert q["spec"]["encodings"]["y"]["displayName"] == "Distinct Source Rows"
+    assert q["queries"][0]["query"]["datasetName"] == "quarantine_dataset_counts"
+    text = "".join(widgets["quality_interpretation"]["multilineTextboxSpec"]["lines"])
+    assert "Failed evaluations" in text
+    assert "distinct quarantined source rows" in text
+
+
+def test_governance_page_explains_and_charts_dictionary_without_replacing_it():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    gov = next(p for p in dash["pages"] if p["name"] == "governance")
+    widgets = {x["widget"]["name"]: x["widget"] for x in gov["layout"]}
+    for name in ("gov_population", "gov_calculation", "gov_caveats",
+                 "gov_metric_units", "gov_readme", "gov_dictionary"):
+        assert name in widgets
+    units = widgets["gov_metric_units"]
+    assert units["spec"]["widgetType"] == "pie"
+    assert units["spec"]["encodings"]["angle"]["fieldName"] == "metric_count"
+    assert units["spec"]["encodings"]["color"]["fieldName"] == "metric_unit"
+    assert units["queries"][0]["query"]["datasetName"] == "metric_unit_counts"
+    sql = "".join(next(ds["queryLines"] for ds in dash["datasets"]
+                       if ds["name"] == "metric_unit_counts"))
+    assert "workspace.olist_governance.metric_dictionary" in sql
+    assert "COUNT(*)" in sql
+    glossary = widgets["gov_dictionary"]
+    assert glossary["spec"]["widgetType"] == "table"
+    assert glossary["queries"][0]["query"]["datasetName"] == "dictionary"
+
+
+def test_all_dashboard_widget_positions_are_nonoverlapping():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    for page in dash["pages"]:
+        items = page["layout"]
+        for i, a in enumerate(items):
+            pa = a["position"]
+            for b in items[i + 1:]:
+                pb = b["position"]
+                overlaps = (pa["x"] < pb["x"] + pb["width"]
+                            and pb["x"] < pa["x"] + pa["width"]
+                            and pa["y"] < pb["y"] + pb["height"]
+                            and pb["y"] < pa["y"] + pa["height"])
+                assert not overlaps, (page["name"],
+                                      a["widget"]["name"], b["widget"]["name"])

@@ -57,10 +57,10 @@ def _is_consistent(answer: str, observations: dict) -> bool:
 
     # Reject explicit contradictory counts even if the response also includes
     # the correct number elsewhere (e.g. "5 WARN rules ... 4 WARN rules").
-    quantities = r"(?:\\d+|zero|one|two|three|four|five|six|seven|eight|nine|ten)"
+    quantities = r"(?:\d+|zero|one|two|three|four|five|six|seven|eight|nine|ten)"
     modifiers = r"(?:(?:failed|quality|rule|rules|level)[ -]+){0,3}"
     labels = r"(warn(?:ing)?s?|quarantin(?:e|ing))"
-    for found in re.finditer(rf"\\b({quantities})\\s+{modifiers}{labels}\\b", answer, re.I):
+    for found in re.finditer(rf"\b({quantities})\s+{modifiers}{labels}\b", answer, re.I):
         raw, label = found.group(1).lower(), found.group(2).lower()
         count = int(raw) if raw.isdigit() else next((n for n, word in _WORDS.items() if word == raw), -1)
         action = "WARN" if label.startswith("warn") else "QUARANTINE"

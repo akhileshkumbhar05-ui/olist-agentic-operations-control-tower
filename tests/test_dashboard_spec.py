@@ -196,3 +196,22 @@ def test_all_dashboard_widget_positions_are_nonoverlapping():
                             and pb["y"] < pa["y"] + pa["height"])
                 assert not overlaps, (page["name"],
                                       a["widget"]["name"], b["widget"]["name"])
+
+
+def test_executive_quality_and_governance_have_compact_layout_and_percentage_units():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    pages = {p["name"]: {w["widget"]["name"]: w for w in p["layout"]} for p in dash["pages"]}
+    quality = pages["quality"]
+    score = quality["quality_pass_score"]["widget"]["spec"]["encodings"]["value"]
+    assert score["format"]["type"] == "number-plain"
+    assert score["format"]["decimalPlaces"] == {"type": "exact", "places": 2}
+    assert score["formatTemplate"] == "{{@formatted}}%"
+    assert quality["quality_interpretation"]["position"]["height"] == 2
+    assert quality["quality_failed_rule_chart"]["position"]["y"] == 6
+    assert quality["quality_rules"]["position"]["y"] == 12
+    assert quality["quality_quarantine"]["position"]["y"] == 22
+    governance = pages["governance"]
+    for name in ("gov_population", "gov_calculation", "gov_caveats"):
+        assert governance[name]["position"]["height"] == 2
+    assert governance["gov_metric_units"]["position"]["height"] == 6
+    assert governance["gov_dictionary"]["position"]["y"] == 10

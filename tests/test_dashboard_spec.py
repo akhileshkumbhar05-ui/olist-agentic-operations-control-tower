@@ -92,14 +92,18 @@ def test_operations_percent_kpis_show_percent_suffix():
 
 
 
-def test_sparse_trailing_months_excluded_only_from_monthly_trend():
+def test_all_historical_months_are_included_and_sparse_coverage_is_disclosed():
     dashboard = json.loads(SPEC.read_text(encoding="utf-8"))
     datasets = {d["name"]: "".join(d["queryLines"]) for d in dashboard["datasets"]}
-    assert "orders_trend_through_aug_2018" in datasets
-    assert "WHERE purchase_date < DATE '2018-09-01'" in datasets["orders_trend_through_aug_2018"]
+    assert "orders_trend_through_aug_2018" not in datasets
     assert "WHERE purchase_date < DATE '2018-09-01'" not in datasets["orders"]
     ops = next(p for p in dashboard["pages"] if p["name"] == "operations")
     widgets = {row["widget"]["name"]: row["widget"] for row in ops["layout"]}
-    assert widgets["ops_monthly_orders"]["queries"][0]["query"]["datasetName"] == "orders_trend_through_aug_2018"
+    assert widgets["ops_monthly_orders"]["queries"][0]["query"]["datasetName"] == "orders"
     assert widgets["ops_state"]["queries"][0]["query"]["datasetName"] == "orders"
-    assert "Sep (16 orders) and Oct (4 orders)" in "".join(widgets["ops_intro"]["multilineTextboxSpec"]["lines"])
+    assert "Sep 2018 (16 orders), Oct 2018 (4)" in "".join(
+        widgets["ops_intro"]["multilineTextboxSpec"]["lines"]
+    )
+    assert "Final-month coverage may be incomplete" in "".join(
+        widgets["ops_intro"]["multilineTextboxSpec"]["lines"]
+    )

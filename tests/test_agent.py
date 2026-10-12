@@ -347,3 +347,53 @@ def test_quality_breakdown_is_in_tool_output_and_evidence():
     tool_outputs = [x["output"] for x in model.requests[1]["input"]
                     if x.get("type") == "function_call_output"]
     assert any('"verified_quality_summary"' in x for x in tool_outputs)
+
+
+
+def test_empty_model_completion_recovers_with_verified_evidence():
+    """Regression for Oct 12 live RJ/SP failure: no calls and no output text."""
+    model = FakeModelClient([
+        response([model_item("fetch_governed_evidence", {"tool": "state_delivery"})]),
+        response(),  # GPT-OSS emitted no usable final answer
+        response(text="RJ is 12.11% late; SP is 4.49% late. "
+                      "Eligible deliveries define the denominator. "
+                      "Source workspace.olist_semantic.v_published_orders."),
+    ])
+    result = run_agent(
+        "Compare late delivery rates for RJ and SP.", Context(), fake_sql,
+        model, "system.ai.gpt-oss-120b",
+    )
+    assert len(model.requests) == 3
+    assert model.requests[2]["max_output_tokens"] == 1800
+    assert "tools" not in model.requests[2]
+    assert result["evidence"]["model_selected_tools"] == ["state_delivery"]
+    assert "eligible deliveries" in result["answer"].lower()
+
+
+def test_empty_forced_synthesis_retries_once_with_larger_budget():
+    model = FakeModelClient([
+        response([model_item("fetch_governed_evidence", {"tool": "state_delivery"})]),
+        response(),  # unproductive tool-enabled answer
+        response(),  # unproductive first evidence-only synthesis
+        response(text="RJ 12.11% versus SP 4.49% late deliveries; "
+                      "workspace.olist_semantic.v_published_orders."),
+    ])
+    result = run_agent(
+        "Compare late delivery rates for RJ and SP.", Context(), fake_sql,
+        model, "system.ai.gpt-oss-120b",
+    )
+    assert len(model.requests) == 4
+    assert [x["max_output_tokens"] for x in model.requests[-2:]] == [1800, 3200]
+    assert all("tools" not in req for req in model.requests[-2:])
+    assert "RJ 12.11%" in result["answer"]
+
+
+def test_empty_retry_exhaustion_still_fails_closed():
+    model = FakeModelClient([
+        response([model_item("fetch_governed_evidence", {"tool": "state_delivery"})]),
+        response(), response(), response(),
+    ])
+    with pytest.raises(RuntimeError, match="no grounded final answer after retry"):
+        run_agent("Compare late delivery rates for RJ and SP.", Context(), fake_sql,
+                  model, "system.ai.gpt-oss-120b")
+    assert len(model.requests) == 4

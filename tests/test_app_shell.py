@@ -52,12 +52,19 @@ def test_copy_status_and_collapsible_evidence_are_present():
 
 
 
-def test_enterprise_blue_theme_and_dashboard_embed_frame():
-    # Embedded AI/BI dashboard retains its own theme; App chrome is styled locally.
-    assert '--wl-navy:#081525' in HTML
-    assert '--wl-blue:#2b77d5' in HTML
-    assert '--wl-cyan:#45c4e8' in HTML
-    assert '.dashboard-ready{border:1px solid #42698b' in HTML
+def test_worldlink_template_palette_and_dashboard_embed_frame():
+    # Use exact colors from the supplied WorldLink master slide; don't recolor the native iframe.
+    assert '--wl-red:#EE2D3D' in HTML
+    assert '--wl-navy:#140C64' in HTML
+    assert '--wl-sky:#48B9FD' in HTML
+    assert '--wl-violet:#602CF3' in HTML
+    assert '--wl-magenta:#C10D68' in HTML
+    assert 'font:15px Roboto,' in HTML
+    assert 'nav button.active{background:' in HTML
+    assert '#askBtn{background:' in HTML
+    assert '#dashboardPanel{border-top:3px solid var(--wl-red)}' in HTML
+    assert '#copilotPanel{border-top:3px solid var(--wl-sky)}' in HTML
+    assert '.dashboard-ready{border:1px solid #515d8c' in HTML
     assert 'mount.classList.toggle("dashboard-ready",Boolean(dashboardEmbedUrl));' in HTML
     assert 'frame.src=dashboardEmbedUrl' in HTML
     assert 'id="tabGenie"' in HTML

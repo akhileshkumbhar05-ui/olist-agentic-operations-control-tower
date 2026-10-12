@@ -147,6 +147,8 @@ def test_explicit_gmv_geography_is_honored_independently():
     assert "customer_state IN ('RJ','SP')" in sql["gmv_summary"]
     single = statements("What is GMV in RJ?", Context(), "ANALYTICS")
     assert "customer_state IN ('RJ')" in single["gmv_summary"]
+    city = statements("What is GMV for Rio de Janeiro?", Context(), "ANALYTICS")
+    assert "customer_state IN ('RJ')" in city["gmv_summary"]
     selected = statements("Compare RJ and SP, and give GMV", Context(state="MG"), "HYBRID")
     assert "customer_state IN ('MG')" in selected["gmv_summary"]
     assert "customer_state IN ('MG')" in selected["state_delivery"]

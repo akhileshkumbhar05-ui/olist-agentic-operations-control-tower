@@ -56,6 +56,35 @@ The new audit code has unit tests; the live App logs must still be verified
 after pulling Git `main` and redeploying the existing app. A pipeline rerun
 or new experiment is not required.
 
+## Quality-cause answer validation (2026-10-12)
+
+The live quarantine-and-GMV Copilot answer correctly reported 32 distinct
+quarantined records but incorrectly treated **five failed rules as all WARN**
+and attributed the exclusion to generic key/parse rules taken from the full
+rule dictionary. The published failed-rule results establish **one
+QUARANTINE** rule (`orders.delivered_time`, eight failed evaluations) and
+**four WARN** rule definitions. Eight source records per dataset were
+quarantined across orders, order_items, payments, and reviews.
+
+The agent now gives priority to run-scoped `failed_rules` SQL evidence;
+when the model requests the broad rule dictionary for a trust question, only
+definitions whose IDs actually appear in the published failed-rule results are
+presented to that model tool call. A post-generation `quality_guard` verifies
+that the final explanation contains the actual QUARANTINE rule IDs, correctly
+separates actions, reports the published quarantine total, and respects
+verified GMV evidence. If verification fails, the answer is **replaced by a
+deterministic SQL-derived explanation** from the evidence already executed,
+without an additional model call or arbitrary SQL. The response includes
+`evidence.answer_validation = sql_verified_quality_repair` and the UI shows
+`AI tools · SQL-verified correction` instead of presenting that prose as
+entirely model-generated. This guard is deliberately conservative; a
+supported answer can pass unchanged.
+
+This strengthens specific quality-answer claims but is **not** a formal
+guarantee against every possible LLM hallucination. Re-test the deployed
+App question and review its evidence and `answer_validation` before
+presenting to leadership. No historical pipeline tables were modified.
+
 ## Offline evaluation
 
 `evals/cases.json` contains four fixed questions and checks for route, required

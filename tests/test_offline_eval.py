@@ -10,6 +10,7 @@ CASES = json.loads((Path(__file__).parents[1] / "evals" / "cases.json").read_tex
 def test_quality_case_detects_conflated_rule_and_record_counts():
     case = next(item for item in CASES if item["id"] == "quality_distinctions")
     response = {
+        "generation": "agentic_tool_calling",
         "route": "HYBRID", "answer": "32 distinct source records; 5 WARN rules.",
         "evidence": {
             "tool_names": case["required_tools"], "sources": case["required_sources"],
@@ -23,6 +24,7 @@ def test_quality_case_detects_conflated_rule_and_record_counts():
 def test_canonical_gmv_needs_answer_and_verified_metric():
     case = next(item for item in CASES if item["id"] == "gmv_definition")
     response = {
+        "generation": "agentic_tool_calling",
         "route": "ANALYTICS",
         "answer": "Delivered GMV is BRL 13,220,248.93, excluding freight; it is not revenue.",
         "evidence": {"tool_names": case["required_tools"],
@@ -38,6 +40,7 @@ def test_canonical_gmv_needs_answer_and_verified_metric():
 def test_unicode_currency_spacing_is_not_a_false_negative():
     case = next(item for item in CASES if item["id"] == "gmv_definition")
     response = {
+        "generation": "agentic_tool_calling",
         "route": "ANALYTICS",
         "answer": ("Delivered Gross Merchandise Value: BRL\u202f13,220,248.93. "
                    "Freight is excluded; this is not accounting revenue."),
@@ -53,6 +56,7 @@ def test_unicode_currency_spacing_is_not_a_false_negative():
 def test_go_to_market_hallucination_is_caught_despite_unicode_hyphen():
     case = next(item for item in CASES if item["id"] == "gmv_definition")
     response = {
+        "generation": "agentic_tool_calling",
         "route": "ANALYTICS",
         "answer": ("Delivered GMV (go\u2011to\u2011market value) is BRL\u202f13,220,248.93. "
                    "It excludes freight and is not recognized revenue."),
@@ -63,3 +67,19 @@ def test_go_to_market_hallucination_is_caught_despite_unicode_hyphen():
         },
     }
     assert score(case, response) == ["forbidden_answer_term:go-to-market value"]
+
+
+
+def test_numerically_correct_fallback_fails_agentic_evaluation():
+    case = next(item for item in CASES if item["id"] == "delivery_denominator")
+    response = {
+        "generation": "deterministic_fallback_agent_error",
+        "route": "ANALYTICS",
+        "answer": ("RJ 12.11% late, SP 4.49% late; "
+                   "the rates use eligible deliveries, not orders."),
+        "evidence": {
+            "tool_names": case["required_tools"],
+            "sources": case["required_sources"],
+        },
+    }
+    assert score(case, response) == ["generation"]

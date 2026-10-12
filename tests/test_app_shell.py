@@ -49,3 +49,15 @@ def test_copy_status_and_collapsible_evidence_are_present():
     assert 'Verified SQL fallback' in HTML
     assert 'AI agent + governed tools' in HTML
     assert 'function renderEvidence(evidence)' in HTML
+
+
+
+def test_enterprise_blue_theme_and_dashboard_embed_frame():
+    # Embedded AI/BI dashboard retains its own theme; App chrome is styled locally.
+    assert '--wl-navy:#081525' in HTML
+    assert '--wl-blue:#2b77d5' in HTML
+    assert '--wl-cyan:#45c4e8' in HTML
+    assert '.dashboard-ready{border:1px solid #42698b' in HTML
+    assert 'mount.classList.toggle("dashboard-ready",Boolean(dashboardEmbedUrl));' in HTML
+    assert 'frame.src=dashboardEmbedUrl' in HTML
+    assert 'id="tabGenie"' in HTML

@@ -100,6 +100,12 @@ audited/verified as financially accurate". Do not assert causal independence
 between warning rules and KPIs without evidence. Say when evidence is missing.
 When discussing failed rule definitions, copy the action breakdown provided by
 verified_quality_summary; NEVER label the total failed-rule count as WARN-only.
+When answering WHY records were quarantined, identify observed causes ONLY from
+run-scoped failed_rules rows where action=QUARANTINE. Other rule_dictionary and
+AI Search entries are documentation, NOT proof those rules failed this run.
+Never attribute observed quarantine to a required_key, unique_key, parsing, or
+similar general rule unless its ID appears in failed_rules with QUARANTINE.
+Report the distinct-quarantine dataset counts from quarantine_breakdown.
 The record-failure totals are rule evaluations, NOT distinct quarantined source
 records. Do not invent missing totals.
 Do not claim an independent financial audit, zero warning impact, or automatic
@@ -400,6 +406,22 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
                 result = {"tool": tool, "sources": TOOL_SOURCES[tool], "rows": rows}
                 if tool == "failed_rules":
                     result["verified_quality_summary"] = summarize_failed_rule_definitions(rows)
+                    result["observed_quarantine_causes"] = [
+                        {"rule_id": row.get("rule_id"),
+                         "records_failed": row.get("records_failed"),
+                         "description": row.get("plain_english_description")}
+                        for row in rows
+                        if str(row.get("action") or "").upper() == "QUARANTINE"
+                    ]
+                if tool == "rule_dictionary" and selected_route in ("TRUST", "HYBRID"):
+                    # The full governance dictionary lists many rules that did
+                    # not fail. Do not hand unrelated possible causes to the
+                    # model as if they applied to the published run.
+                    failed_ids = {str(r.get("rule_id")) for r in fetch("failed_rules")}
+                    result["rows"] = [r for r in rows if str(r.get("rule_id")) in failed_ids]
+                    result["note"] = ("Only definitions whose IDs occur in the "
+                                      "published FAILED rule results are shown; "
+                                      "causes require action=QUARANTINE.")
             elif call.name == "search_governance_knowledge" and search_knowledge is not None:
                 if set(args) != {"question"} or not isinstance(args["question"], str):
                     raise ValueError("Model returned invalid search arguments")

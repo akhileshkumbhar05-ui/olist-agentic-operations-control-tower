@@ -14,11 +14,10 @@ from dataclasses import asdict
 from typing import Any
 
 from .engine import retrieve_knowledge
-from .queries import Context, assert_read_only, route, statements
+from .queries import Context, MAX_QUESTION_CHARS, assert_read_only, route, statements
 from .tracing import trace_span, set_span_attributes
 
 # Hard limits bound cost/latency; terminal synthesis is allowed after the final tool round.
-MAX_QUESTION_CHARS = 2000
 MAX_MODEL_STEPS = 5
 MAX_MODEL_SELECTED_TOOLS = 8
 MAX_RESULT_CHARS = 12000

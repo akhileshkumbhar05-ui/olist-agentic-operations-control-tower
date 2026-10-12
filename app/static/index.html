@@ -1,18 +1,37 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Olist | Agentic Operations</title><style>
-:root{font:15px system-ui,-apple-system,"Segoe UI",sans-serif;color:#e7effd;background:#0b1325}
-*{box-sizing:border-box}body{margin:0}header{padding:19px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #26344c;background:#101a2c}
-.brand{font-weight:760;letter-spacing:.02em}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#94a7c7;margin-bottom:5px}.pill{font-size:12px;padding:6px 10px;border:1px solid #33496b;border-radius:16px;color:#b5c7e7}
-nav{display:flex;gap:9px;padding:14px 28px;border-bottom:1px solid #26344c}button,.navbutton{border:1px solid #344966;background:#17263e;color:#e7effd;border-radius:9px;padding:11px 15px;cursor:pointer}button:hover,.navbutton:hover{border-color:#70adff}.active{background:#2659ae}
+:root{
+  --wl-navy:#081525;--wl-navy-soft:#10243d;--wl-blue:#2b77d5;
+  --wl-cyan:#45c4e8;--wl-border:#355273;--wl-text:#eef6ff;
+  font:15px system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:var(--wl-text);background:var(--wl-navy);
+}
+*{box-sizing:border-box}body{margin:0}header{padding:19px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #34516d;
+background:linear-gradient(100deg,#0b1c31 0%,#13335a 54%,#092038 100%);
+box-shadow:0 3px 16px rgba(3,18,39,.19)}
+.brand{font-weight:760;letter-spacing:.02em;color:#f6fbff}
+.brand span{color:var(--wl-cyan)!important}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#94a7c7;margin-bottom:5px}.pill{font-size:12px;padding:6px 10px;border:1px solid #33496b;border-radius:16px;color:#b5c7e7}
+nav{display:flex;gap:9px;padding:14px 28px;border-bottom:1px solid #26344c}button,.navbutton{border:1px solid #406184;background:#173454;color:#eef7ff;border-radius:9px;padding:11px 15px;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
+button:hover,.navbutton:hover{background:#23507d;border-color:var(--wl-cyan)}
+.active{background:linear-gradient(120deg,#2669bb,#208bb8);border-color:#56b5f4;box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+#askBtn{background:linear-gradient(115deg,#2269bb,#247fcc);border-color:#66b4ec;font-weight:680}
+#askBtn:not(:disabled):hover{background:linear-gradient(115deg,#2877d0,#3295da)}
 main{display:grid;grid-template-columns:minmax(0,1fr) minmax(440px,min(40vw,620px));gap:16px;padding:20px;min-height:calc(100vh - 132px)}
 main.genie-mode{grid-template-columns:minmax(0,1fr)}
 #copilotPanel[hidden]{display:none}
 main.genie-mode iframe{height:calc(100vh - 290px);min-height:560px}
-section{border:1px solid #283952;border-radius:13px;background:#111f34;padding:18px;min-width:0}
+section{border:1px solid #335070;border-radius:13px;background:linear-gradient(165deg,#122940,#0f2135 55%,#0e1e32);padding:18px;min-width:0;box-shadow:0 5px 22px rgba(2,11,24,.16)}
+section h1{letter-spacing:-.015em}
+#dashboardPanel{border-top:3px solid #2f82cc}
+#copilotPanel{border-top:3px solid #41bddc}
 h1{font-size:21px;margin:3px 0 9px}p{color:#abc0df;line-height:1.5}a{color:#94c0ff}
-iframe{width:100%;height:calc(100vh - 270px);border:0;border-radius:8px;background:white}
+iframe{width:100%;height:calc(100vh - 270px);border:1px solid #aec9e4;border-radius:9px;background:white;box-shadow:0 10px 30px rgba(1,9,23,.15)}
 .placeholder{border:1px dashed #52627b;border-radius:9px;padding:26px;margin-top:22px;color:#bdcdeb}
+.dashboard-ready{border:1px solid #42698b;background:linear-gradient(155deg,#142e49,#10223b);padding:13px;margin-top:18px;box-shadow:inset 0 1px 0 rgba(155,212,255,.11)}
+.dashboard-ready>a{display:inline-block;font-weight:600;color:#9de1ff;text-decoration:none;margin:0 0 10px 3px}
+.dashboard-ready>a:hover{text-decoration:underline}
+#embedNote{margin:13px 2px 0;max-width:95ch}
 label{display:block;color:#9eb6d5;font-size:12px;margin:9px 0 5px}select,input,textarea{background:#0e1a2c;color:#e8f0ff;border:1px solid #3a506e;padding:10px;border-radius:7px;width:100%;font:inherit}
 textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 #answer{white-space:normal;overflow-wrap:anywhere;background:#0d192c;padding:16px;border-radius:9px;min-height:150px;line-height:1.65}
@@ -44,19 +63,19 @@ textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-c
 .run-pill{font-size:11px;border:1px solid #375471;border-radius:100px;padding:5px 9px;color:#c3d7f1}
 .run-pill[data-kind="agent"]{color:#92e4bb;border-color:#2b775f;background:#10372c}
 .run-pill[data-kind="fallback"]{color:#f8d293;border-color:#7d6140;background:#342b1b}
-.evidence-details{margin-top:18px;border:1px solid #334760;border-radius:10px;background:#0d192c}
+.evidence-details{margin-top:18px;border:1px solid #365774;border-radius:10px;background:#0d1e32}
 .evidence-details>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;font-weight:650;color:#e7effd}
 .evidence-details>summary::before{content:"▸";color:#94c0ff;margin-right:4px}
 .evidence-details[open]>summary::before{content:"▾"}
 .evidence-meta{font-size:11px;color:#97b9db;font-weight:400;margin-left:auto}
 .evidence-details>#evidenceSummary{padding:0 10px 10px}
-#answer{border:1px solid #253c59}
+#answer{border:1px solid #3b607f;box-shadow:inset 3px 0 0 rgba(56,158,220,.56)}
 #answer:empty:before{content:"Response will appear here";color:#92aacc}
 main.focus-mode{grid-template-columns:minmax(0,1fr)}
 main.focus-mode #dashboardPanel{display:none}
 main.focus-mode #copilotPanel{width:100%;max-width:1020px;margin:0 auto}
 button:disabled{opacity:.63;cursor:not-allowed}
-button:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #86bfff;outline-offset:2px}
+button:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--wl-cyan);outline-offset:2px}
 @media(max-width:1100px){main{grid-template-columns:1fr}iframe{height:430px}}
 @media(max-width:600px){main{padding:10px;gap:10px}section{padding:13px}header{padding:14px}nav{padding:10px;flex-wrap:wrap}.formgrid{grid-template-columns:1fr}.panel-top{align-items:flex-start}.answer-toolbar{align-items:flex-start;flex-direction:column}.evidence-meta{display:block}}
 
@@ -88,6 +107,7 @@ document.getElementById("copilotPanel").hidden=kind==="genie";
 document.getElementById("pageTitle").textContent=kind==="genie"?"Genie / Native analytical assistant":"Operations, Data Trust & Governance";
 document.getElementById("pageText").textContent=kind==="genie"?"Genie is an optional backup, accessed via the published Databricks AI/BI dashboard. It does not power the custom Copilot.":"Native AI/BI dashboard with current published metrics and governance facts.";
 const mount=document.getElementById("dashboardMount");mount.replaceChildren();
+mount.classList.toggle("dashboard-ready",Boolean(dashboardEmbedUrl));
 if(!dashboardUrl){mount.textContent="Set DATABRICKS_DASHBOARD_URL in the Databricks App configuration to connect the published dashboard.";return}
 const link=document.createElement("a");link.href=dashboardUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent=kind==="genie"?"Open Genie-enabled published dashboard ↗":"Open published dashboard ↗";
 mount.appendChild(link);

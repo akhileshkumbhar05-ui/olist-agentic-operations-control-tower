@@ -20,7 +20,8 @@
       "is independently audited",
       "is guaranteed correct",
       "go-to-market value"
-    ]
+    ],
+    "expected_generation": "agentic_tool_calling"
   },
   {
     "id": "quality_distinctions",
@@ -53,7 +54,8 @@
       "5 WARN rules",
       "warnings cannot affect GMV",
       "is independently audited"
-    ]
+    ],
+    "expected_generation": "agentic_tool_calling"
   },
   {
     "id": "delivery_denominator",
@@ -71,7 +73,8 @@
       "SP",
       "eligible deliveries"
     ],
-    "forbidden_answer_terms": []
+    "forbidden_answer_terms": [],
+    "expected_generation": "agentic_tool_calling"
   },
   {
     "id": "governance_retrieval",
@@ -91,6 +94,7 @@
     ],
     "forbidden_answer_terms": [
       "is accounting revenue"
-    ]
+    ],
+    "expected_generation": "agentic_tool_calling"
   }
 ]

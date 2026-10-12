@@ -10,6 +10,8 @@ env:
     valueFrom: experiment
   - name: MLFLOW_TRACKING_URI
     value: databricks
+  - name: OLIST_EXECUTION_AUDIT_LOGS
+    value: 'true'
   - name: DATABRICKS_DASHBOARD_URL
     value: 'https://dbc-ecf93af4-a667.cloud.databricks.com/dashboardsv3/01f1c3585e371844b4165a673d3691d1/published?o=7474659488161285'
   - name: DATABRICKS_DASHBOARD_EMBED_URL

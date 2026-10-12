@@ -55,6 +55,27 @@
       "queryLines": [
         "SELECT s.quality_score,s.failed_rules,s.quarantined_records,s.readiness\nFROM workspace.olist_agentic_quality.dq_run_summary s\nJOIN workspace.olist_agentic_quality.published_run p ON s.run_id=p.run_id\n"
       ]
+    },
+    {
+      "name": "failed_rule_chart",
+      "displayName": "Failed rule evaluations by governed rule",
+      "queryLines": [
+        "SELECT r.rule_id, r.action, r.records_failed\nFROM workspace.olist_agentic_quality.dq_rule_results r\nJOIN workspace.olist_agentic_quality.published_run p ON p.run_id = r.run_id\nWHERE r.records_failed > 0\nORDER BY r.records_failed DESC\n"
+      ]
+    },
+    {
+      "name": "quarantine_dataset_counts",
+      "displayName": "Distinct quarantined source records by dataset",
+      "queryLines": [
+        "SELECT q.dataset, COUNT(DISTINCT q.source_record_id) AS distinct_quarantined_records\nFROM workspace.olist_agentic_quality.quarantine q\nJOIN workspace.olist_agentic_quality.published_run p ON p.run_id = q.run_id\nGROUP BY q.dataset\nORDER BY q.dataset\n"
+      ]
+    },
+    {
+      "name": "metric_unit_counts",
+      "displayName": "Governed metric definitions by measurement unit",
+      "queryLines": [
+        "SELECT COALESCE(NULLIF(TRIM(unit), ''), 'Not specified') AS metric_unit,\nCOUNT(*) AS metric_count\nFROM workspace.olist_governance.metric_dictionary\nGROUP BY COALESCE(NULLIF(TRIM(unit), ''), 'Not specified')\nORDER BY metric_count DESC\n"
+      ]
     }
   ],
   "pages": [
@@ -562,8 +583,8 @@
             "name": "quality_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Data Trust & Explainability\n\n",
-                "WARN retains records, QUARANTINE excludes offending records and may cascade to child rows, FAIL blocks new publication. Warnings are not measured KPI errors."
+                "# Data Trust & Quality · Published Run\n\n",
+                "Three stages of confidence: **WARN** retains data for investigation; **QUARANTINE** excludes invalid source records and can cascade to dependent records; **FAIL** blocks publication. These are governance actions—not proven financial inaccuracies."
               ]
             }
           },
@@ -627,47 +648,47 @@
                 "columns": [
                   {
                     "fieldName": "rule_id",
-                    "displayName": "rule id"
+                    "displayName": "Rule ID"
                   },
                   {
                     "fieldName": "dataset",
-                    "displayName": "dataset"
+                    "displayName": "Dataset"
                   },
                   {
                     "fieldName": "status",
-                    "displayName": "status"
+                    "displayName": "Result"
                   },
                   {
                     "fieldName": "action",
-                    "displayName": "action"
+                    "displayName": "Governance Action"
                   },
                   {
                     "fieldName": "records_failed",
-                    "displayName": "records failed"
+                    "displayName": "Failed Evaluations"
                   },
                   {
                     "fieldName": "plain_english_description",
-                    "displayName": "plain english description"
+                    "displayName": "Rule Description"
                   },
                   {
                     "fieldName": "why_this_action",
-                    "displayName": "why this action"
+                    "displayName": "Reason for Action"
                   },
                   {
                     "fieldName": "downstream_effect",
-                    "displayName": "downstream effect"
+                    "displayName": "Downstream Impact"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "All governed rule results and explanations"
+                "title": "Governed Rule Audit · Status, Action & Business Rationale"
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 4,
+            "y": 13,
             "width": 6,
             "height": 10
           }
@@ -709,33 +730,33 @@
                 "columns": [
                   {
                     "fieldName": "dataset",
-                    "displayName": "dataset"
+                    "displayName": "Dataset"
                   },
                   {
                     "fieldName": "rule_id",
-                    "displayName": "rule id"
+                    "displayName": "Rule ID"
                   },
                   {
                     "fieldName": "source_record_id",
-                    "displayName": "source record id"
+                    "displayName": "Source Record ID"
                   },
                   {
                     "fieldName": "failure_reason",
-                    "displayName": "failure reason"
+                    "displayName": "Quarantine Reason"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "Quarantined rows (source ID only; no sensitive payload)"
+                "title": "Quarantine Audit · Source IDs & Failure Reasons"
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 14,
+            "y": 23,
             "width": 6,
-            "height": 8
+            "height": 9
           }
         },
         {
@@ -761,12 +782,12 @@
               "encodings": {
                 "value": {
                   "fieldName": "quality_score",
-                  "displayName": "Quality opportunity pass rate (%)"
+                  "displayName": "Data Quality Pass Score"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Quality opportunity pass rate (%)"
+                "title": "Data Quality Pass Score"
               }
             }
           },
@@ -800,12 +821,12 @@
               "encodings": {
                 "value": {
                   "fieldName": "failed_rules",
-                  "displayName": "Failed DQ rule definitions"
+                  "displayName": "Failed Rule Definitions"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Failed DQ rule definitions"
+                "title": "Rules With Recorded Failures"
               }
             }
           },
@@ -839,12 +860,12 @@
               "encodings": {
                 "value": {
                   "fieldName": "quarantined_records",
-                  "displayName": "Distinct quarantined records"
+                  "displayName": "Distinct Quarantined Source Rows"
                 }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Distinct quarantined records"
+                "title": "Distinct Source Rows Quarantined"
               }
             }
           },
@@ -853,6 +874,179 @@
             "y": 2,
             "width": 2,
             "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "quality_interpretation",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Interpret quality counts correctly\n\n",
+                "**Failed evaluations** count rule checks; **distinct quarantined source rows** count actual excluded rows. Parent-order quarantine can propagate to order items, payments and reviews. WARN records remain available for analysis."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "quality_failed_rule_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "failed_rule_chart",
+                  "fields": [
+                    {
+                      "name": "rule_id",
+                      "expression": "`rule_id`"
+                    },
+                    {
+                      "name": "records_failed",
+                      "expression": "`records_failed`"
+                    },
+                    {
+                      "name": "action",
+                      "expression": "`action`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "records_failed",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Failed Rule Evaluations"
+                },
+                "y": {
+                  "fieldName": "rule_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Governed Rule"
+                },
+                "color": {
+                  "fieldName": "action",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "QUARANTINE",
+                        "color": "#EE2D3D"
+                      },
+                      {
+                        "value": "WARN",
+                        "color": "#E39B2C"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failed Rule Evaluations · By Rule",
+                "showDescription": true,
+                "description": "Evaluation counts can overlap; these are not distinct quarantined source records."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "quality_quarantine_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "quarantine_dataset_counts",
+                  "fields": [
+                    {
+                      "name": "dataset",
+                      "expression": "`dataset`"
+                    },
+                    {
+                      "name": "distinct_quarantined_records",
+                      "expression": "`distinct_quarantined_records`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "dataset",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Source Dataset"
+                },
+                "y": {
+                  "fieldName": "distinct_quarantined_records",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Distinct Source Rows"
+                },
+                "color": {
+                  "fieldName": "dataset",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "orders",
+                        "color": "#EE2D3D"
+                      },
+                      {
+                        "value": "order_items",
+                        "color": "#602CF3"
+                      },
+                      {
+                        "value": "payments",
+                        "color": "#287DC2"
+                      },
+                      {
+                        "value": "reviews",
+                        "color": "#C10D68"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Quarantined Source Rows · By Dataset",
+                "showDescription": true,
+                "description": "Unique source records, counted within each quarantined dataset."
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 7,
+            "width": 3,
+            "height": 6
           }
         }
       ],
@@ -867,8 +1061,8 @@
             "name": "gov_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Governance & Definitions\n\n",
-                "Metric formulas and population rules are exposed so dashboards and the future Copilot can explain every KPI."
+                "# Governed Metrics · Business Glossary\n\n",
+                "A shared contract for every dashboard and Copilot answer: define the population, verify the formula, check the unit and disclose known limitations. Definitions come from the published Unity Catalog governance dictionary."
               ]
             }
           },
@@ -920,41 +1114,204 @@
                 "columns": [
                   {
                     "fieldName": "metric_name",
-                    "displayName": "metric name"
+                    "displayName": "Governed Metric"
                   },
                   {
                     "fieldName": "business_definition",
-                    "displayName": "business definition"
+                    "displayName": "Business Definition"
                   },
                   {
                     "fieldName": "formula_description",
-                    "displayName": "formula description"
+                    "displayName": "Calculation / Formula"
                   },
                   {
                     "fieldName": "unit",
-                    "displayName": "unit"
+                    "displayName": "Unit"
                   },
                   {
                     "fieldName": "known_caveat",
-                    "displayName": "known caveat"
+                    "displayName": "Known Caveat"
                   }
                 ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "Governed metric dictionary"
+                "title": "Certified Business Definitions · Formula, Unit & Caveat"
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 2,
+            "y": 13,
             "width": 6,
-            "height": 10
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "gov_population",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### 01 · Population\n\n",
+                "**Who qualifies?** Define eligible orders, deliveries and exclusions before interpreting a rate or total."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gov_calculation",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### 02 · Calculation\n\n",
+                "**What is measured?** Verify the business formula, denominator and unit before comparing KPIs."
+              ]
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gov_caveats",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### 03 · Caveats\n\n",
+                "**What isn't claimed?** Historical results are not live. Delivered GMV is merchandise value—not recognized revenue."
+              ]
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gov_metric_units",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "metric_unit_counts",
+                  "fields": [
+                    {
+                      "name": "metric_unit",
+                      "expression": "`metric_unit`"
+                    },
+                    {
+                      "name": "metric_count",
+                      "expression": "`metric_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "metric_count",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Metric Definitions"
+                },
+                "color": {
+                  "fieldName": "metric_unit",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Reporting Unit"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Governed Metrics · By Reporting Unit",
+                "showDescription": true,
+                "description": "Number of metric definitions by unit; distribution describes the glossary, not business volume."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 3,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "gov_readme",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## How to read the glossary\n\n",
+                "**Business definition** — what each KPI represents.\n\n",
+                "**Calculation / Formula** — how it is derived.\n\n",
+                "**Unit** — BRL, days, percentage or count.\n\n",
+                "**Known caveat** — what should *not* be inferred. The dictionary is semantic governance, not independent certification of accounting revenue or every underlying source record."
+              ]
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 5,
+            "width": 3,
+            "height": 8
           }
         }
       ],
       "pageType": "PAGE_TYPE_CANVAS"
     }
-  ]
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F5F8FF",
+        "dark": "#0B1530"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#172441"
+      },
+      "fontColor": {
+        "light": "#12223D",
+        "dark": "#EAF4FF"
+      },
+      "selectionColor": {
+        "light": "#EE2D3D",
+        "dark": "#FF6573"
+      },
+      "visualizationColors": [
+        "#287DC2",
+        "#EE2D3D",
+        "#602CF3",
+        "#C10D68",
+        "#48B9FD",
+        "#140C64",
+        "#E39B2C",
+        "#279F99"
+      ],
+      "widgetHeaderAlignment": "LEFT",
+      "fontFamily": "Roboto",
+      "widgetCornerRadius": 12
+    }
+  }
 }

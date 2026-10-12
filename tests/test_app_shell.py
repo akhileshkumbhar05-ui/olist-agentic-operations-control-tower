@@ -19,3 +19,13 @@ def test_dashboard_keeps_custom_copilot_and_genie_fallback():
     assert "frame.src=dashboardEmbedUrl" in HTML
     assert "Open Genie-enabled published dashboard" in HTML
     assert 'id="askBtn"' in HTML
+
+
+
+def test_copilot_renders_readable_validation_errors_and_char_budget():
+    assert 'MAX_QUESTION_CHARS=2000' in HTML
+    assert 'id="questionCount"' in HTML
+    assert 'function apiErrorMessage(data,status)' in HTML
+    assert 'Array.isArray(detail)' in HTML
+    assert 'new Error(apiErrorMessage(data,r.status))' in HTML
+    assert 'e instanceof Error?e.message' in HTML

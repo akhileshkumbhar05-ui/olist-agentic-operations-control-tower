@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from olist_agentic.copilot.queries import Context
 from olist_agentic.copilot.engine import prepare, fallback_answer, model_answer
 from olist_agentic.copilot.sql_diagnostics import sql_failure_category, sql_failure_guidance
-from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES, summarize_failed_rule_definitions
+from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES, summarize_failed_rule_definitions, MAX_QUESTION_CHARS
 from olist_agentic.copilot.semantic_search import search_governance
 from olist_agentic.copilot.tracing import trace_span, set_span_attributes
 
@@ -31,7 +31,7 @@ app = FastAPI(title="Olist Agentic Operations Control Tower", version="0.3.0")
 
 
 class AskRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=1000)
+    question: str = Field(min_length=1, max_length=MAX_QUESTION_CHARS)
     page: str = "operations"
     visual: str = "overview"
     state: str = "ALL"

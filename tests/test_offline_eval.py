@@ -32,3 +32,34 @@ def test_canonical_gmv_needs_answer_and_verified_metric():
     assert score(case, response) == []
     response["evidence"]["verified_metrics"] = []
     assert "canonical_gmv_evidence" in score(case, response)
+
+
+
+def test_unicode_currency_spacing_is_not_a_false_negative():
+    case = next(item for item in CASES if item["id"] == "gmv_definition")
+    response = {
+        "route": "ANALYTICS",
+        "answer": ("Delivered Gross Merchandise Value: BRL\u202f13,220,248.93. "
+                   "Freight is excluded; this is not accounting revenue."),
+        "evidence": {
+            "tool_names": case["required_tools"],
+            "sources": case["required_sources"],
+            "verified_metrics": [{"display": "BRL 13,220,248.93"}],
+        },
+    }
+    assert score(case, response) == []
+
+
+def test_go_to_market_hallucination_is_caught_despite_unicode_hyphen():
+    case = next(item for item in CASES if item["id"] == "gmv_definition")
+    response = {
+        "route": "ANALYTICS",
+        "answer": ("Delivered GMV (go\u2011to\u2011market value) is BRL\u202f13,220,248.93. "
+                   "It excludes freight and is not recognized revenue."),
+        "evidence": {
+            "tool_names": case["required_tools"],
+            "sources": case["required_sources"],
+            "verified_metrics": [{"display": "BRL 13,220,248.93"}],
+        },
+    }
+    assert score(case, response) == ["forbidden_answer_term:go-to-market value"]

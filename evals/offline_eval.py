@@ -6,15 +6,24 @@ from __future__ import annotations
 
 import argparse
 import json
+import unicodedata
 from pathlib import Path
 
 CASES = Path(__file__).with_name("cases.json")
 
 
+def normalized_text(value: str) -> str:
+    """Normalize presentation whitespace and Unicode hyphen variants for text checks."""
+    value = unicodedata.normalize("NFKC", value)
+    for char in ("‐", "‑", "‒", "–", "—", "−"):
+        value = value.replace(char, "-")
+    return " ".join(value.split()).casefold()
+
+
 def score(case: dict, response: dict) -> list[str]:
     failures = []
     evidence = response.get("evidence") or {}
-    answer = str(response.get("answer") or "")
+    answer = normalized_text(str(response.get("answer") or ""))
     if response.get("route") != case["expected_route"]:
         failures.append("route")
     if not set(case["required_tools"]) <= set(evidence.get("tool_names") or []):
@@ -22,10 +31,10 @@ def score(case: dict, response: dict) -> list[str]:
     if not set(case["required_sources"]) <= set(evidence.get("sources") or []):
         failures.append("required_sources")
     for term in case.get("required_answer_terms", []):
-        if term.casefold() not in answer.casefold():
+        if normalized_text(term) not in answer:
             failures.append("missing_answer_term:" + term)
     for term in case.get("forbidden_answer_terms", []):
-        if term.casefold() in answer.casefold():
+        if normalized_text(term) in answer:
             failures.append("forbidden_answer_term:" + term)
     expected_quality = case.get("expected_quality_summary")
     if expected_quality:

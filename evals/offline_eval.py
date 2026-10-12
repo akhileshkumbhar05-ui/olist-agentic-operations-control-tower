@@ -24,6 +24,8 @@ def score(case: dict, response: dict) -> list[str]:
     failures = []
     evidence = response.get("evidence") or {}
     answer = normalized_text(str(response.get("answer") or ""))
+    if case.get("expected_generation") and response.get("generation") != case["expected_generation"]:
+        failures.append("generation")
     if response.get("route") != case["expected_route"]:
         failures.append("route")
     if not set(case["required_tools"]) <= set(evidence.get("tool_names") or []):

@@ -150,3 +150,17 @@ def test_explicit_gmv_geography_is_honored_independently():
     selected = statements("Compare RJ and SP, and give GMV", Context(state="MG"), "HYBRID")
     assert "customer_state IN ('MG')" in selected["gmv_summary"]
     assert "customer_state IN ('MG')" in selected["state_delivery"]
+
+
+
+def test_deterministic_path_uses_same_bounded_question_length():
+    q = "Why was delivered GMV quarantined? " + "Explain all caveats. " * 55
+    assert 1000 < len(q) < 2000
+    def db(sql):
+        if "dq_run_summary" in sql:
+            return [{"run_id": "published", "readiness": "WARNING",
+                     "quality_score": 99.9, "quarantined_records": 32,
+                     "failed_rules": 5, "critical_failures": 0}]
+        return []
+    evidence = prepare(q, Context(), db)
+    assert evidence["published_run"] == "published"

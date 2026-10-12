@@ -57,3 +57,35 @@ def test_dashboard_rates_use_eligible_deliveries():
     assert "AS eligible_deliveries" in state_sql
     ops = next(p for p in dash["pages"] if p["name"] == "operations")
     assert len(ops["layout"]) >= 10
+
+
+
+def test_operations_axes_have_executive_labels_and_no_summed_percentage():
+    dashboard = json.loads(SPEC.read_text(encoding="utf-8"))
+    ops = next(p for p in dashboard["pages"] if p["name"] == "operations")
+    widgets = {item["widget"]["name"]: item["widget"] for item in ops["layout"]}
+    labels = {
+        "ops_state": ("Customer State", "Total Orders"),
+        "ops_late": ("Customer State", "Late Deliveries"),
+        "ops_state_rate": ("Customer State", "Late Delivery Rate (%)"),
+        "ops_monthly_orders": ("Purchase Month", "Total Orders"),
+    }
+    for name, (x_label, y_label) in labels.items():
+        encodings = widgets[name]["spec"]["encodings"]
+        assert encodings["x"]["displayName"] == x_label
+        assert encodings["y"]["displayName"] == y_label
+    state_rate = widgets["ops_state_rate"]["queries"][0]["query"]
+    assert state_rate["disaggregated"] is True
+    assert next(field for field in state_rate["fields"] if field["name"] == "late_rate_pct")["expression"] == "`late_rate_pct`"
+    assert widgets["ops_monthly_orders"]["spec"]["widgetType"] == "line"
+    assert widgets["ops_monthly_orders"]["spec"]["encodings"]["x"]["scale"]["type"] == "temporal"
+
+
+def test_operations_percent_kpis_show_percent_suffix():
+    dashboard = json.loads(SPEC.read_text(encoding="utf-8"))
+    ops = next(p for p in dashboard["pages"] if p["name"] == "operations")
+    widgets = {item["widget"]["name"]: item["widget"] for item in ops["layout"]}
+    for name in ("ops_late_rate", "ops_on_time_rate", "ops_negative_review"):
+        value = widgets[name]["spec"]["encodings"]["value"]
+        assert value["format"]["type"] == "number-plain"
+        assert value["formatTemplate"] == "{{@formatted}}%"

@@ -129,3 +129,22 @@ def test_live_agent_path_replaces_false_claims_without_second_model_request():
     assert "5 WARN" not in result["answer"]
     assert "gmv_summary" in result["evidence"]["tool_names"]
     assert len(model.requests) == 3
+
+
+def test_reject_double_count_contradictions():
+    wrong = ("32 distinct quarantined source rows, including 1 QUARANTINE "
+             "orders.delivered_time. There were 4 WARN rules, actually "
+             "5 WARN rules. BRL 13,220,248.93 is not revenue.")
+    answer, status = validate_quality_answer(wrong, observations())
+    assert status == "sql_verified_quality_repair"
+    assert "5 WARN rules" not in answer
+
+
+def test_accepted_model_answer_is_not_rewritten_when_quality_is_supported():
+    correct = ("32 quarantined source rows. One of the 5 failed definitions was "
+               "1 QUARANTINE rule orders.delivered_time; the rest were 4 WARN rules. "
+               "BRL 13,220,248.93 is not recognized revenue. "
+               "Warnings could affect the published GMV.")
+    answer, status = validate_quality_answer(correct, observations())
+    assert status == "verified_model_answer"
+    assert answer == correct

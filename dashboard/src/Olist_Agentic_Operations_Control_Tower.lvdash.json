@@ -67,8 +67,7 @@
             "name": "ops_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Operations Intelligence · Historical Snapshot\n",
-                "\n",
+                "# Operations Intelligence · Historical Snapshot\n\n",
                 "Historical Olist orders (2016–2018). Delivered GMV excludes freight and is not accounting revenue. The monthly chart retains all recorded months: Sep 2018 (16 orders), Oct 2018 (4). Final-month coverage may be incomplete; this does not establish a demand collapse."
               ]
             }

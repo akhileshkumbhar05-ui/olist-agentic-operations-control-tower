@@ -99,7 +99,7 @@ def _gmv_state_filter(question: str, context: Context) -> str:
     if context.state != "ALL":
         return _state_filter("", context)
 
-    state_name = r"(?:[A-Z]{2}|rio de janeiro|s[aã]o paulo)"
+    state_name = r"(?:rio de janeiro|s[aã]o paulo|\b[A-Z]{2}\b)"
     compound_states = rf"{state_name}(?:\s*(?:,|and|&|vs\.?|versus)\s*{state_name})*"
     pattern = (
         rf"\b(?:gmv|merchandise\s+value|revenue)\b\s+"

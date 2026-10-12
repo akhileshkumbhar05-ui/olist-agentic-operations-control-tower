@@ -18,6 +18,7 @@ from .queries import Context, assert_read_only, route, statements
 from .tracing import trace_span, set_span_attributes
 
 # Hard limits bound cost/latency; terminal synthesis is allowed after the final tool round.
+MAX_QUESTION_CHARS = 2000
 MAX_MODEL_STEPS = 5
 MAX_MODEL_SELECTED_TOOLS = 8
 MAX_RESULT_CHARS = 12000
@@ -179,8 +180,8 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
     Offline tests inject a fake model_client and execute_sql; no inference is
     performed outside a deployed App.
     """
-    if not question.strip() or len(question) > 1000:
-        raise ValueError("Question must contain 1-1000 characters")
+    if not question.strip() or len(question) > MAX_QUESTION_CHARS:
+        raise ValueError(f"Question must contain 1-{MAX_QUESTION_CHARS} characters")
     if not model_name.startswith("system.ai."):
         raise ValueError("Only the approved Unity Gateway system.ai model is allowed")
     # HYBRID supplies the full allowlist. Adding ' GMV' makes the optional

@@ -90,11 +90,17 @@
     "expected_retrieval_mode": "ai_search_hybrid",
     "required_answer_terms": [
       "GMV",
-      "freight"
+      "freight",
+      "sum(freight_value)",
+      "BRL"
     ],
     "forbidden_answer_terms": [
       "is accounting revenue"
     ],
-    "expected_generation": "agentic_tool_calling"
+    "expected_generation": "agentic_tool_calling",
+    "required_model_selected_tools": [
+      "search_governance_knowledge"
+    ],
+    "expected_retrieval_trigger": "model_selected"
   }
 ]

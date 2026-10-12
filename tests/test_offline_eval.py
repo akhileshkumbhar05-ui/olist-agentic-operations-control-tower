@@ -83,3 +83,42 @@ def test_numerically_correct_fallback_fails_agentic_evaluation():
         },
     }
     assert score(case, response) == ["generation"]
+
+
+
+def test_freight_case_requires_model_selected_search_and_formula():
+    case = next(item for item in CASES if item["id"] == "governance_retrieval")
+    response = {
+        "generation": "agentic_tool_calling",
+        "route": "KNOWLEDGE",
+        "answer": ("Delivered freight is accepted item freight in BRL, "
+                   "formula sum(freight_value) where is_delivered; "
+                   "freight is separate from GMV."),
+        "evidence": {
+            "tool_names": ["publication", "metric_dictionary"],
+            "sources": ["workspace.olist_governance.metric_dictionary"],
+            "model_selected_tools": ["search_governance_knowledge", "metric_dictionary"],
+            "retrieval_mode": "ai_search_hybrid",
+            "retrieval_trigger": "model_selected",
+        },
+    }
+    assert score(case, response) == []
+    response["evidence"]["model_selected_tools"] = ["metric_dictionary"]
+    response["evidence"]["retrieval_trigger"] = "evidence_guard"
+    assert score(case, response) == ["retrieval_trigger", "model_selected_tools"]
+
+
+def test_freight_case_requires_explicit_formula():
+    case = next(item for item in CASES if item["id"] == "governance_retrieval")
+    response = {
+        "generation": "agentic_tool_calling", "route": "KNOWLEDGE",
+        "answer": "Freight in BRL is reported separately from GMV.",
+        "evidence": {
+            "tool_names": case["required_tools"],
+            "sources": case["required_sources"],
+            "model_selected_tools": ["search_governance_knowledge"],
+            "retrieval_mode": "ai_search_hybrid",
+            "retrieval_trigger": "model_selected",
+        },
+    }
+    assert score(case, response) == ["missing_answer_term:sum(freight_value)"]

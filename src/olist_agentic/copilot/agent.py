@@ -304,10 +304,16 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         for name in sorted(mandatory):
             fetch(name)
         relevant = sorted((set(selected_by_model) & set(TOOL_SOURCES)) | mandatory | {"publication"})
-        facts = [
-            {"tool": name, "sources": TOOL_SOURCES[name], "rows": observations[name]}
-            for name in relevant if name in observations
-        ]
+        facts = []
+        failed_ids = {str(r.get("rule_id")) for r in observations.get("failed_rules", [])}
+        for name in relevant:
+            if name not in observations:
+                continue
+            rows = observations[name]
+            if name == "rule_dictionary" and selected_route in ("TRUST", "HYBRID"):
+                # Full governance rules are documentation, not actual failures.
+                rows = [r for r in rows if str(r.get("rule_id")) in failed_ids]
+            facts.append({"tool": name, "sources": TOOL_SOURCES[name], "rows": rows})
         if "failed_rules" in observations:
             facts.append({"verified_quality_summary":
                           summarize_failed_rule_definitions(observations["failed_rules"])})

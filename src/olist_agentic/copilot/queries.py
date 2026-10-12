@@ -99,20 +99,25 @@ def _gmv_state_filter(question: str, context: Context) -> str:
     if context.state != "ALL":
         return _state_filter("", context)
 
-    state_name = r"(?:rio de janeiro|s[aã]o paulo|\b[A-Z]{2}\b)"
-    compound_states = rf"{state_name}(?:\s*(?:,|and|&|vs\.?|versus)\s*{state_name})*"
+    # State *codes* must be uppercase, even though descriptive city names
+    # and surrounding phrases can be case-insensitive. Never apply re.I to
+    # [A-Z]{2}: the English phrase "relationship to GMV" otherwise treats
+    # lowercase "to" as TO (Tocantins), silently changing all-state GMV.
+    state_name = r"(?:\b[A-Z]{2}\b|(?i:rio de janeiro|s[aã]o paulo))"
+    conjunction = r"(?:,|&|(?i:and|vs\.?|versus))"
+    compound_states = rf"{state_name}(?:\s*{conjunction}\s*{state_name})*"
     pattern = (
-        rf"\b(?:gmv|merchandise\s+value|revenue)\b\s+"
-        rf"(?:for|in|of|from)\s+(?:the\s+)?(?:states?\s+)?"
+        rf"(?i:\b(?:gmv|merchandise\s+value|revenue)\b\s+"
+        rf"(?:for|in|of|from)\s+(?:the\s+)?(?:states?\s+)?)"
         rf"(?P<states>{compound_states})"
     )
-    match = re.search(pattern, question, re.I)
+    match = re.search(pattern, question)
     if match:
         return _state_filter(match.group("states").upper(), context)
 
     reverse = re.search(
-        rf"\b(?P<states>{compound_states})\s+(?:gmv|merchandise\s+value)\b",
-        question, re.I,
+        rf"(?P<states>{compound_states})(?i:\s+(?:gmv|merchandise\s+value)\b)",
+        question,
     )
     return (_state_filter(reverse.group("states").upper(), context)
             if reverse else "")

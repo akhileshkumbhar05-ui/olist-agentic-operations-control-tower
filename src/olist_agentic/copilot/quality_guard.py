@@ -81,7 +81,7 @@ def _is_consistent(answer: str, observations: dict) -> bool:
     # should not be passed through, even without their full rule IDs.
     nonfailed_prefixes = ("required_key", "unique_key", "parse_")
     if any(token in answer.lower() for token in nonfailed_prefixes):
-        actual_ids = " ".join(failed_ids)
+        actual_ids = " ".join(rid.lower() for rid in quarantine_ids)
         if not any(token in actual_ids for token in nonfailed_prefixes):
             return False
     # For GMV questions, do not accept rephrased or missing numeric evidence.

@@ -41,7 +41,7 @@ def _is_consistent(answer: str, observations: dict) -> bool:
         return False
     if re.search(r"\b(?:is guaranteed correct|warnings cannot affect gmv|go-to-market value)\b", answer, re.I):
         return False
-    if any(int(pub.get("failed_rules") or 0) != len(failed) for _ in [0]):
+    if int(pub.get("failed_rules") or 0) != len(failed):
         # Incomplete rule result cannot justify a full-run cause claim.
         return False
     if not re.search(rf"\b{int(pub.get('quarantined_records') or 0):,}\b", answer):
@@ -53,6 +53,18 @@ def _is_consistent(answer: str, observations: dict) -> bool:
     for action in ("QUARANTINE", "WARN"):
         n = by_action.get(action, 0)
         if n and not _mentions_count_and_action(answer, n, action):
+            return False
+
+    # Reject explicit contradictory counts even if the response also includes
+    # the correct number elsewhere (e.g. "5 WARN rules ... 4 WARN rules").
+    quantities = r"(?:\\d+|zero|one|two|three|four|five|six|seven|eight|nine|ten)"
+    modifiers = r"(?:(?:failed|quality|rule|rules|level)[ -]+){0,3}"
+    labels = r"(warn(?:ing)?s?|quarantin(?:e|ing))"
+    for found in re.finditer(rf"\\b({quantities})\\s+{modifiers}{labels}\\b", answer, re.I):
+        raw, label = found.group(1).lower(), found.group(2).lower()
+        count = int(raw) if raw.isdigit() else next((n for n, word in _WORDS.items() if word == raw), -1)
+        action = "WARN" if label.startswith("warn") else "QUARANTINE"
+        if count != by_action.get(action, 0):
             return False
     # Every rule claimed as an observed quarantine cause MUST occur in the
     # run-scoped failed results with action=QUARANTINE.
@@ -107,6 +119,9 @@ def _verified_explanation(observations: dict) -> str:
             # Governance metadata may contain untrusted text. Use rule identity,
             # action and numeric runtime evidence; omit unrelated definitions.
             lines.append(f"- {rid}: {count} failed rule evaluations.")
+            explanation = " ".join(str(r.get("plain_english_description") or "").split())
+            if explanation:
+                lines.append(f"  Governed rule description: {explanation[:260]}.")
     else:
         lines.append("No failed QUARANTINE rule is present in the returned rule results.")
     parts = []

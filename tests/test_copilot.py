@@ -166,3 +166,29 @@ def test_deterministic_path_uses_same_bounded_question_length():
         return []
     evidence = prepare(q, Context(), db)
     assert evidence["published_run"] == "published"
+
+
+
+def test_comprehensive_question_does_not_treat_to_gmv_as_tocantins():
+    question = (
+        "Using the published Olist run, provide one evidence-grounded report covering:\n"
+        "1. The exact delivered-item GMV in BRL, its definition, exclusions, and "
+        "why it is not accounting revenue.\n"
+        "2. Why 32 source records were quarantined, the QUARANTINE versus WARN "
+        "rule breakdown, and GMV trust limitations.\n"
+        "3. RJ versus SP late-delivery counts, eligible-delivery denominators, "
+        "rates, and percentage-point difference.\n"
+        "4. The governed freight definition, formula, unit, and relationship to GMV.\n"
+        "Use governed SQL tools and AI Search knowledge. Cite actual Unity Catalog sources."
+    )
+    sql = statements(question, Context(), "HYBRID")
+    assert "customer_state IN ('RJ','SP')" in sql["state_delivery"]
+    assert " WHERE " not in sql["gmv_summary"]
+    assert "customer_state IN ('TO')" not in sql["gmv_summary"]
+
+
+def test_lowercase_english_to_is_not_tocantins_but_explicit_TO_is():
+    ordinary = statements("Explain relationship to GMV", Context(), "HYBRID")
+    assert " WHERE " not in ordinary["gmv_summary"]
+    tocantins = statements("What is the GMV for TO?", Context(), "ANALYTICS")
+    assert "customer_state IN ('TO')" in tocantins["gmv_summary"]

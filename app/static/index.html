@@ -333,8 +333,7 @@ main.dashboard-focus-mode iframe{min-height:720px;height:calc(100vh - 245px)}
       <div class="composer-footer">
         <div class="actions">
           <button onclick="ask()" id="askBtn" type="button">Ask grounded Copilot ↗</button>
-          <button class="tiny-button" type="button" onclick="setQuestion('Compare late delivery rates for RJ and SP')">Try RJ vs SP</button>
-          <button class="tiny-button" type="button" onclick="setQuestion('Why were 32 source records quarantined, and can I trust the delivered GMV?')">Data quality</button>
+          <span class="muted" style="margin:auto 0">Ctrl / ⌘ + Enter to send</span>
         </div>
         <div id="questionCount" class="question-count" aria-live="polite"></div>
       </div>
@@ -361,7 +360,9 @@ function showTab(kind){
 document.getElementById("tabDashboard").classList.toggle("active",kind==="dashboard");document.getElementById("tabGenie").classList.toggle("active",kind==="genie");
 document.getElementById("mainLayout").classList.toggle("genie-mode",kind==="genie");
 if(kind==="genie")document.getElementById("mainLayout").classList.remove("focus-mode");
+if(kind==="genie")document.getElementById("mainLayout").classList.remove("dashboard-focus-mode");
 document.getElementById("focusBtn").textContent=document.getElementById("mainLayout").classList.contains("focus-mode")?"Show dashboard":"Expand view ↗";
+document.getElementById("dashboardFocusBtn").textContent=document.getElementById("mainLayout").classList.contains("dashboard-focus-mode")?"Show Copilot":"Full canvas ↗";
 document.getElementById("copilotPanel").hidden=kind==="genie";
 document.getElementById("pageTitle").textContent=kind==="genie"?"Genie / Native analytical assistant":"Operations, Data Trust & Governance";
 document.getElementById("pageText").textContent=kind==="genie"?"Genie is an optional backup, accessed via the published Databricks AI/BI dashboard. It does not power the custom Copilot.":"Native AI/BI dashboard with current published metrics and governance facts.";
@@ -387,8 +388,29 @@ if(kind==="genie"){
 }
 function toggleCopilotFocus(){
  const main=document.getElementById("mainLayout");
+ main.classList.remove("dashboard-focus-mode");
+ document.getElementById("dashboardFocusBtn").textContent="Full canvas ↗";
  const expanded=main.classList.toggle("focus-mode");
  document.getElementById("focusBtn").textContent=expanded?"Show dashboard":"Expand view ↗";
+}
+function toggleDashboardFocus(){
+ const main=document.getElementById("mainLayout");
+ main.classList.remove("focus-mode");
+ document.getElementById("focusBtn").textContent="Expand view ↗";
+ const expanded=main.classList.toggle("dashboard-focus-mode");
+ document.getElementById("dashboardFocusBtn").textContent=expanded?"Show Copilot":"Full canvas ↗";
+}
+function setAgentVisualState(state){
+ const names={
+   idle:"Ready for your question",
+   thinking:"Analyzing governed evidence…",
+   ready:"Grounded response ready",
+   error:"Request needs attention"
+ };
+ const next=Object.hasOwn(names,state)?state:"idle";
+ document.getElementById("agentAvatar").dataset.state=next;
+ document.getElementById("agentSignal").dataset.state=next;
+ document.getElementById("avatarStateLabel").textContent=names[next];
 }
 function setQuestion(value){
  document.getElementById("question").value=value;
@@ -549,6 +571,7 @@ function apiErrorMessage(data,status){
 async function ask(){
  const button=document.getElementById("askBtn");
  button.disabled=true;button.textContent="Analyzing…";
+ setAgentVisualState("thinking");
  document.getElementById("status").textContent="Querying governed SQL and knowledge sources…";
  try{
    const question=document.getElementById("question").value;
@@ -569,9 +592,11 @@ async function ask(){
    chip.hidden=false;chip.dataset.kind=modelUsed?"agent":"fallback";
    chip.textContent=modelUsed?"AI agent + governed tools":"Verified SQL fallback";
    document.getElementById("status").textContent=data.route+" · Published run "+data.published_run;
+   setAgentVisualState("ready");
    renderEvidence(data.evidence);document.getElementById("evidence").textContent=JSON.stringify(data.evidence,null,2);
  }catch(e){
    document.getElementById("status").textContent="Request could not be completed";
+   setAgentVisualState("error");
    const box=document.getElementById("answer");
    lastAnswer="";document.getElementById("copyAnswerBtn").disabled=true;
    document.getElementById("answerMode").hidden=true;
@@ -580,11 +605,17 @@ async function ask(){
    box.classList.add("error-text");
    box.textContent=e instanceof Error?e.message:"An unexpected error occurred.";
  }finally{
-   button.disabled=false;button.textContent="Ask grounded Copilot";
+   button.disabled=false;button.textContent="Ask grounded Copilot ↗";
    updateQuestionCount();
  }
 }
 document.getElementById("question").addEventListener("input",updateQuestionCount);
+document.getElementById("question").addEventListener("keydown",event=>{
+ if((event.ctrlKey||event.metaKey)&&event.key==="Enter"&&!document.getElementById("askBtn").disabled){
+   event.preventDefault();ask();
+ }
+});
 updateQuestionCount();
+setAgentVisualState("idle");
 setup().catch(()=>document.getElementById("mode").textContent="Configuration unavailable");
 </script></body></html>

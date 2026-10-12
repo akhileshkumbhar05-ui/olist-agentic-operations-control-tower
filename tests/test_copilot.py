@@ -127,3 +127,26 @@ def test_currency_aggregates_use_two_decimal_sql_not_raw_float():
         assert "ROUND(SUM(CASE WHEN is_delivered" in sql
         assert "AS DECIMAL(20,2)) AS delivered_item_gmv_brl" in sql
         assert_read_only(sql)
+
+
+
+def test_mixed_question_keeps_gmv_national_while_delivery_rates_use_rj_sp():
+    question = (
+        "Using the published run, report delivered-item GMV and its exclusions, "
+        "quarantined records and warning rules, compare late-delivery rates "
+        "for RJ versus SP, and explain freight."
+    )
+    sql = statements(question, Context(), "HYBRID")
+    assert "customer_state IN ('RJ','SP')" in sql["state_delivery"]
+    assert "customer_state IN (" not in sql["gmv_summary"]
+    assert "WHERE" not in sql["gmv_summary"]
+
+
+def test_explicit_gmv_geography_is_honored_independently():
+    sql = statements("What is GMV for RJ and SP?", Context(), "ANALYTICS")
+    assert "customer_state IN ('RJ','SP')" in sql["gmv_summary"]
+    single = statements("What is GMV in RJ?", Context(), "ANALYTICS")
+    assert "customer_state IN ('RJ')" in single["gmv_summary"]
+    selected = statements("Compare RJ and SP, and give GMV", Context(state="MG"), "HYBRID")
+    assert "customer_state IN ('MG')" in selected["gmv_summary"]
+    assert "customer_state IN ('MG')" in selected["state_delivery"]

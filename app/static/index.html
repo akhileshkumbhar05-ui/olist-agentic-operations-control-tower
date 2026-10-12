@@ -5,7 +5,7 @@
 *{box-sizing:border-box}body{margin:0}header{padding:19px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #26344c;background:#101a2c}
 .brand{font-weight:760;letter-spacing:.02em}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#94a7c7;margin-bottom:5px}.pill{font-size:12px;padding:6px 10px;border:1px solid #33496b;border-radius:16px;color:#b5c7e7}
 nav{display:flex;gap:9px;padding:14px 28px;border-bottom:1px solid #26344c}button,.navbutton{border:1px solid #344966;background:#17263e;color:#e7effd;border-radius:9px;padding:11px 15px;cursor:pointer}button:hover,.navbutton:hover{border-color:#70adff}.active{background:#2659ae}
-main{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:16px;padding:20px;min-height:calc(100vh - 132px)}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(440px,min(40vw,620px));gap:16px;padding:20px;min-height:calc(100vh - 132px)}
 main.genie-mode{grid-template-columns:minmax(0,1fr)}
 #copilotPanel[hidden]{display:none}
 main.genie-mode iframe{height:calc(100vh - 290px);min-height:560px}
@@ -36,19 +36,44 @@ textarea{min-height:115px;resize:vertical}.formgrid{display:grid;grid-template-c
 .question-count{text-align:right;margin:3px 0 0;font-size:11px;color:#91a9c5}
 .question-count.over-limit{color:#ffb5b5}
 .error-text{color:#ffd6d6}
-@media(max-width:1000px){main{grid-template-columns:1fr}iframe{height:430px}}
+.panel-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.panel-top h1{margin-top:3px}
+.tiny-button{padding:7px 10px;font-size:12px;white-space:nowrap;background:#172d4b;border-color:#345779}
+.answer-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 8px}
+.answer-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.run-pill{font-size:11px;border:1px solid #375471;border-radius:100px;padding:5px 9px;color:#c3d7f1}
+.run-pill[data-kind="agent"]{color:#92e4bb;border-color:#2b775f;background:#10372c}
+.run-pill[data-kind="fallback"]{color:#f8d293;border-color:#7d6140;background:#342b1b}
+.evidence-details{margin-top:18px;border:1px solid #334760;border-radius:10px;background:#0d192c}
+.evidence-details>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;font-weight:650;color:#e7effd}
+.evidence-details>summary::before{content:"▸";color:#94c0ff;margin-right:4px}
+.evidence-details[open]>summary::before{content:"▾"}
+.evidence-meta{font-size:11px;color:#97b9db;font-weight:400;margin-left:auto}
+.evidence-details>#evidenceSummary{padding:0 10px 10px}
+#answer{border:1px solid #253c59}
+#answer:empty:before{content:"Response will appear here";color:#92aacc}
+main.focus-mode{grid-template-columns:minmax(0,1fr)}
+main.focus-mode #dashboardPanel{display:none}
+main.focus-mode #copilotPanel{width:100%;max-width:1020px;margin:0 auto}
+button:disabled{opacity:.63;cursor:not-allowed}
+button:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #86bfff;outline-offset:2px}
+@media(max-width:1100px){main{grid-template-columns:1fr}iframe{height:430px}}
+@media(max-width:600px){main{padding:10px;gap:10px}section{padding:13px}header{padding:14px}nav{padding:10px;flex-wrap:wrap}.formgrid{grid-template-columns:1fr}.panel-top{align-items:flex-start}.answer-toolbar{align-items:flex-start;flex-direction:column}.evidence-meta{display:block}}
+
 </style></head><body>
 <header><div><div class="eyebrow">Databricks / Governed intelligence</div><div class="brand">OLIST <span style="color:#6caeff">/</span> OPERATIONS CONTROL TOWER</div></div><span id="mode" class="pill">Loading configuration</span></header>
 <nav><button id="tabDashboard" class="active" onclick="showTab('dashboard')">AI/BI Dashboard</button><button id="tabGenie" onclick="showTab('genie')">Genie backup</button><span class="muted" style="margin:auto 0 auto auto">Historical Olist snapshot · BRL · provenance-first</span></nav>
 <main id="mainLayout"><section id="dashboardPanel"><div class="eyebrow" id="pageLabel">Published AI/BI dashboard</div><h1 id="pageTitle">Operations, Data Trust & Governance</h1><p id="pageText">This is the native Databricks dashboard, not a recreated chart canvas. Genie remains available on the published dashboard.</p>
 <div id="dashboardMount" class="placeholder">The published AI/BI dashboard URL has not been configured. Set <code>DATABRICKS_DASHBOARD_URL</code> in the Databricks App environment; until then, the right-side Copilot works independently.</div>
 <p class="muted" id="embedNote">Embedding is subject to Databricks workspace permissions and allowed embedding domains. A secure open-in-Databricks fallback is always provided when a dashboard URL is configured.</p></section>
-<section id="copilotPanel"><div class="eyebrow">Primary / Custom AI</div><h1>Evidence-grounded Copilot</h1><p>Read-only SQL tools, governance retrieval, and an optional hosted LLM. Facts come from the published run—not from unconstrained SQL generation.</p>
+<section id="copilotPanel"><div class="panel-top"><div><div class="eyebrow">Primary / Custom AI</div><h1>Evidence-grounded Copilot</h1></div><button id="focusBtn" class="tiny-button" type="button" onclick="toggleCopilotFocus()">Expand view ↗</button></div><p>Ask questions across governed operations, data quality and business metrics. The assistant uses read-only SQL and documented governance evidence.</p>
 <div class="formgrid"><div><label for="state">Customer state filter</label><select id="state"><option value="ALL">All states</option></select></div><div><label for="page">Dashboard context</label><select id="page"><option value="operations">Operations</option><option value="trust">Data Trust</option><option value="governance">Governance</option></select></div></div>
 <label for="question">Question</label><textarea id="question" aria-describedby="questionCount">Why were records quarantined, and can I trust the delivered GMV?</textarea><div id="questionCount" class="question-count" aria-live="polite"></div>
-<div class="actions"><button onclick="ask()" id="askBtn">Ask grounded Copilot</button><button onclick="document.getElementById('question').value='Compare late delivery rates for RJ and SP'">Try RJ vs SP</button></div>
-<p id="status" class="muted">No model endpoint assumed. A deterministic cited answer is available when configured SQL access works.</p>
-<div id="answer" aria-live="polite">Ask a question to retrieve the current published-run evidence.</div><h3>Traceable sources</h3><div id="evidenceSummary">No query executed.</div><details id="rawEvidence"><summary>Raw technical evidence (JSON)</summary><pre id="evidence">No query executed.</pre></details>
+<div class="actions"><button onclick="ask()" id="askBtn">Ask grounded Copilot</button><button class="tiny-button" type="button" onclick="setQuestion('Compare late delivery rates for RJ and SP')">Try RJ vs SP</button><button class="tiny-button" type="button" onclick="setQuestion('Why were 32 source records quarantined, and can I trust the delivered GMV?')">Data quality</button></div>
+<p id="status" class="muted" role="status">Ready to query the published Olist snapshot.</p>
+<div class="answer-toolbar"><span class="eyebrow">Agent response</span><div class="answer-actions"><span id="answerMode" class="run-pill" hidden></span><button class="tiny-button" type="button" onclick="copyAnswer()" id="copyAnswerBtn" disabled>Copy answer</button></div></div>
+<div id="answer" aria-live="polite">Ask a question to retrieve the current published-run evidence.</div>
+<details id="evidenceDetails" class="evidence-details"><summary>Traceable sources <span class="evidence-meta" id="evidenceMeta">Available after a question</span></summary><div id="evidenceSummary">No query executed.</div></details><details id="rawEvidence"><summary>Raw technical evidence (JSON)</summary><pre id="evidence">No query executed.</pre></details>
 </section></main>
 <script>
 let dashboardUrl="",dashboardEmbedUrl="";
@@ -57,6 +82,8 @@ async function setup(){const r=await fetch("/api/config");const c=await r.json()
 function showTab(kind){
 document.getElementById("tabDashboard").classList.toggle("active",kind==="dashboard");document.getElementById("tabGenie").classList.toggle("active",kind==="genie");
 document.getElementById("mainLayout").classList.toggle("genie-mode",kind==="genie");
+if(kind==="genie")document.getElementById("mainLayout").classList.remove("focus-mode");
+document.getElementById("focusBtn").textContent=document.getElementById("mainLayout").classList.contains("focus-mode")?"Show dashboard":"Expand view ↗";
 document.getElementById("copilotPanel").hidden=kind==="genie";
 document.getElementById("pageTitle").textContent=kind==="genie"?"Genie / Native analytical assistant":"Operations, Data Trust & Governance";
 document.getElementById("pageText").textContent=kind==="genie"?"Genie is an optional backup, accessed via the published Databricks AI/BI dashboard. It does not power the custom Copilot.":"Native AI/BI dashboard with current published metrics and governance facts.";
@@ -78,6 +105,26 @@ if(kind==="genie"){
   tip.textContent="Use the dashboard's Ask Genie control inside the frame if available. If your browser or workspace policy blocks it, open the dashboard in a new tab.";
   mount.appendChild(tip)
 }
+}
+function toggleCopilotFocus(){
+ const main=document.getElementById("mainLayout");
+ const expanded=main.classList.toggle("focus-mode");
+ document.getElementById("focusBtn").textContent=expanded?"Show dashboard":"Expand view ↗";
+}
+function setQuestion(value){
+ document.getElementById("question").value=value;
+ updateQuestionCount();
+ document.getElementById("question").focus();
+}
+let lastAnswer="";
+async function copyAnswer(){
+ if(!lastAnswer)return;
+ const button=document.getElementById("copyAnswerBtn");
+ try{
+   await navigator.clipboard.writeText(lastAnswer);
+   button.textContent="Copied ✓";
+   setTimeout(()=>{button.textContent="Copy answer";},1500);
+ }catch(e){button.textContent="Copy unavailable";}
 }
 // Text-only Markdown renderer: no model-supplied HTML is ever evaluated.
 function appendInline(target, text){
@@ -194,6 +241,10 @@ function renderEvidence(evidence){
     summary.appendChild(group);
   }
   if(!nonempty)summary.textContent="No evidence sources returned.";
+  const countSources=(evidence?.sources||[]).length;
+  const countPassages=chunks.length;
+  document.getElementById("evidenceMeta").textContent=
+    countSources+" UC sources · "+countPassages+" AI Search passages";
 }
 
 const MAX_QUESTION_CHARS=2000;
@@ -218,8 +269,8 @@ function apiErrorMessage(data,status){
 }
 async function ask(){
  const button=document.getElementById("askBtn");
- button.disabled=true;
- document.getElementById("status").textContent="Running allowlisted SQL tools…";
+ button.disabled=true;button.textContent="Analyzing…";
+ document.getElementById("status").textContent="Querying governed SQL and knowledge sources…";
  try{
    const question=document.getElementById("question").value;
    if(!question.trim())throw new Error("Enter a question first.");
@@ -232,16 +283,25 @@ async function ask(){
    if(!data||typeof data.answer!=="string")throw new Error("The server returned an unexpected response.");
    document.getElementById("answer").classList.remove("error-text");
    renderAnswer(data.answer);
-   document.getElementById("status").textContent=data.route+" · "+data.generation+" · published "+data.published_run;
+   lastAnswer=data.answer;
+   document.getElementById("copyAnswerBtn").disabled=false;
+   const modelUsed=data.generation==="agentic_tool_calling";
+   const chip=document.getElementById("answerMode");
+   chip.hidden=false;chip.dataset.kind=modelUsed?"agent":"fallback";
+   chip.textContent=modelUsed?"AI agent + governed tools":"Verified SQL fallback";
+   document.getElementById("status").textContent=data.route+" · Published run "+data.published_run;
    renderEvidence(data.evidence);document.getElementById("evidence").textContent=JSON.stringify(data.evidence,null,2);
  }catch(e){
    document.getElementById("status").textContent="Request could not be completed";
    const box=document.getElementById("answer");
+   lastAnswer="";document.getElementById("copyAnswerBtn").disabled=true;
+   document.getElementById("answerMode").hidden=true;
+   document.getElementById("evidenceMeta").textContent="Request failed";
    box.replaceChildren();
    box.classList.add("error-text");
    box.textContent=e instanceof Error?e.message:"An unexpected error occurred.";
  }finally{
-   button.disabled=false;
+   button.disabled=false;button.textContent="Ask grounded Copilot";
    updateQuestionCount();
  }
 }

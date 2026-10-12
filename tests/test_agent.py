@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import json
 import pytest
 
-from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES, _needs_state_delivery, summarize_failed_rule_definitions
+from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES, _needs_state_delivery, summarize_failed_rule_definitions, MAX_QUESTION_CHARS
 from olist_agentic.copilot.queries import Context
 
 
@@ -397,3 +397,24 @@ def test_empty_retry_exhaustion_still_fails_closed():
         run_agent("Compare late delivery rates for RJ and SP.", Context(), fake_sql,
                   model, "system.ai.gpt-oss-120b")
     assert len(model.requests) == 4
+
+
+
+def test_multi_part_question_longer_than_old_limit_is_supported():
+    # Former 1,000-character limit rejected our 1,215-character integration test.
+    question = ("Compare late delivery rates for RJ and SP. "
+                + "Use eligible deliveries; include all governed evidence. " * 21)
+    assert 1000 < len(question) <= MAX_QUESTION_CHARS
+    model = FakeModelClient([
+        response([model_item("fetch_governed_evidence", {"tool": "state_delivery"})]),
+        response(text="RJ had 12.11% late deliveries versus SP 4.49%. "
+                      "Source: workspace.olist_semantic.v_published_orders"),
+    ])
+    result = run_agent(question, Context(), fake_sql, model, "system.ai.gpt-oss-120b")
+    assert result["evidence"]["model_selected_tools"] == ["state_delivery"]
+
+
+def test_question_limit_is_still_bounded():
+    assert MAX_QUESTION_CHARS == 2000
+    with pytest.raises(ValueError, match="1-2000 characters"):
+        run_agent("a" * 2001, Context(), fake_sql, None, "system.ai.gpt-oss-120b")

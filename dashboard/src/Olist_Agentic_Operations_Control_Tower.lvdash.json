@@ -18,7 +18,13 @@
       "name": "metric_baseline",
       "displayName": "metric_baseline",
       "queryLines": [
-        "SELECT MEASURE(total_orders) AS total_orders,\nMEASURE(delivered_orders) AS delivered_orders,\nMEASURE(gmv) AS delivered_item_gmv,\nMEASURE(late_rate) AS late_rate,\nMEASURE(on_time_rate) AS on_time_rate,\nMEASURE(negative_review_rate) AS negative_review_rate\nFROM workspace.olist_semantic.mv_order_operations\n"
+        "SELECT MEASURE(total_orders) AS total_orders,\n",
+        "MEASURE(delivered_orders) AS delivered_orders,\n",
+        "MEASURE(gmv) AS delivered_item_gmv,\n",
+        "MEASURE(late_rate) AS late_rate,\n",
+        "MEASURE(on_time_rate) AS on_time_rate,\n",
+        "MEASURE(negative_review_rate) AS negative_review_rate\n",
+        "FROM workspace.olist_semantic.mv_order_operations\n"
       ]
     },
     {
@@ -46,35 +52,55 @@
       "name": "state_delivery_rates",
       "displayName": "State late-delivery rates (eligible denominator)",
       "queryLines": [
-        "SELECT customer_state,\nSUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END) AS late_deliveries,\nSUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END) AS eligible_deliveries,\nROUND(100.0 * SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END)\n  / NULLIF(SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END), 0), 4) AS late_rate_pct\nFROM workspace.olist_semantic.v_published_orders\nGROUP BY customer_state\n"
+        "SELECT customer_state,\n",
+        "SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END) AS late_deliveries,\n",
+        "SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END) AS eligible_deliveries,\n",
+        "ROUND(100.0 * SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END)\n",
+        "  / NULLIF(SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END), 0), 4) AS late_rate_pct\n",
+        "FROM workspace.olist_semantic.v_published_orders\n",
+        "GROUP BY customer_state\n"
       ]
     },
     {
       "name": "quality_snapshot",
       "displayName": "Published-run quality summary",
       "queryLines": [
-        "SELECT s.quality_score,s.failed_rules,s.quarantined_records,s.readiness\nFROM workspace.olist_agentic_quality.dq_run_summary s\nJOIN workspace.olist_agentic_quality.published_run p ON s.run_id=p.run_id\n"
+        "SELECT s.quality_score,s.failed_rules,s.quarantined_records,s.readiness\n",
+        "FROM workspace.olist_agentic_quality.dq_run_summary s\n",
+        "JOIN workspace.olist_agentic_quality.published_run p ON s.run_id=p.run_id\n"
       ]
     },
     {
       "name": "failed_rule_chart",
       "displayName": "Failed rule evaluations by governed rule",
       "queryLines": [
-        "SELECT r.rule_id, r.action, r.records_failed\nFROM workspace.olist_agentic_quality.dq_rule_results r\nJOIN workspace.olist_agentic_quality.published_run p ON p.run_id = r.run_id\nWHERE r.records_failed > 0\nORDER BY r.records_failed DESC\n"
+        "SELECT r.rule_id, r.action, r.records_failed\n",
+        "FROM workspace.olist_agentic_quality.dq_rule_results r\n",
+        "JOIN workspace.olist_agentic_quality.published_run p ON p.run_id = r.run_id\n",
+        "WHERE r.records_failed > 0\n",
+        "ORDER BY r.records_failed DESC\n"
       ]
     },
     {
       "name": "quarantine_dataset_counts",
       "displayName": "Distinct quarantined source records by dataset",
       "queryLines": [
-        "SELECT q.dataset, COUNT(DISTINCT q.source_record_id) AS distinct_quarantined_records\nFROM workspace.olist_agentic_quality.quarantine q\nJOIN workspace.olist_agentic_quality.published_run p ON p.run_id = q.run_id\nGROUP BY q.dataset\nORDER BY q.dataset\n"
+        "SELECT q.dataset, COUNT(DISTINCT q.source_record_id) AS distinct_quarantined_records\n",
+        "FROM workspace.olist_agentic_quality.quarantine q\n",
+        "JOIN workspace.olist_agentic_quality.published_run p ON p.run_id = q.run_id\n",
+        "GROUP BY q.dataset\n",
+        "ORDER BY q.dataset\n"
       ]
     },
     {
       "name": "metric_unit_counts",
       "displayName": "Governed metric definitions by measurement unit",
       "queryLines": [
-        "SELECT COALESCE(NULLIF(TRIM(unit), ''), 'Not specified') AS metric_unit,\nCOUNT(*) AS metric_count\nFROM workspace.olist_governance.metric_dictionary\nGROUP BY COALESCE(NULLIF(TRIM(unit), ''), 'Not specified')\nORDER BY metric_count DESC\n"
+        "SELECT COALESCE(NULLIF(TRIM(unit), ''), 'Not specified') AS metric_unit,\n",
+        "COUNT(*) AS metric_count\n",
+        "FROM workspace.olist_governance.metric_dictionary\n",
+        "GROUP BY COALESCE(NULLIF(TRIM(unit), ''), 'Not specified')\n",
+        "ORDER BY metric_count DESC\n"
       ]
     }
   ],
@@ -88,7 +114,8 @@
             "name": "ops_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Operations Intelligence · Historical Snapshot\n\n",
+                "# Operations Intelligence · Historical Snapshot\n",
+                "\n",
                 "Historical Olist orders (2016–2018). Delivered GMV excludes freight and is not accounting revenue. The monthly chart retains all recorded months: Sep 2018 (16 orders), Oct 2018 (4). Final-month coverage may be incomplete; this does not establish a demand collapse."
               ]
             }
@@ -113,7 +140,8 @@
                       "name": "total_orders",
                       "expression": "`total_orders`"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -152,7 +180,8 @@
                       "name": "delivered_orders",
                       "expression": "`delivered_orders`"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -191,7 +220,8 @@
                       "name": "delivered_item_gmv",
                       "expression": "`delivered_item_gmv`"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -234,7 +264,8 @@
                       "name": "total_orders",
                       "expression": "SUM(`total_orders`)"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -287,7 +318,8 @@
                       "name": "late_orders",
                       "expression": "SUM(`late_orders`)"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -336,7 +368,8 @@
                       "name": "late_rate",
                       "expression": "`late_rate`"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -383,7 +416,8 @@
                       "name": "on_time_rate",
                       "expression": "`on_time_rate`"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -430,7 +464,8 @@
                       "name": "negative_review_rate",
                       "expression": "`negative_review_rate`"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -535,7 +570,8 @@
                       "name": "total_orders",
                       "expression": "SUM(`total_orders`)"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -583,7 +619,8 @@
             "name": "quality_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Data Trust & Quality · Published Run\n\n",
+                "# Data Trust & Quality · Published Run\n",
+                "\n",
                 "Three stages of confidence: **WARN** retains data for investigation; **QUARANTINE** excludes invalid source records and can cascade to dependent records; **FAIL** blocks publication. These are governance actions—not proven financial inaccuracies."
               ]
             }
@@ -772,7 +809,8 @@
                       "name": "quality_score",
                       "expression": "`quality_score`"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -819,7 +857,8 @@
                       "name": "failed_rules",
                       "expression": "`failed_rules`"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -858,7 +897,8 @@
                       "name": "quarantined_records",
                       "expression": "`quarantined_records`"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -889,7 +929,8 @@
             "name": "quality_interpretation",
             "multilineTextboxSpec": {
               "lines": [
-                "## Interpret quality counts correctly\n\n",
+                "## Interpret quality counts correctly\n",
+                "\n",
                 "**Failed evaluations** count rule checks; **distinct quarantined source rows** count actual excluded rows. Parent-order quarantine can propagate to order items, payments and reviews. WARN records remain available for analysis."
               ]
             }
@@ -1069,7 +1110,8 @@
             "name": "gov_intro",
             "multilineTextboxSpec": {
               "lines": [
-                "# Governed Metrics · Business Glossary\n\n",
+                "# Governed Metrics · Business Glossary\n",
+                "\n",
                 "A shared contract for every dashboard and Copilot answer: define the population, verify the formula, check the unit and disclose known limitations. Definitions come from the published Unity Catalog governance dictionary."
               ]
             }
@@ -1160,7 +1202,8 @@
             "name": "gov_population",
             "multilineTextboxSpec": {
               "lines": [
-                "### 01 · Population\n\n",
+                "### 01 · Population\n",
+                "\n",
                 "**Who qualifies?** Define eligible orders, deliveries and exclusions before interpreting a rate or total."
               ]
             }
@@ -1177,7 +1220,8 @@
             "name": "gov_calculation",
             "multilineTextboxSpec": {
               "lines": [
-                "### 02 · Calculation\n\n",
+                "### 02 · Calculation\n",
+                "\n",
                 "**What is measured?** Verify the business formula, denominator and unit before comparing KPIs."
               ]
             }
@@ -1194,7 +1238,8 @@
             "name": "gov_caveats",
             "multilineTextboxSpec": {
               "lines": [
-                "### 03 · Caveats\n\n",
+                "### 03 · Caveats\n",
+                "\n",
                 "**What isn't claimed?** Historical results are not live. Delivered GMV is merchandise value—not recognized revenue."
               ]
             }
@@ -1270,10 +1315,14 @@
             "name": "gov_readme",
             "multilineTextboxSpec": {
               "lines": [
-                "## How to read the glossary\n\n",
-                "**Business definition** — what each KPI represents.\n\n",
-                "**Calculation / Formula** — how it is derived.\n\n",
-                "**Unit** — BRL, days, percentage or count.\n\n",
+                "## How to read the glossary\n",
+                "\n",
+                "**Business definition** — what each KPI represents.\n",
+                "\n",
+                "**Calculation / Formula** — how it is derived.\n",
+                "\n",
+                "**Unit** — BRL, days, percentage or count.\n",
+                "\n",
                 "**Known caveat** — what should *not* be inferred. The dictionary is semantic governance, not independent certification of accounting revenue or every underlying source record."
               ]
             }
@@ -1320,6 +1369,7 @@
       "widgetHeaderAlignment": "LEFT",
       "fontFamily": "Roboto",
       "widgetCornerRadius": 12
-    }
+    },
+    "applyModeEnabled": false
   }
 }

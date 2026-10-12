@@ -75,8 +75,14 @@ def test_operations_axes_have_executive_labels_and_no_summed_percentage():
         assert encodings["x"]["displayName"] == x_label
         assert encodings["y"]["displayName"] == y_label
     state_rate = widgets["ops_state_rate"]["queries"][0]["query"]
-    assert state_rate["disaggregated"] is True
-    assert next(field for field in state_rate["fields"] if field["name"] == "late_rate_pct")["expression"] == "`late_rate_pct`"
+    assert state_rate["datasetName"] == "orders"
+    assert state_rate["disaggregated"] is False
+    assert state_rate["fields"] == [
+        {"name": "customer_state", "expression": "`customer_state`"},
+        {"name": "measure(Late Delivery Rate)", "expression": "MEASURE(`Late Delivery Rate`)"},
+    ]
+    assert widgets["ops_state_rate"]["spec"]["encodings"]["y"]["fieldName"] == "measure(Late Delivery Rate)"
+    assert widgets["ops_state_rate"]["spec"]["encodings"]["y"]["format"]["decimalPlaces"] == {"type": "exact", "places": 2}
     assert widgets["ops_monthly_orders"]["spec"]["widgetType"] == "line"
     assert widgets["ops_monthly_orders"]["spec"]["encodings"]["x"]["scale"]["type"] == "temporal"
 
@@ -241,9 +247,7 @@ def test_operations_kpis_share_the_chart_cross_filter_dataset():
         ], name
         assert widget["spec"]["encodings"]["value"]["fieldName"] == alias
     for name in ("ops_state", "ops_late", "ops_state_rate", "ops_monthly_orders"):
-        assert widgets[name]["queries"][0]["query"]["datasetName"] in {
-            "orders", "state_delivery_rates"
-        }
+        assert widgets[name]["queries"][0]["query"]["datasetName"] == "orders"
     for name in ("ops_state", "ops_late"):
         assert widgets[name]["queries"][0]["query"]["datasetName"] == "orders"
         assert widgets[name]["spec"]["encodings"]["x"]["fieldName"] == "customer_state"
@@ -301,3 +305,25 @@ def test_filtered_kpi_percentage_formats_and_governance_pages_are_preserved():
     assert len(governance["layout"]) == 7
     assert not any(x["widget"].get("queries", [{}])[0].get("query", {}).get("datasetName") == "orders"
                    for page in (quality, governance) for x in page["layout"])
+
+
+def test_state_rate_chart_uses_same_filter_context_as_all_other_operations_visuals():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    ops = next(p for p in dash["pages"] if p["name"] == "operations")
+    widgets = [item["widget"] for item in ops["layout"] if item["widget"].get("queries")]
+    assert len(widgets) == 10
+    assert {widget["queries"][0]["query"]["datasetName"] for widget in widgets} == {"orders"}
+
+    rate = next(widget for widget in widgets if widget["name"] == "ops_state_rate")
+    q = rate["queries"][0]["query"]
+    assert q["fields"] == [
+        {"name": "customer_state", "expression": "`customer_state`"},
+        {"name": "measure(Late Delivery Rate)", "expression": "MEASURE(`Late Delivery Rate`)"}
+    ]
+    y = rate["spec"]["encodings"]["y"]
+    assert y["fieldName"] == "measure(Late Delivery Rate)"
+    assert y["displayName"] == "Late Delivery Rate (%)"
+    assert q["disaggregated"] is False
+    dataset = next(x for x in dash["datasets"] if x["name"] == "orders")
+    late = next(c for c in dataset["columns"] if c["displayName"] == "Late Delivery Rate")
+    assert late["expression"] == "100.0 * SUM(`late_orders`) / NULLIF(SUM(`eligible_deliveries`), 0)"

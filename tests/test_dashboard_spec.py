@@ -215,3 +215,89 @@ def test_executive_quality_and_governance_have_compact_layout_and_percentage_uni
         assert governance[name]["position"]["height"] == 2
     assert governance["gov_metric_units"]["position"]["height"] == 6
     assert governance["gov_dictionary"]["position"]["y"] == 10
+
+
+
+def test_operations_kpis_share_the_chart_cross_filter_dataset():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    ops = next(p for p in dash["pages"] if p["name"] == "operations")
+    widgets = {item["widget"]["name"]: item["widget"] for item in ops["layout"]}
+    expected = {
+        "ops_orders": "Accepted Orders",
+        "ops_delivered": "Delivered Orders",
+        "ops_gmv": "Delivered Item GMV",
+        "ops_late_rate": "Late Delivery Rate",
+        "ops_on_time_rate": "On-Time Delivery Rate",
+        "ops_negative_review": "Negative Review Rate",
+    }
+    for name, measure in expected.items():
+        widget = widgets[name]
+        query = widget["queries"][0]["query"]
+        assert query["datasetName"] == "orders", name
+        assert query["disaggregated"] is False, name
+        alias = f"measure({measure})"
+        assert query["fields"] == [
+            {"name": alias, "expression": f"MEASURE(\`{measure}\`)"}
+        ], name
+        assert widget["spec"]["encodings"]["value"]["fieldName"] == alias
+    for name in ("ops_state", "ops_late", "ops_state_rate", "ops_monthly_orders"):
+        assert widgets[name]["queries"][0]["query"]["datasetName"] in {
+            "orders", "state_delivery_rates"
+        }
+    for name in ("ops_state", "ops_late"):
+        assert widgets[name]["queries"][0]["query"]["datasetName"] == "orders"
+        assert widgets[name]["spec"]["encodings"]["x"]["fieldName"] == "customer_state"
+    intro = "".join(widgets["ops_intro"]["multilineTextboxSpec"]["lines"])
+    assert "Click a customer state" in intro
+    assert "clear the selection" in intro
+
+
+def test_filtered_kpi_measures_reaggregate_counts_and_use_weighted_denominators():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    ds = next(ds for ds in dash["datasets"] if ds["name"] == "orders")
+    sql = "".join(ds["queryLines"])
+    assert "FROM workspace.olist_semantic.v_published_orders" in sql
+    assert "customer_state" in sql
+    assert "GROUP BY 1,2,3" in sql
+    assert "SUM(CASE WHEN review_score <= 2 THEN 1 ELSE 0 END) AS negative_reviews" in sql
+    assert "SUM(CASE WHEN review_score IS NOT NULL THEN 1 ELSE 0 END) AS scored_reviews" in sql
+    cols = {m["displayName"]: m["expression"] for m in ds["columns"]}
+    assert cols == {
+        "Accepted Orders": "SUM(\`total_orders\`)",
+        "Delivered Orders": "SUM(\`delivered_orders\`)",
+        "Delivered Item GMV": "SUM(\`delivered_item_gmv\`)",
+        "Late Delivery Rate": (
+            "100.0 * SUM(\`late_orders\`) / NULLIF(SUM(\`eligible_deliveries\`), 0)"
+        ),
+        "On-Time Delivery Rate": (
+            "100.0 * (SUM(\`eligible_deliveries\`) - SUM(\`late_orders\`)) "
+            "/ NULLIF(SUM(\`eligible_deliveries\`), 0)"
+        ),
+        "Negative Review Rate": (
+            "100.0 * SUM(\`negative_reviews\`) / NULLIF(SUM(\`scored_reviews\`), 0)"
+        ),
+    }
+    assert all("AVG(" not in expr for expr in cols.values())
+    assert all("/ NULLIF(" in cols[key] for key in (
+        "Late Delivery Rate", "On-Time Delivery Rate", "Negative Review Rate"
+    ))
+    # National measure view remains in place as an independent reference;
+    # cross-filterable counters now use the published order-level source.
+    base = next(ds for ds in dash["datasets"] if ds["name"] == "metric_baseline")
+    assert "FROM workspace.olist_semantic.mv_order_operations" in "".join(base["queryLines"])
+
+
+def test_filtered_kpi_percentage_formats_and_governance_pages_are_preserved():
+    dash = json.loads(SPEC.read_text(encoding="utf-8"))
+    ops = next(p for p in dash["pages"] if p["name"] == "operations")
+    widgets = {item["widget"]["name"]: item["widget"] for item in ops["layout"]}
+    for name in ("ops_late_rate", "ops_on_time_rate", "ops_negative_review"):
+        value = widgets[name]["spec"]["encodings"]["value"]
+        assert value["formatTemplate"] == "{{@formatted}}%"
+        assert value["format"]["decimalPlaces"] == {"type": "exact", "places": 2}
+    quality = next(p for p in dash["pages"] if p["name"] == "quality")
+    governance = next(p for p in dash["pages"] if p["name"] == "governance")
+    assert len(quality["layout"]) == 9
+    assert len(governance["layout"]) == 7
+    assert not any(x["widget"].get("queries", [{}])[0].get("query", {}).get("datasetName") == "orders"
+                   for page in (quality, governance) for x in page["layout"])

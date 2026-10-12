@@ -46,7 +46,7 @@ def test_table_widgets_use_current_lakeview_spec_and_headers_have_breaks():
                 assert all("fieldName" in col and "displayName" in col
                            for col in widget["spec"]["encodings"]["columns"])
             if "multilineTextboxSpec" in widget and len(widget["multilineTextboxSpec"]["lines"]) > 1:
-                assert widget["multilineTextboxSpec"]["lines"][0].endswith("\n\n")
+                assert "".join(widget["multilineTextboxSpec"]["lines"][:2]).endswith("\n\n")
     assert len(tables) == 3
 
 

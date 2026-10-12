@@ -55,21 +55,6 @@
       "queryLines": [
         "SELECT s.quality_score,s.failed_rules,s.quarantined_records,s.readiness\nFROM workspace.olist_agentic_quality.dq_run_summary s\nJOIN workspace.olist_agentic_quality.published_run p ON s.run_id=p.run_id\n"
       ]
-    },
-    {
-      "name": "orders_trend_through_aug_2018",
-      "displayName": "Monthly Trend (through Aug 2018; sparse later months omitted)",
-      "queryLines": [
-        "SELECT date_trunc('MONTH',purchase_date) AS purchase_month,customer_state,order_status,\n",
-        "COUNT(*) AS total_orders,\n",
-        "SUM(CASE WHEN is_delivered THEN 1 ELSE 0 END) AS delivered_orders,\n",
-        "SUM(CASE WHEN is_delivered THEN COALESCE(item_gmv,0) ELSE 0 END) AS delivered_item_gmv,\n",
-        "SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END) AS eligible_deliveries,\n",
-        "SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END) AS late_orders\n",
-        "FROM workspace.olist_semantic.v_published_orders\n",
-        "WHERE purchase_date < DATE '2018-09-01'\n",
-        "GROUP BY 1,2,3\n"
-      ]
     }
   ],
   "pages": [
@@ -84,7 +69,7 @@
               "lines": [
                 "# Operations Intelligence · Historical Snapshot\n",
                 "\n",
-                "Historical Olist (2016–2018). Delivered GMV excludes freight and is not revenue. Monthly trend ends Aug 2018; Sep (16 orders) and Oct (4 orders) omitted due to sparse coverage."
+                "Historical Olist orders (2016–2018). Delivered GMV excludes freight and is not accounting revenue. The monthly chart retains all recorded months: Sep 2018 (16 orders), Oct 2018 (4). Final-month coverage may be incomplete; this does not establish a demand collapse."
               ]
             }
           },
@@ -520,7 +505,7 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "orders_trend_through_aug_2018",
+                  "datasetName": "orders",
                   "fields": [
                     {
                       "name": "purchase_month",
@@ -555,7 +540,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Monthly Order Volume (through Aug 2018)"
+                "title": "Monthly Recorded Orders (2016–2018)"
               }
             }
           },

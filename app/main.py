@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from olist_agentic.copilot.queries import Context
 from olist_agentic.copilot.engine import prepare, fallback_answer, model_answer
 from olist_agentic.copilot.sql_diagnostics import sql_failure_category, sql_failure_guidance
-from olist_agentic.copilot.agent import run_agent
+from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES, summarize_failed_rule_definitions
 from olist_agentic.copilot.semantic_search import search_governance
 from olist_agentic.copilot.tracing import trace_span, set_span_attributes
 
@@ -138,14 +138,37 @@ def _ask(body: AskRequest):
                             detail=str(exc)) from exc
 
     answer = fallback_answer(body.question, evidence)
+    sql_tools = evidence["sql_tools"]
+    sql_rows = evidence["tools"]
+    # Explicit source provenance is required for the fallback to remain
+    # auditable; a correct answer cannot be mistaken for successful LLM use.
+    sources = sorted({source for tool in sql_tools
+                      for source in TOOL_SOURCES[tool]})
+    verified_metrics = []
+    for row in sql_rows.get("gmv_summary", []):
+        if row.get("delivered_item_gmv_brl") is not None:
+            from decimal import Decimal
+            amount = Decimal(str(row["delivered_item_gmv_brl"]))
+            verified_metrics.append({
+                "name": "Delivered-item GMV",
+                "display": f"BRL {amount:,.2f}",
+                "source": "workspace.olist_semantic.v_published_orders",
+            })
+    quality = (summarize_failed_rule_definitions(sql_rows["failed_rules"])
+               if "failed_rules" in sql_rows else None)
     return {"answer": answer,
             "generation": ("deterministic_fallback_agent_error"
                            if model_service else "deterministic_template"),
             "route": evidence["route"], "published_run": evidence["published_run"],
             "context": evidence["context"],
-            "evidence": {"tool_names": evidence["sql_tools"],
+            "evidence": {"tool_names": sql_tools,
                          "model_selected_tools": [],
+                         "sources": sources,
                          "knowledge": evidence["knowledge"],
+                         "retrieval_mode": "lexical_only",
+                         "retrieval_trigger": "not_used",
+                         "verified_quality_summary": quality,
+                         "verified_metrics": verified_metrics,
                          "limitations": evidence["limitations"]}}
 
 

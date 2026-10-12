@@ -9,9 +9,43 @@
         "SUM(CASE WHEN is_delivered THEN 1 ELSE 0 END) AS delivered_orders,\n",
         "SUM(CASE WHEN is_delivered THEN COALESCE(item_gmv,0) ELSE 0 END) AS delivered_item_gmv,\n",
         "SUM(CASE WHEN delivery_eligible THEN 1 ELSE 0 END) AS eligible_deliveries,\n",
-        "SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END) AS late_orders\n",
+        "SUM(CASE WHEN delivery_eligible AND is_late THEN 1 ELSE 0 END) AS late_orders,\n",
+        "SUM(CASE WHEN review_score <= 2 THEN 1 ELSE 0 END) AS negative_reviews,\n",
+        "SUM(CASE WHEN review_score IS NOT NULL THEN 1 ELSE 0 END) AS scored_reviews\n",
         "FROM workspace.olist_semantic.v_published_orders\n",
         "GROUP BY 1,2,3\n"
+      ],
+      "columns": [
+        {
+          "displayName": "Accepted Orders",
+          "expression": "SUM(`total_orders`)",
+          "description": "Accepted source orders in the selected customer state and purchase cohort"
+        },
+        {
+          "displayName": "Delivered Orders",
+          "expression": "SUM(`delivered_orders`)",
+          "description": "Accepted delivered orders in the selected customer state and purchase cohort"
+        },
+        {
+          "displayName": "Delivered Item GMV",
+          "expression": "SUM(`delivered_item_gmv`)",
+          "description": "Accepted delivered item merchandise value (BRL), excluding freight and quarantine"
+        },
+        {
+          "displayName": "Late Delivery Rate",
+          "expression": "100.0 * SUM(`late_orders`) / NULLIF(SUM(`eligible_deliveries`), 0)",
+          "description": "Late eligible deliveries / all eligible deliveries, in percentage points"
+        },
+        {
+          "displayName": "On-Time Delivery Rate",
+          "expression": "100.0 * (SUM(`eligible_deliveries`) - SUM(`late_orders`)) / NULLIF(SUM(`eligible_deliveries`), 0)",
+          "description": "On-time eligible deliveries / all eligible deliveries, in percentage points"
+        },
+        {
+          "displayName": "Negative Review Rate",
+          "expression": "100.0 * SUM(`negative_reviews`) / NULLIF(SUM(`scored_reviews`), 0)",
+          "description": "Latest accepted order reviews rated 1–2 / nonnull review scores, in percentage points"
+        }
       ]
     },
     {
@@ -116,7 +150,7 @@
               "lines": [
                 "# Operations Intelligence · Historical Snapshot\n",
                 "\n",
-                "Historical Olist orders (2016–2018). Delivered GMV excludes freight and is not accounting revenue. The monthly chart retains all recorded months: Sep 2018 (16 orders), Oct 2018 (4). Final-month coverage may be incomplete; this does not establish a demand collapse."
+                "Historical Olist orders (2016–2018). Delivered GMV excludes freight and is not accounting revenue. The monthly chart retains all recorded months: Sep 2018 (16 orders), Oct 2018 (4). Final-month coverage may be incomplete; this does not establish a demand collapse. Click a customer state in the charts to scope the headline KPIs and performance rates to that state; clear the selection for the all-Brazil view."
               ]
             }
           },
@@ -134,11 +168,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "metric_baseline",
+                  "datasetName": "orders",
                   "fields": [
                     {
-                      "name": "total_orders",
-                      "expression": "`total_orders`"
+                      "name": "measure(Accepted Orders)",
+                      "expression": "MEASURE(`Accepted Orders`)"
                     }
                   ],
                   "disaggregated": false
@@ -150,7 +184,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "total_orders",
+                  "fieldName": "measure(Accepted Orders)",
                   "displayName": "Accepted Orders"
                 }
               },
@@ -174,11 +208,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "metric_baseline",
+                  "datasetName": "orders",
                   "fields": [
                     {
-                      "name": "delivered_orders",
-                      "expression": "`delivered_orders`"
+                      "name": "measure(Delivered Orders)",
+                      "expression": "MEASURE(`Delivered Orders`)"
                     }
                   ],
                   "disaggregated": false
@@ -190,7 +224,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "delivered_orders",
+                  "fieldName": "measure(Delivered Orders)",
                   "displayName": "Delivered Orders"
                 }
               },
@@ -214,11 +248,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "metric_baseline",
+                  "datasetName": "orders",
                   "fields": [
                     {
-                      "name": "delivered_item_gmv",
-                      "expression": "`delivered_item_gmv`"
+                      "name": "measure(Delivered Item GMV)",
+                      "expression": "MEASURE(`Delivered Item GMV`)"
                     }
                   ],
                   "disaggregated": false
@@ -230,7 +264,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "delivered_item_gmv",
+                  "fieldName": "measure(Delivered Item GMV)",
                   "displayName": "Delivered Item GMV (BRL)"
                 }
               },
@@ -362,11 +396,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "metric_baseline",
+                  "datasetName": "orders",
                   "fields": [
                     {
-                      "name": "late_rate",
-                      "expression": "`late_rate`"
+                      "name": "measure(Late Delivery Rate)",
+                      "expression": "MEASURE(`Late Delivery Rate`)"
                     }
                   ],
                   "disaggregated": false
@@ -378,7 +412,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "late_rate",
+                  "fieldName": "measure(Late Delivery Rate)",
                   "displayName": "Late Delivery Rate (%)",
                   "format": {
                     "type": "number-plain",
@@ -410,11 +444,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "metric_baseline",
+                  "datasetName": "orders",
                   "fields": [
                     {
-                      "name": "on_time_rate",
-                      "expression": "`on_time_rate`"
+                      "name": "measure(On-Time Delivery Rate)",
+                      "expression": "MEASURE(`On-Time Delivery Rate`)"
                     }
                   ],
                   "disaggregated": false
@@ -426,7 +460,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "on_time_rate",
+                  "fieldName": "measure(On-Time Delivery Rate)",
                   "displayName": "On-Time Delivery Rate (%)",
                   "format": {
                     "type": "number-plain",
@@ -458,11 +492,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "metric_baseline",
+                  "datasetName": "orders",
                   "fields": [
                     {
-                      "name": "negative_review_rate",
-                      "expression": "`negative_review_rate`"
+                      "name": "measure(Negative Review Rate)",
+                      "expression": "MEASURE(`Negative Review Rate`)"
                     }
                   ],
                   "disaggregated": false
@@ -474,7 +508,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "negative_review_rate",
+                  "fieldName": "measure(Negative Review Rate)",
                   "displayName": "Negative Review Rate (%)",
                   "format": {
                     "type": "number-plain",

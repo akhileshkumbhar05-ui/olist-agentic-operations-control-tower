@@ -86,6 +86,36 @@ def _state_filter(question: str, context: Context) -> str:
     return "customer_state IN (" + ",".join(repr(s) for s in selected) + ")" if selected else ""
 
 
+
+def _gmv_state_filter(question: str, context: Context) -> str:
+    """Scope GMV only to the selected state or an explicitly GMV-scoped state.
+
+    A multi-part question might compare RJ and SP delivery performance while
+    requesting the overall GMV. Borrowing state mentions from that unrelated
+    sub-question silently turns the national GMV into a two-state subtotal.
+    """
+    if context.state != "ALL":
+        return _state_filter("", context)
+
+    state_name = r"(?:[A-Z]{2}|rio de janeiro|s[aã]o paulo)"
+    compound_states = rf"{state_name}(?:\s*(?:,|and|&|vs\.?|versus)\s*{state_name})*"
+    pattern = (
+        rf"\b(?:gmv|merchandise\s+value|revenue)\b\s+"
+        rf"(?:for|in|of|from)\s+(?:the\s+)?(?:states?\s+)?"
+        rf"(?P<states>{compound_states})"
+    )
+    match = re.search(pattern, question, re.I)
+    if match:
+        return _state_filter(match.group("states").upper(), context)
+
+    reverse = re.search(
+        rf"\b(?P<states>{compound_states})\s+(?:gmv|merchandise\s+value)\b",
+        question, re.I,
+    )
+    return (_state_filter(reverse.group("states").upper(), context)
+            if reverse else "")
+
+
 def _where(context: Context, state_clause: str = "") -> str:
     parts = [p for p in (_time_filter(context), state_clause) if p]
     return (" WHERE " + " AND ".join(parts)) if parts else ""
@@ -124,9 +154,10 @@ def statements(question: str, context: Context, chosen_route: str) -> dict[str, 
             GROUP BY customer_state ORDER BY accepted_orders DESC LIMIT 27
         """
     if chosen_route in ("ANALYTICS", "HYBRID") and re.search(r"\b(gmv|revenue|merchandise)\b", question, re.I):
-        # One-row scoped measure; don't infer a national total from truncated state lists.
-        # Use exactly the same validated state/date filters as the geographic tool.
-        where = _where(context, _state_filter(question, context))
+        # GMV is independently scoped from the geography of other sub-questions.
+        # The UI state filter always applies; question state names apply only
+        # when they explicitly modify GMV (e.g. "GMV for RJ and SP").
+        where = _where(context, _gmv_state_filter(question, context))
         statements_by_tool["gmv_summary"] = f"""
             SELECT COUNT(*) AS accepted_orders,
                    SUM(CASE WHEN is_delivered THEN 1 ELSE 0 END) AS delivered_orders,

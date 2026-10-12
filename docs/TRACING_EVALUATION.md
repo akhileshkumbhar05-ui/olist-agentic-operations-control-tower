@@ -22,6 +22,40 @@ the model cannot supply SQL; AI Search passages are contextual; mandatory
 numeric evidence and the published-run pointer are enforced. An agent failure
 still uses the deterministic SQL answer.
 
+## Free Edition App execution audit
+
+Databricks Free Edition restricts outbound networking. In the October 12
+diagnostic, native MLflow successfully recorded trace metadata from the App but
+the App could not upload detailed trace JSON to
+`us-east-2.storage.cloud.databricks.com:443` (connection refused). In contrast,
+a Serverless notebook using MLflow 3.17.0 successfully wrote complete root and
+child spans to both a new diagnostic experiment and this original experiment.
+That isolates the symptom to the App's runtime path, not a blanket inability
+of the experiment to hold traces.
+
+A privacy-bounded fallback emits structured `OLIST_TRACE` events to the
+Databricks **App Logs** when `OLIST_EXECUTION_AUDIT_LOGS=true`. Each span line
+includes a random per-request correlation ID, parent/span name, type, UTC
+start time, duration, status, and fixed-format operational attributes such as
+tool, model, route, generation, and result counts. SQL text, questions, model
+prompts, response bodies, row contents, source payloads, and exception messages
+are intentionally excluded. The App `app.yaml` enables this flag.
+
+Inspect by opening **Compute → Apps → olist-agentic-operations-tower → Logs**
+and searching for `OLIST_TRACE`; group log lines by `request_id` to reconstruct
+a timeline. The root `olist.ask` log carries the answer generation mode.
+Expected child span names include `gateway.model`,
+`governed_sql.<tool>` and `governance.retrieval`. A child span duration
+reflects the application-side operation only. MLflow exporter errors are
+independent and may be logged asynchronously after the answer.
+
+This audit is **not** a substitute for a fully preserved MLflow trace with
+nested spans in the experiment viewer. It does not claim to enable extra
+Unity Catalog trace analytics or retroactively repair failed MLflow uploads.
+The new audit code has unit tests; the live App logs must still be verified
+after pulling Git `main` and redeploying the existing app. A pipeline rerun
+or new experiment is not required.
+
 ## Offline evaluation
 
 `evals/cases.json` contains four fixed questions and checks for route, required

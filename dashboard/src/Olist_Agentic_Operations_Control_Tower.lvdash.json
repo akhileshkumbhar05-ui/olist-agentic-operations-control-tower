@@ -540,18 +540,18 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "state_delivery_rates",
+                  "datasetName": "orders",
                   "fields": [
                     {
                       "name": "customer_state",
                       "expression": "`customer_state`"
                     },
                     {
-                      "name": "late_rate_pct",
-                      "expression": "`late_rate_pct`"
+                      "name": "measure(Late Delivery Rate)",
+                      "expression": "MEASURE(`Late Delivery Rate`)"
                     }
                   ],
-                  "disaggregated": true
+                  "disaggregated": false
                 }
               }
             ],
@@ -567,11 +567,18 @@
                   "displayName": "Customer State"
                 },
                 "y": {
-                  "fieldName": "late_rate_pct",
+                  "fieldName": "measure(Late Delivery Rate)",
                   "scale": {
                     "type": "quantitative"
                   },
-                  "displayName": "Late Delivery Rate (%)"
+                  "displayName": "Late Delivery Rate (%)",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  }
                 }
               },
               "frame": {

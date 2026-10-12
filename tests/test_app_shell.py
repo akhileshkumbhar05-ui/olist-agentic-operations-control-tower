@@ -68,3 +68,32 @@ def test_worldlink_template_palette_and_dashboard_embed_frame():
     assert 'mount.classList.toggle("dashboard-ready",Boolean(dashboardEmbedUrl));' in HTML
     assert 'frame.src=dashboardEmbedUrl' in HTML
     assert 'id="tabGenie"' in HTML
+
+
+
+def test_executive_presentation_uses_only_existing_frontend_contracts():
+    assert 'class="capability-strip"' in HTML
+    assert 'id="dashboardFocusBtn"' in HTML
+    assert 'function toggleDashboardFocus()' in HTML
+    assert 'main.dashboard-focus-mode #copilotPanel{display:none}' in HTML
+    assert 'id="agentAvatar"' in HTML
+    assert 'class="agent-orb"' in HTML
+    assert 'id="agentSignal"' in HTML
+    assert 'id="avatarStateLabel"' in HTML
+    assert 'function setAgentVisualState(state)' in HTML
+    assert 'setAgentVisualState("thinking")' in HTML
+    assert 'setAgentVisualState("ready")' in HTML
+    assert 'setAgentVisualState("error")' in HTML
+    assert '@media(prefers-reduced-motion:reduce)' in HTML
+    assert 'type="button" onclick="setQuestion(' in HTML
+
+
+def test_existing_backend_request_contract_is_unchanged():
+    assert 'fetch("/api/config")' in HTML
+    assert 'fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})' in HTML
+    assert 'const body={question,page:document.getElementById("page").value,state:document.getElementById("state").value,visual:"overview"}' in HTML
+    assert 'if(!r.ok)throw new Error(apiErrorMessage(data,r.status))' in HTML
+    assert 'renderAnswer(data.answer)' in HTML
+    assert 'renderEvidence(data.evidence)' in HTML
+    assert 'frame.src=dashboardEmbedUrl' in HTML
+    assert 'if(kind==="genie")' in HTML

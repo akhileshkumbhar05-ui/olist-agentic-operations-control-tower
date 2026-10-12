@@ -743,9 +743,10 @@ async function ask(){
    lastAnswer=data.answer;
    document.getElementById("copyAnswerBtn").disabled=false;
    const modelUsed=data.generation==="agentic_tool_calling";
+   const qualityRepaired=data.evidence?.answer_validation==="sql_verified_quality_repair";
    const chip=document.getElementById("answerMode");
-   chip.hidden=false;chip.dataset.kind=modelUsed?"agent":"fallback";
-   chip.textContent=modelUsed?"AI agent + governed tools":"Verified SQL fallback";
+   chip.hidden=false;chip.dataset.kind=(modelUsed&&!qualityRepaired)?"agent":"fallback";
+   chip.textContent=qualityRepaired?"AI tools · SQL-verified correction":(modelUsed?"AI agent + governed tools":"Verified SQL fallback");
    document.getElementById("status").textContent=data.route+" · Published run "+data.published_run;
    setAgentVisualState("ready");
    renderEvidence(data.evidence);document.getElementById("evidence").textContent=JSON.stringify(data.evidence,null,2);

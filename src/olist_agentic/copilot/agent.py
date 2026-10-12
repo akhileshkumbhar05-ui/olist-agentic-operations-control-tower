@@ -16,6 +16,7 @@ from typing import Any
 from .engine import retrieve_knowledge
 from .queries import Context, MAX_QUESTION_CHARS, assert_read_only, route, statements
 from .tracing import trace_span, set_span_attributes
+from .quality_guard import validate_quality_answer
 
 # Hard limits bound cost/latency; terminal synthesis is allowed after the final tool round.
 MAX_MODEL_STEPS = 5
@@ -428,6 +429,19 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         # An ordinary prompted LLM answer isn't evidence of autonomous tool use.
         raise RuntimeError("Model did not actually invoke a tool")
 
+    answer_validation = "not_applicable"
+    if selected_route in ("TRUST", "HYBRID") and {
+        "failed_rules", "quarantine_breakdown"
+    }.issubset(observations):
+        # The complete rule dictionary is general guidance, not run-specific
+        # failure evidence. Never return an unsupported explanation of WHY
+        # source records were quarantined.
+        final_answer, answer_validation = validate_quality_answer(
+            final_answer, observations
+        )
+        if answer_validation == "sql_verified_quality_repair":
+            logger.warning("Olist quality response repaired from run-scoped SQL evidence")
+
     source_names = sorted(set(s for name in observations for s in TOOL_SOURCES[name]) |
                           {str(hit["source"]) for hit in semantic_hits})
     return {
@@ -437,6 +451,7 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         "context": asdict(context),
         "evidence": {
             "tool_names": list(observations),
+            "answer_validation": answer_validation,
             "model_selected_tools": selected_by_model,
             "sources": source_names,
             "knowledge": (semantic_hits if semantic_hits else

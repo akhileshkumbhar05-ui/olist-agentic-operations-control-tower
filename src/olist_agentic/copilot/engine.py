@@ -2,7 +2,7 @@
 from __future__ import annotations
 import re
 from dataclasses import asdict
-from .queries import Context, route, statements, assert_read_only
+from .queries import Context, MAX_QUESTION_CHARS, route, statements, assert_read_only
 
 def retrieve_knowledge(question: str, tool_rows: dict, limit: int = 5) -> list[dict]:
     """Transparent lexical retrieval over published UC governance tables.
@@ -26,8 +26,8 @@ def retrieve_knowledge(question: str, tool_rows: dict, limit: int = 5) -> list[d
 
 
 def prepare(question: str, context: Context, execute_sql) -> dict:
-    if not question.strip() or len(question) > 1000:
-        raise ValueError("Question must contain 1–1000 characters")
+    if not question.strip() or len(question) > MAX_QUESTION_CHARS:
+        raise ValueError(f"Question must contain 1-{MAX_QUESTION_CHARS} characters")
     chosen = route(question, context)
     sqls = statements(question, context, chosen)
     outputs = {}

@@ -29,3 +29,23 @@ def test_copilot_renders_readable_validation_errors_and_char_budget():
     assert 'Array.isArray(detail)' in HTML
     assert 'new Error(apiErrorMessage(data,r.status))' in HTML
     assert 'e instanceof Error?e.message' in HTML
+
+
+
+def test_copilot_focus_mode_keeps_dashboard_and_genie_separate():
+    assert 'minmax(440px,min(40vw,620px))' in HTML
+    assert 'main.focus-mode #dashboardPanel{display:none}' in HTML
+    assert 'id="focusBtn"' in HTML
+    assert 'function toggleCopilotFocus()' in HTML
+    assert 'if(kind==="genie")document.getElementById("mainLayout").classList.remove("focus-mode")' in HTML
+
+
+def test_copy_status_and_collapsible_evidence_are_present():
+    assert 'id="copyAnswerBtn"' in HTML
+    assert 'id="answerMode"' in HTML
+    assert 'id="evidenceDetails"' in HTML
+    assert 'id="evidenceMeta"' in HTML
+    assert 'navigator.clipboard.writeText(lastAnswer)' in HTML
+    assert 'Verified SQL fallback' in HTML
+    assert 'AI agent + governed tools' in HTML
+    assert 'function renderEvidence(evidence)' in HTML

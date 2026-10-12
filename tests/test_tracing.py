@@ -92,3 +92,82 @@ def test_mlflow_initializes_databricks_tracking_before_experiment(monkeypatch):
                          ("experiment", "2462690133412615")]
     finally:
         tracing._mlflow.cache_clear()
+
+
+
+def test_local_audit_records_nested_spans_without_mlflow_export(monkeypatch):
+    events = []
+    monkeypatch.setenv("OLIST_EXECUTION_AUDIT_LOGS", "true")
+    monkeypatch.setattr(tracing, "_mlflow", lambda: None)
+    monkeypatch.setattr(tracing.audit_logger, "info",
+                        lambda fmt, *values: events.append(fmt % values))
+    with tracing.trace_span("olist.ask", "CHAIN", {"endpoint": "/api/ask", "question": "PRIVATE"}):
+        with tracing.trace_span("governed_sql.gmv_summary", "TOOL", {"tool": "gmv_summary"}):
+            tracing.set_span_attributes(None, {
+                "row_count": 1, "question": "PRIVATE", "content": "SECRET",
+                "sources": "PRIVATE", "token": "SECRET",
+            })
+        tracing.set_span_attributes(None, {"generation": "agentic_tool_calling", "route": "ANALYTICS"})
+    assert len(events) == 2
+    assert all(line.startswith("OLIST_TRACE ") for line in events)
+    child = json.loads(events[0].split(" ", 1)[1])
+    parent = json.loads(events[1].split(" ", 1)[1])
+    assert child["name"] == "governed_sql.gmv_summary"
+    assert child["parent"] == "olist.ask"
+    assert child["attributes"] == {"tool": "gmv_summary", "row_count": 1}
+    assert parent["attributes"] == {"generation": "agentic_tool_calling", "route": "ANALYTICS"}
+    assert parent["parent"] is None
+    assert child["request_id"] == parent["request_id"]
+    assert child["status"] == parent["status"] == "ok"
+    assert child["duration_ms"] >= 0
+    assert "PRIVATE" not in "\n".join(events)
+    assert "SECRET" not in "\n".join(events)
+
+
+def test_local_audit_logs_error_type_not_exception_text(monkeypatch):
+    import pytest
+    events = []
+    monkeypatch.setenv("OLIST_EXECUTION_AUDIT_LOGS", "1")
+    monkeypatch.setattr(tracing, "_mlflow", lambda: None)
+    monkeypatch.setattr(tracing.audit_logger, "info",
+                        lambda fmt, *values: events.append(fmt % values))
+    with pytest.raises(RuntimeError, match="PRIVATE"):
+        with tracing.trace_span("olist.ask", "CHAIN"):
+            raise RuntimeError("PRIVATE error: raw model content")
+    assert len(events) == 1
+    record = json.loads(events[0].split(" ", 1)[1])
+    assert record["status"] == "error"
+    assert record["error_type"] == "RuntimeError"
+    assert record["parent"] is None
+    assert "PRIVATE" not in events[0]
+
+
+def test_local_audit_correlation_is_reset_across_requests(monkeypatch):
+    events = []
+    monkeypatch.setenv("OLIST_EXECUTION_AUDIT_LOGS", "true")
+    monkeypatch.setattr(tracing, "_mlflow", lambda: None)
+    monkeypatch.setattr(tracing.audit_logger, "info",
+                        lambda fmt, *values: events.append(fmt % values))
+    with tracing.trace_span("olist.ask", "CHAIN"):
+        pass
+    with tracing.trace_span("olist.ask", "CHAIN"):
+        pass
+    assert len(events) == 2
+    left, right = [json.loads(line.split(" ", 1)[1]) for line in events]
+    assert left["request_id"] != right["request_id"]
+    assert left["parent"] is right["parent"] is None
+
+
+def test_local_audit_does_not_override_mlflow_export_failures(monkeypatch):
+    events = []
+    class Broken:
+        def start_span(self, **_):
+            raise RuntimeError("storage export unavailable")
+    monkeypatch.setenv("OLIST_EXECUTION_AUDIT_LOGS", "true")
+    monkeypatch.setattr(tracing, "_mlflow", lambda: Broken())
+    monkeypatch.setattr(tracing.audit_logger, "info",
+                        lambda fmt, *values: events.append(fmt % values))
+    with tracing.trace_span("olist.ask", "CHAIN"):
+        answer = "verified answer"
+    assert answer == "verified answer"
+    assert json.loads(events[0].split(" ", 1)[1])["status"] == "ok"

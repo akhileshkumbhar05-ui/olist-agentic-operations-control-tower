@@ -490,16 +490,21 @@ async function inspectFailedRuleRecords(rule,runId,dataset){
   if(evidence.dataset!==dataset||evidence.rule_id!==rule.rule_id||evidence.published_run!==runId)
    throw Error('Unexpected source, rule or run in returned evidence');
   const rows=evidence.record_preview||[];
-  put('domainPreviewStatus','Published rule: '+evidence.configured_action+
-   ' · '+Number(evidence.failed_evaluations).toLocaleString('en-US')+
+  const provenance=evidence.preview_source==='published_rule_result_sample'?
+   'Published rule-result ID sample · individual failure reasons unavailable':
+   'Detailed failed-record evidence · record reasons available';
+  put('domainPreviewStatus',provenance+' · '+evidence.configured_action+
+   ' rule · '+Number(evidence.failed_evaluations).toLocaleString('en-US')+
    ' failed evaluations. Showing '+rows.length+' example identifiers (maximum '+
    evidence.preview_limit+'), not a complete export or raw row payloads.');
   const panel=$('domainPreviewRecords');
   if(!rows.length)domainRecord(panel,'No record examples available',
    'The rule status remains published, but this read-only preview returned no individual identifiers.','','');
   for(const record of rows)domainRecord(panel,record.source_record_id,
-    record.failure_reason||'Record flagged by governed rule',
-    'Recorded action: '+record.record_action,'');
+    record.failure_reason||(evidence.preview_source==='published_rule_result_sample'?
+      'Flagged identifier from the published rule result; individual reason not retrieved.':
+      'Record flagged by governed rule'),
+    'Configured/recorded action: '+record.record_action,'');
  }catch(err){
   if(token!==domainPreviewSequence)return;
   put('domainPreviewStatus',(err?.message||'Failed-record preview unavailable')+

@@ -7,6 +7,7 @@ only from the published run. No arbitrary SQL or user-selected table names.
 from __future__ import annotations
 
 import logging
+import json
 
 from fastapi import APIRouter, HTTPException
 
@@ -213,6 +214,73 @@ def failed_record_preview_sql(dataset: str, rule_id: str) -> str:
     )
 
 
+def failed_record_sample_sql(dataset: str, rule_id: str) -> str:
+    """Published-run per-rule sampled source identifiers.
+
+    The quality engine persists up to 10 exact flagged source-record IDs in
+    dq_rule_results.sample_failed_identifiers at evaluation time. This remains
+    useful if the more detailed dq_failed_records table isn't available to
+    the Databricks App's service principal.
+    """
+    if dataset not in SOURCES:
+        raise ValueError("Unknown source dataset")
+    if not any(r.dataset == dataset and r.rule_id == rule_id for r in RULES):
+        raise HTTPException(status_code=404, detail="Rule not registered for this domain")
+    return (
+        "SELECT p.run_id AS published_run, r.dataset, r.rule_id, "
+        "r.action AS rule_action, r.records_failed AS failed_evaluations, "
+        "r.sample_failed_identifiers "
+        f"FROM {RESULT_TABLE} r "
+        f"JOIN {PUBLISHED_TABLE} p ON r.run_id = p.run_id "
+        f"WHERE r.dataset = '{dataset}' AND r.rule_id = '{rule_id}' "
+        "AND r.status = 'FAILED' LIMIT 1"
+    )
+
+
+def normalize_failed_record_sample(dataset: str, rule_id: str, rows: list[dict]) -> dict:
+    """Return only authentic IDs saved in the published-run quality result."""
+    if len(rows) != 1:
+        raise RuntimeError("Expected exactly one published-run failed rule")
+    row = rows[0]
+    run_id = str(row.get("published_run") or "")
+    if (not run_id or row.get("dataset") != dataset or
+            row.get("rule_id") != rule_id):
+        raise RuntimeError("Unexpected published sample provenance")
+    count = int(row["failed_evaluations"])
+    if count <= 0:
+        raise RuntimeError("Published failure has no failed evaluations")
+    raw = row.get("sample_failed_identifiers")
+    parsed = json.loads(raw) if isinstance(raw, str) else raw
+    if not isinstance(parsed, list) or len(parsed) > 10:
+        raise RuntimeError("Invalid or unexpectedly large published sample")
+    if any(not isinstance(item, (str, int)) or isinstance(item, bool) for item in parsed):
+        raise RuntimeError("Invalid published source record identifier")
+    items = [str(item) for item in parsed]
+    if len(items) > count:
+        raise RuntimeError("Published sample exceeds recorded failure count")
+    return {
+        "dataset": dataset,
+        "rule_id": rule_id,
+        "published_run": run_id,
+        "configured_action": str(row.get("rule_action") or ""),
+        "failed_evaluations": count,
+        "record_preview": [{
+            "source_record_id": record_id,
+            "failure_reason": "",
+            "record_action": str(row.get("rule_action") or ""),
+        } for record_id in items],
+        "preview_limit": 10,
+        "preview_source": "published_rule_result_sample",
+        "source": [RESULT_TABLE, PUBLISHED_TABLE],
+        "limitations": (
+            "These are sample identifiers persisted during rule evaluation. "
+            "Individual failure reasons from dq_failed_records were not retrieved. "
+            "The recorded rule action does not prove an individual record was "
+            "excluded: WARN findings remain unless another rule quarantines them."
+        ),
+    }
+
+
 def normalize_failed_record_preview(dataset: str, rule_id: str, rows: list[dict]) -> dict:
     """Keep rule evaluations distinct from example failed source records."""
     if not rows:
@@ -243,6 +311,7 @@ def normalize_failed_record_preview(dataset: str, rule_id: str, rows: list[dict]
         "failed_evaluations": evaluations,
         "record_preview": sample,
         "preview_limit": MAX_FAILED_RECORD_PREVIEW,
+        "preview_source": "detailed_failed_records",
         "source": [RESULT_TABLE, FAILED_RECORD_TABLE, PUBLISHED_TABLE],
         "limitations": (
             "This is a bounded preview of rule-flagged source record identifiers, "
@@ -263,9 +332,22 @@ def failed_rule_records(domain: str, rule_id: str):
         return normalize_failed_record_preview(dataset, rule_id, rows)
     except HTTPException:
         raise
+    except Exception:
+        # The detailed failure table can be unavailable to the App identity
+        # even when run-scoped rule results are readable. Never label these
+        # rule-level samples as individually verified failure reasons.
+        logger.warning(
+            "Detailed failed-record preview unavailable for %s/%s; "
+            "trying published rule-result samples", dataset, rule_id,
+            exc_info=True,
+        )
+    try:
+        return normalize_failed_record_sample(
+            dataset, rule_id, sql_query(failed_record_sample_sql(dataset, rule_id))
+        )
     except Exception as exc:
-        logger.exception("NEXUS failed-record preview unavailable for %s", dataset)
+        logger.exception("NEXUS published failed-record samples also unavailable for %s", dataset)
         raise HTTPException(
             status_code=503,
-            detail="Published failed-record evidence temporarily unavailable. No record preview is shown.",
+            detail="Neither detailed failed records nor published rule-result samples are available.",
         ) from exc

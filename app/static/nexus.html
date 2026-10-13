@@ -1205,10 +1205,271 @@ function drawQuality(cx,cy,R,t){
   cx,cy+73,'#7598af',9);
  return nodes;
 }
-function drawSemantic(cx,cy,R,t){const items=[['PUBLISHED\nORDERS',0,-.82,'#73eaf1'],['METRIC\nDICTIONARY',-.89,-.22,'#b4a6fd'],['SQL\nTOOLS',.9,-.29,'#86f3dc'],['AI SEARCH',-.67,.76,'#f9b884'],['AGENT',.63,.83,'#f28aa4']];ellipse(cx,cy,R*.6,R*.6,'#4aacc7',.21);const ns=[];for(let i=0;i<items.length;i++){let [lab,x,y,col]=items[i];let nx=cx+x*R,ny=cy+y*R;ns.push([nx,ny,col]);line(cx,cy,nx,ny,col,.34,1.1);for(let j=0;j<5;j++){let progress=((t*.0002+j*.2+i*.17)%1);point(cx+(nx-cx)*progress,cy+(ny-cy)*progress,1.6,col,9)}point(nx,ny,6,col,14);ellipse(nx,ny,15,15,col,.3);lab.split('\n').forEach((segment,ix)=>textAt(segment,nx,ny+(y<0?-22:28)+ix*12,'#b9dceb',9))}ellipse(cx,cy,39,39,'#78f8ef',.6,1.2);point(cx,cy,17,'#103e57',5);textAt('GMV',cx,cy-5,'#eaffff',11);textAt('13.22M',cx,cy+11,'#a5f6ef',10);return ns.map(([x,y])=>({x,y}))}
+
+/* Metric contract text is Unity Catalog metadata; calculations come only from
+   fixed, allowlisted SQL on the published accepted-order view. */
+function semanticMetric(){return semanticContracts?.metrics.find(m=>m.metric_id===semanticSelected);}
+function semanticRow(label,value){
+ const div=document.createElement('div');div.className='semantic-field';
+ const k=document.createElement('small');k.textContent=label;
+ const v=document.createElement('strong');v.textContent=value||'Not specified in governed dictionary';
+ div.append(k,v);return div;
+}
+function semanticPretty(value,unit,mode){
+ if(value===null||value===undefined||value==='')return 'Not defined (zero denominator or missing data)';
+ const n=Number(value);
+ if(!Number.isFinite(n))return 'Unrecognized SQL numeric result';
+ const digits=unit==='BRL'?2:unit==='%'?4:unit==='number'?0:2;
+ const formatted=n.toLocaleString('en-US',{minimumFractionDigits:digits,maximumFractionDigits:digits});
+ return unit==='BRL'?'BRL '+formatted:unit==='%'?formatted+'%':unit==='number'?formatted:formatted+' '+unit;
+}
+function semanticDisplayCatalog(){
+ const box=$('semanticCatalog');box.replaceChildren();
+ for(const m of semanticContracts?.metrics||[]){
+  const btn=document.createElement('button');btn.type='button';
+  btn.setAttribute('aria-pressed',String(m.metric_id===semanticSelected));
+  const label=document.createElement('span');label.textContent=m.metric_name;
+  const unit=document.createElement('small');unit.textContent=m.unit||'—';
+  btn.append(label,unit);btn.addEventListener('click',()=>semanticSelect(m.metric_id));
+  box.appendChild(btn);
+ }
+}
+function semanticDisplayEdges(){
+ const root=$('semanticEdges');root.replaceChildren();
+ const data=semanticContracts,metric=semanticMetric();
+ if(!data||!metric)return;
+ const executed=document.createElement('div');executed.className='semantic-edge-row';
+ const title=document.createElement('strong');
+ title.textContent='Executable metric source / published accepted orders';
+ const detail=document.createElement('small');detail.textContent=data.query_source+
+  ' · this exact view is queried only when Verify with SQL succeeds';
+ executed.append(title,detail);root.appendChild(executed);
+ const registered=(data.documented_edges||[]).filter(e=>e.metric_id===semanticSelected);
+ if(!data.edge_registry_accessible){
+  const p=document.createElement('p');p.className='semantic-small';
+  p.textContent='Project lineage registry is unavailable to the App identity. No registered edges are invented.';
+  root.appendChild(p);
+ }else if(!registered.length){
+  const p=document.createElement('p');p.className='semantic-small';
+  p.textContent='No registered metric edge returned. This is not evidence that an actual dependency does not exist.';
+  root.appendChild(p);
+ }else{
+  for(const e of registered){
+   const item=document.createElement('div');item.className='semantic-edge-row';
+   const main=document.createElement('strong');
+   main.textContent='Documented registry edge: '+e.source_asset+' → '+e.target_asset;
+   const note=document.createElement('small');
+   note.textContent=e.relationship_type+' · '+e.description+
+    ' · registry metadata, NOT independently captured Databricks runtime lineage';
+   item.append(main,note);root.appendChild(item);
+  }
+ }
+ const declared=document.createElement('p');declared.className='semantic-small';
+ declared.textContent='Dictionary-declared source: '+(metric.source_object||'Not specified')+
+  ' · may be a logical source alias, not the SQL view used for live verification.';
+ root.appendChild(declared);
+}
+function semanticStageMetric(){
+ const metric=semanticMetric();if(!metric)return;
+ const signals=[
+  ['Selected contract',metric.metric_id],
+  ['Measurement unit',metric.unit||'unspecified'],
+  ['Analytical grain',metric.grain||'not documented'],
+  ['SQL evidence',semanticVerification?'VERIFIED':'NOT YET RUN']
+ ];
+ $('leftSignals').replaceChildren(...signals.map(([a,b])=>{
+  const row=document.createElement('div');row.className='signal-row';
+  const k=document.createElement('span');k.textContent=a;
+  const v=document.createElement('strong');v.textContent=b;row.append(k,v);return row;
+ }));
+ put('leftTag','Selected metric contract');
+ put('leftTitle',metric.metric_name);
+ put('leftDesc',metric.business_definition);
+ put('leftFoot','Dictionary governed · national historical published run');
+ put('rightTag','Metric guardrail / verified meaning');
+ put('rightBadge',semanticVerification?'SQL VERIFIED':'DEFINITION ONLY');
+ put('rightTitle',metric.metric_name);
+ put('rightDesc',metric.known_caveat||metric.exclusions);
+ put('bar1Label','Numerator / measured component');
+ put('bar1Value',semanticVerification?semanticPretty(semanticVerification.numerator,
+    ['gmv','freight','aov'].includes(metric.metric_id)?'BRL':'number'):'Awaiting SQL verification');
+ put('bar1Foot',semanticVerification?.numerator_label||'Run-scoped calculation pending');
+ put('bar1Den',metric.unit||'');
+ $('bar1').style.width='80%';
+ put('bar2Label','Denominator / eligible population');
+ put('bar2Value',semanticVerification?.denominator!==null?
+   semanticPretty(semanticVerification.denominator,'number'):
+   semanticVerification?'Not applicable':'Awaiting SQL verification');
+ put('bar2Foot',semanticVerification?.denominator_label||
+   'Not applicable for direct counts and totals');
+ put('bar2Den','');
+ $('bar2').style.width='67%';
+ put('deltaLabel','SQL VERIFIED VALUE');
+ put('deltaValue',semanticVerification?semanticPretty(semanticVerification.verified_value,metric.unit):'—');
+ put('deltaSub',semanticVerification?'PUBLISHED RUN · NATIONAL':'NOT YET VERIFIED');
+ put('vizStatus',semanticVerification?'SQL VERIFIED · '+metric.metric_id.toUpperCase():
+    'GOVERNED DEFINITION · NOT VERIFIED');
+ put('vizCaption','Conceptual system touchpoints; click a node to inspect its evidence type. Not automatically discovered runtime lineage.');
+}
+function semanticSelect(id){
+ if(!semanticContracts?.metrics.some(m=>m.metric_id===id))return;
+ semanticSelected=id;semanticVerification=null;semanticVerifySeq++;
+ $('semanticVerification').hidden=true;
+ put('semanticFocus','Click a conceptual dependency node to see what it represents for '+id+'.');
+ semanticDisplayCatalog();
+ const metric=semanticMetric(),root=$('semanticDefinition');root.replaceChildren();
+ const title=document.createElement('div');title.className='semantic-def-title';title.textContent=metric.metric_name;
+ const desc=document.createElement('p');desc.className='quality-note';desc.textContent=metric.business_definition;
+ const fields=document.createElement('div');fields.className='semantic-fields';
+ const values=[
+  ['Registry ID',metric.metric_id],['Governed formula (description)',metric.formula_description],
+  ['Grain',metric.grain],['Eligible population / assumption',metric.population],
+  ['Inclusions',metric.inclusions],['Exclusions',metric.exclusions],
+  ['Unit',metric.unit],['Owner',metric.owner],
+  ['Quality dependency',metric.quality_dependency]
+ ];
+ values.forEach(([a,b])=>fields.appendChild(semanticRow(a,b)));
+ const caveat=document.createElement('div');caveat.className='semantic-caveat';
+ caveat.textContent='Known limitation: '+(metric.known_caveat||'No caveat stated');
+ root.append(title,desc,fields,caveat);
+ $('semanticVerify').disabled=false;$('semanticAsk').disabled=false;
+ semanticDisplayEdges();semanticStageMetric();
+}
+function semanticFocusNode(index){
+ const metric=semanticMetric();
+ if(!metric)return;
+ const desc=[
+  'PUBLISHED ORDER VIEW · The actual verified SQL source is workspace.olist_semantic.v_published_orders. This is the published-run-filtered accepted order-grain view.',
+  'METRIC DICTIONARY · The business definition and exclusions are read from workspace.olist_governance.metric_dictionary.',
+  'SQL VERIFICATION · A fixed read-only query calculates the selected numerator, denominator and result. Check the run ID in the evidence receipt.',
+  'REGISTERED EDGE · Optional project-documented source-to-metric edge, not discovered execution lineage. View available entries below.',
+  'AI INVESTIGATOR · A separate workflow uses governed tools. The conceptual link does not prove the agent used this metric in any particular answer.'
+ ];
+ const value=desc[index];if(value){
+  semanticNodeFocused=index;
+  put('semanticFocus',value);
+  $('semanticWorkspace').scrollIntoView({behavior:'smooth',block:'start'});
+ }
+}
+async function verifySemanticMetric(){
+ const metric=semanticMetric();if(!metric||current!=='semantics')return;
+ const id=metric.metric_id,seq=++semanticVerifySeq;
+ semanticVerification=null;$('semanticVerification').hidden=false;
+ $('semanticVerify').disabled=true;
+ put('semanticVerificationStatus','Executing allowlisted SQL over current published snapshot…');
+ put('semanticMetricValue','—');put('semanticNumerator','—');put('semanticDenominator','—');
+ put('semanticRunSource','No SQL verification completed yet.');
+ try{
+  const res=await fetch('/api/nexus/semantic-contracts/'+encodeURIComponent(id)+'/verify',{
+   credentials:'same-origin',cache:'no-store'
+  });
+  if(!res.ok)throw Error('SQL metric verification unavailable (HTTP '+res.status+')');
+  const row=await res.json();
+  if(seq!==semanticVerifySeq||semanticSelected!==id||current!=='semantics')return;
+  if(row.metric_id!==id||row.scope!=='NATIONAL_PUBLISHED_SNAPSHOT'||!row.published_run||
+     row.sql_evidence_source!==semanticContracts.query_source)
+   throw Error('Unexpected metric provenance; no numeric value accepted');
+  semanticVerification=row;
+  put('semanticVerificationStatus','VERIFIED SQL · national accepted-order population · '+row.operation+
+   ' · '+(row.verified_value===null?'no eligible denominator':'reproducible result'));
+  put('semanticMetricValue',semanticPretty(row.verified_value,metric.unit));
+  put('semanticNumeratorLabel',row.numerator_label);
+  put('semanticNumerator',semanticPretty(row.numerator,
+   ['gmv','freight','aov'].includes(id)?'BRL':'number'));
+  put('semanticDenominatorLabel',row.denominator_label||'Denominator');
+  put('semanticDenominator',row.denominator!==null?
+   semanticPretty(row.denominator,'number'):'Not applicable · direct count or sum');
+  put('semanticRunSource','Active published run: '+row.published_run+' · SQL source: '+
+   row.sql_evidence_source+' · No accounting revenue certification. '+row.limitations);
+  semanticStageMetric();
+ }catch(err){
+  if(seq!==semanticVerifySeq)return;
+  put('semanticVerificationStatus',(err?.message||'Metric query failed')+
+   '. No numerical result inferred or substituted.');
+  semanticStageMetric();
+ }finally{
+  if(seq===semanticVerifySeq&&current==='semantics')$('semanticVerify').disabled=false;
+ }
+}
+async function loadSemanticContracts(){
+ if(current!=='semantics')return;
+ const seq=++semanticLoadSeq;semanticVerifySeq++;semanticContracts=null;semanticVerification=null;
+ $('semanticCatalog').replaceChildren();$('semanticDefinition').replaceChildren();
+ $('semanticEdges').replaceChildren();$('semanticVerification').hidden=true;
+ $('semanticVerify').disabled=true;$('semanticAsk').disabled=true;
+ put('semanticStatus','Loading governed metric dictionary and documented registry edges…');
+ try{
+  const res=await fetch('/api/nexus/semantic-contracts',{credentials:'same-origin',cache:'no-store'});
+  if(!res.ok)throw Error('Metric dictionary unavailable (HTTP '+res.status+')');
+  const data=await res.json();
+  if(seq!==semanticLoadSeq||current!=='semantics')return;
+  if(data.scope!=='NATIONAL_PUBLISHED_SNAPSHOT'||!Array.isArray(data.metrics)||
+      !data.definition_source||data.metrics.length===0)
+   throw Error('Governed metric dictionary validation failed');
+  semanticContracts=data;
+  if(!data.metrics.some(m=>m.metric_id===semanticSelected))semanticSelected=data.metrics[0].metric_id;
+  put('semanticStatus','GOVERNED DICTIONARY LOADED · '+data.metrics.length+' contracts · '+
+   (data.edge_registry_accessible?'project lineage registry accessible':
+    'project lineage registry inaccessible (definitions still available)')+
+   ' · national published view');
+  put('semanticLineageQualification',data.lineage_qualification);
+  semanticSelect(semanticSelected);
+  // Verify the default selected GMV metric only; switching metrics requires
+  // explicit user action to avoid 13 concurrent warehouse requests.
+  if(semanticSelected==='gmv')verifySemanticMetric();
+ }catch(err){
+  if(seq!==semanticLoadSeq)return;
+  put('semanticStatus',(err?.message||'Governed dictionary unavailable')+
+    '. No metrics or definitions have been fabricated.');
+  put('vizStatus','METRIC DICTIONARY UNAVAILABLE');
+ }
+}
+$('semanticRefresh').addEventListener('click',loadSemanticContracts);
+$('semanticVerify').addEventListener('click',verifySemanticMetric);
+$('semanticAsk').addEventListener('click',()=>{
+ const m=semanticMetric();if(!m)return;
+ const q='Explain the governed business definition, measurement grain, formula, exclusions and caveats for Olist metric '+
+  m.metric_id+' ('+m.metric_name+'). Use metric_dictionary and cite its governed evidence. '+
+  'Do not invent a verified value or imply financial audit; if SQL tools for this metric are unavailable say so explicitly.';
+ domainInvestigationPrompt='';domainRulePrompt='';domainPromptDomain=null;
+ $('question').value=q;openDrawer();
+});
+
+function drawSemantic(cx,cy,R,t){
+ const items=[
+  ['PUBLISHED\nORDERS',0,-.82,'#73eaf1'],
+  ['METRIC\nDICTIONARY',-.89,-.22,'#b4a6fd'],
+  ['SQL\nVERIFY',.9,-.29,'#86f3dc'],
+  ['REGISTERED\nEDGE',-.67,.76,'#f9b884'],
+  ['INVESTIGATOR',.63,.83,'#f28aa4']
+ ];
+ ellipse(cx,cy,R*.6,R*.6,'#4aacc7',.21);
+ const ns=[];
+ for(let i=0;i<items.length;i++){
+  const [lab,x,y,col]=items[i],nx=cx+x*R,ny=cy+y*R;
+  ns.push({x:nx,y:ny,index:i});
+  line(cx,cy,nx,ny,col,.34,1.1);
+  for(let j=0;j<5;j++){
+   const progress=((t*.0002+j*.2+i*.17)%1);
+   point(cx+(nx-cx)*progress,cy+(ny-cy)*progress,1.6,col,9);
+  }
+  point(nx,ny,6,col,14);ellipse(nx,ny,15,15,col,.3);
+  lab.split('\n').forEach((segment,ix)=>textAt(segment,nx,ny+(y<0?-22:28)+ix*12,'#b9dceb',9));
+ }
+ ellipse(cx,cy,42,42,'#78f8ef',.6,1.2);point(cx,cy,17,'#103e57',5);
+ const metric=semanticMetric(),id=metric?.metric_id||'METRIC';
+ textAt(id.length>13?id.slice(0,12)+'…':id.toUpperCase(),cx,cy-6,'#eaffff',9);
+ const raw=semanticVerification?.verified_value;
+ const short=raw!==undefined&&raw!==null&&Number.isFinite(Number(raw))?
+  (Number(raw)>=1e6?(Number(raw)/1e6).toFixed(2)+'M':
+   Number(raw)>=1e3?(Number(raw)/1e3).toFixed(1)+'K':
+   Number(raw).toFixed(2)):'—';
+ textAt(short,cx,cy+12,'#a5f6ef',11);
+ return ns;
+}
 function drawAgent(cx,cy,R,t){const nodes=[];let labels=['REASON','ACT','OBSERVE','SYNTHESIZE'];for(let i=0;i<4;i++){let a=-Math.PI/2+i*Math.PI/2;let x=cx+Math.cos(a)*R*.93,y=cy+Math.sin(a)*R*.87;nodes.push({x,y});for(let p=0;p<4;p++){let progress=(t*.00019+i*.25+p*.25)%1;let theta=a+progress*(Math.PI/2);point(cx+Math.cos(theta)*R*.93,cy+Math.sin(theta)*R*.87,1.4,'#8beff3',8)}point(x,y,6,colors[i],18);textAt(labels[i],x+Math.cos(a)*21,y+Math.sin(a)*15,'#b6dcf0',9)}ellipse(cx,cy,R*.93,R*.87,'#66d1e1',.25);ellipse(cx,cy,R*.56,R*.56,'#75ddf0',.24);let pulse=(Math.sin(t*.0025)+1)/2;ctx.save();let gr=ctx.createRadialGradient(cx-R*.16,cy-R*.22,3,cx,cy,R*.43);gr.addColorStop(0,'#bffffe');gr.addColorStop(.2,'#5cd7e7');gr.addColorStop(.55,'#3442a3');gr.addColorStop(1,'#0c1b49');ctx.fillStyle=gr;ctx.shadowColor='#55dfea';ctx.shadowBlur=18+pulse*14;ctx.beginPath();ctx.arc(cx,cy,R*.38,0,Math.PI*2);ctx.fill();ctx.restore();textAt('NEXUS',cx,cy-3,'#f5ffff',14);textAt('AI',cx,cy+16,'#cbecfa',10);return nodes}
 function frame(now){if(motion)visualTime+=Math.min(40,now-(frame.last||now));frame.last=now;ctx.clearRect(0,0,W,H);const cx=W*.5,cy=H*.49,R=Math.min(W*.29,H*.35,173);backdropGrid(cx,cy,R,visualTime);let nodes;if(current==='quality')nodes=drawQuality(cx,cy,R,visualTime);else if(current==='semantics')nodes=drawSemantic(cx,cy,R,visualTime);else if(current==='agent')nodes=drawAgent(cx,cy,R,visualTime);else nodes=drawGlobe(cx,cy,R*.81,visualTime);canvas._nodes=nodes||[];requestAnimationFrame(frame)}requestAnimationFrame(frame);
-$('pauseViz').addEventListener('click',()=>{motion=!motion;$('pauseViz').textContent=motion?'PAUSE':'RESUME';toast(motion?'Motion resumed':'Animation paused')});$('resetViz').addEventListener('click',()=>{visualTime=0;selectedNode=0;toast('Visualization reset')});canvas.addEventListener('click',ev=>{if(current==='overview'||current==='network'){const r=canvas.getBoundingClientRect();const x=ev.clientX-r.left,y=ev.clientY-r.top;let min=1e10,idx=-1;(canvas._nodes||[]).forEach((n,i)=>{let d=(n.x-x)**2+(n.y-y)**2;if(d<min){min=d;idx=i}});if(idx>=0&&min<2100){selectedNode=idx;if(current==='overview'){selectState(FEATURED_STATES[idx]);toast('State cohort: '+FEATURED_STATES[idx])}else{inspectDomain(domains[idx],true);toast('Inspecting governed source: '+domains[idx])}}}else if(current==='quality'){const r=qualityNearestRule(ev);if(r)qualitySelect(r.rule_id,true);else toast('Choose a verified rule dot or the list below')}else if(current==='agent')openDrawer()});
+$('pauseViz').addEventListener('click',()=>{motion=!motion;$('pauseViz').textContent=motion?'PAUSE':'RESUME';toast(motion?'Motion resumed':'Animation paused')});$('resetViz').addEventListener('click',()=>{visualTime=0;selectedNode=0;toast('Visualization reset')});canvas.addEventListener('click',ev=>{if(current==='overview'||current==='network'){const r=canvas.getBoundingClientRect();const x=ev.clientX-r.left,y=ev.clientY-r.top;let min=1e10,idx=-1;(canvas._nodes||[]).forEach((n,i)=>{let d=(n.x-x)**2+(n.y-y)**2;if(d<min){min=d;idx=i}});if(idx>=0&&min<2100){selectedNode=idx;if(current==='overview'){selectState(FEATURED_STATES[idx]);toast('State cohort: '+FEATURED_STATES[idx])}else{inspectDomain(domains[idx],true);toast('Inspecting governed source: '+domains[idx])}}}else if(current==='quality'){const r=qualityNearestRule(ev);if(r)qualitySelect(r.rule_id,true);else toast('Choose a verified rule dot or the list below')}else if(current==='semantics'){const node=semanticNearestNode(ev);if(node)semanticFocusNode(node.index);else toast('Select a metric from the governed list below')}else if(current==='agent')openDrawer()});
 
 function qualityNearestRule(ev){
  if(current!=='quality'||!qualityData)return null;
@@ -1231,6 +1492,30 @@ canvas.addEventListener('mousemove',ev=>{
  tip.style.top=Math.max(3,ev.clientY-rect.top-46)+'px';
 });
 canvas.addEventListener('mouseleave',()=>{$('qualityTip').hidden=true;canvas.style.cursor='default'});
+
+
+function semanticNearestNode(ev){
+ if(current!=='semantics'||!semanticContracts)return null;
+ const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;
+ let found=null,nearest=380;
+ for(const node of canvas._nodes||[]){
+  const d=(node.x-x)**2+(node.y-y)**2;
+  if(d<nearest){nearest=d;found=node;}
+ }
+ return found;
+}
+canvas.addEventListener('mousemove',ev=>{
+ if(current!=='semantics')return;
+ const tip=$('qualityTip'),node=semanticNearestNode(ev);
+ if(!node){tip.hidden=true;canvas.style.cursor='default';return;}
+ const labels=['Published accepted-order SQL view','Governed metric dictionary',
+  'Reproducible read-only SQL','Documented registry relationship','Separate AI investigator'];
+ tip.hidden=false;canvas.style.cursor='pointer';
+ tip.textContent=labels[node.index]+' · click to inspect evidence class';
+ const rect=canvas.getBoundingClientRect();
+ tip.style.left=Math.max(3,Math.min(rect.width-231,ev.clientX-rect.left+12))+'px';
+ tip.style.top=Math.max(3,ev.clientY-rect.top-46)+'px';
+});
 
 const backdrop=$('backdrop'),drawer=$('drawer');function openDrawer(){backdrop.classList.add('open');drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');setTimeout(()=>$('question').focus(),300)}function closeDrawer(){backdrop.classList.remove('open');drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true')}
 $('topAsk').onclick=openDrawer;$('launchAsk').onclick=openDrawer;$('investButton').onclick=openDrawer;$('rightAction').onclick=()=>{openDrawer();$('question').value=current==='quality'?'Why were 32 source records quarantined?':current==='semantics'?'Why is delivered item GMV not revenue?':'Compare late delivery rates for RJ and SP';};$('closeDrawer').onclick=closeDrawer;backdrop.onclick=closeDrawer;

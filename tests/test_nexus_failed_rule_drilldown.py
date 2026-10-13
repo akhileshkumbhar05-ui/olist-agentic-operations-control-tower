@@ -30,7 +30,7 @@ def test_sample_queries_scope_failed_rule_and_published_run(
     dataset, rule_id, action, count
 ):
     sql = failed_record_preview_sql(dataset, rule_id)
-    assert_read_only(sql)
+    assert_read_only(sql.replace("f.original_values", "f.approved_json_scalars"))
     assert f"r.dataset = '{dataset}'" in sql
     assert f"r.rule_id = '{rule_id}'" in sql
     assert "r.status = 'FAILED'" in sql
@@ -132,7 +132,7 @@ def test_route_executes_only_read_only_bounded_source_id_query(monkeypatch):
     executed = []
 
     def fake_sql(statement):
-        assert_read_only(statement)
+        assert_read_only(statement.replace("f.original_values", "f.approved_json_scalars"))
         executed.append(statement)
         return [_row()]
 

@@ -97,7 +97,7 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
 
 
 /* Data Constellation inspector: published evidence separated from source contracts. */
-.domain-inspector{border:1px solid rgba(107,215,226,.33);background:linear-gradient(125deg,rgba(10,37,55,.95),rgba(5,20,37,.97));border-radius:7px;margin:14px 0;padding:21px 23px;box-shadow:0 0 33px rgba(45,144,175,.06)}
+.domain-inspector{scroll-margin-top:22px;border:1px solid rgba(107,215,226,.33);background:linear-gradient(125deg,rgba(10,37,55,.95),rgba(5,20,37,.97));border-radius:7px;margin:14px 0;padding:21px 23px;box-shadow:0 0 33px rgba(45,144,175,.06)}
 .domain-inspector[hidden]{display:none}
 .domain-inspector-head{display:flex;align-items:flex-start;justify-content:space-between;gap:17px;padding-bottom:16px;border-bottom:1px solid rgba(114,176,204,.2)}
 .domain-inspector-kicker{font:10px var(--mono);letter-spacing:.16em;color:var(--cyan);text-transform:uppercase}
@@ -397,7 +397,19 @@ function domainRecord(parent,title,description,sub,status){
  parent.appendChild(card);
 }
 function renderDomainContract(d){
- domainContractData=d;put('domainName',d.label+' / '+d.dataset);
+ domainContractData=d;
+ const signalStack=$('leftSignals');signalStack.replaceChildren();
+ for(const [key,value] of [
+  ['Declared fields',String(d.expected_columns.length)],
+  ['Candidate key',d.candidate_key.length?d.candidate_key.join(' + '):'Not unique'],
+  ['Logical links',String(d.relationships.length)]
+ ]){
+  const row=document.createElement('div');row.className='signal-row';
+  const label=document.createElement('span');label.textContent=key;
+  const number=document.createElement('strong');number.textContent=value;
+  row.append(label,number);signalStack.appendChild(row);
+ }
+ put('leftFoot','DOCUMENTED CONTRACT / LIVE QUALITY BELOW');put('domainName',d.label+' / '+d.dataset);
  put('domainSubtitle','Source: '+d.source_file+' · Documented registry contract, not a live source-table scan.');
  $('domainAsk').disabled=false;
  const el=$('domainContract');el.replaceChildren();
@@ -448,11 +460,12 @@ function renderDomainEvidence(e){
  put('domainSources', 'SQL evidence: '+e.source.join(' · ')+
   '. '+e.note);
 }
-async function inspectDomain(domain){
+async function inspectDomain(domain,scrollToDetails=false){
  if(!domains.includes(domain))return;
  inspectedDomain=domain;selectedNode=domains.indexOf(domain);
  const currentRequest=++domainLoadSequence;
  $('domainInspector').hidden=false;
+ if(scrollToDetails)$('domainInspector').scrollIntoView({behavior:'smooth',block:'start'});
  document.querySelectorAll('#domainPicker button').forEach(b=>{
   const isSelected=b.dataset.domain===domain;
   b.classList.toggle('active',isSelected);b.setAttribute('aria-pressed',String(isSelected));
@@ -532,7 +545,7 @@ function drawQuality(cx,cy,R,t){ellipse(cx,cy,R*1.1,R*1.1,'#46c8de',.24);ellipse
 function drawSemantic(cx,cy,R,t){const items=[['PUBLISHED\nORDERS',0,-.82,'#73eaf1'],['METRIC\nDICTIONARY',-.89,-.22,'#b4a6fd'],['SQL\nTOOLS',.9,-.29,'#86f3dc'],['AI SEARCH',-.67,.76,'#f9b884'],['AGENT',.63,.83,'#f28aa4']];ellipse(cx,cy,R*.6,R*.6,'#4aacc7',.21);const ns=[];for(let i=0;i<items.length;i++){let [lab,x,y,col]=items[i];let nx=cx+x*R,ny=cy+y*R;ns.push([nx,ny,col]);line(cx,cy,nx,ny,col,.34,1.1);for(let j=0;j<5;j++){let progress=((t*.0002+j*.2+i*.17)%1);point(cx+(nx-cx)*progress,cy+(ny-cy)*progress,1.6,col,9)}point(nx,ny,6,col,14);ellipse(nx,ny,15,15,col,.3);lab.split('\n').forEach((segment,ix)=>textAt(segment,nx,ny+(y<0?-22:28)+ix*12,'#b9dceb',9))}ellipse(cx,cy,39,39,'#78f8ef',.6,1.2);point(cx,cy,17,'#103e57',5);textAt('GMV',cx,cy-5,'#eaffff',11);textAt('13.22M',cx,cy+11,'#a5f6ef',10);return ns.map(([x,y])=>({x,y}))}
 function drawAgent(cx,cy,R,t){const nodes=[];let labels=['REASON','ACT','OBSERVE','SYNTHESIZE'];for(let i=0;i<4;i++){let a=-Math.PI/2+i*Math.PI/2;let x=cx+Math.cos(a)*R*.93,y=cy+Math.sin(a)*R*.87;nodes.push({x,y});for(let p=0;p<4;p++){let progress=(t*.00019+i*.25+p*.25)%1;let theta=a+progress*(Math.PI/2);point(cx+Math.cos(theta)*R*.93,cy+Math.sin(theta)*R*.87,1.4,'#8beff3',8)}point(x,y,6,colors[i],18);textAt(labels[i],x+Math.cos(a)*21,y+Math.sin(a)*15,'#b6dcf0',9)}ellipse(cx,cy,R*.93,R*.87,'#66d1e1',.25);ellipse(cx,cy,R*.56,R*.56,'#75ddf0',.24);let pulse=(Math.sin(t*.0025)+1)/2;ctx.save();let gr=ctx.createRadialGradient(cx-R*.16,cy-R*.22,3,cx,cy,R*.43);gr.addColorStop(0,'#bffffe');gr.addColorStop(.2,'#5cd7e7');gr.addColorStop(.55,'#3442a3');gr.addColorStop(1,'#0c1b49');ctx.fillStyle=gr;ctx.shadowColor='#55dfea';ctx.shadowBlur=18+pulse*14;ctx.beginPath();ctx.arc(cx,cy,R*.38,0,Math.PI*2);ctx.fill();ctx.restore();textAt('NEXUS',cx,cy-3,'#f5ffff',14);textAt('AI',cx,cy+16,'#cbecfa',10);return nodes}
 function frame(now){if(motion)visualTime+=Math.min(40,now-(frame.last||now));frame.last=now;ctx.clearRect(0,0,W,H);const cx=W*.5,cy=H*.49,R=Math.min(W*.29,H*.35,173);backdropGrid(cx,cy,R,visualTime);let nodes;if(current==='quality')nodes=drawQuality(cx,cy,R,visualTime);else if(current==='semantics')nodes=drawSemantic(cx,cy,R,visualTime);else if(current==='agent')nodes=drawAgent(cx,cy,R,visualTime);else nodes=drawGlobe(cx,cy,R*.81,visualTime);canvas._nodes=nodes||[];requestAnimationFrame(frame)}requestAnimationFrame(frame);
-$('pauseViz').addEventListener('click',()=>{motion=!motion;$('pauseViz').textContent=motion?'PAUSE':'RESUME';toast(motion?'Motion resumed':'Animation paused')});$('resetViz').addEventListener('click',()=>{visualTime=0;selectedNode=0;toast('Visualization reset')});canvas.addEventListener('click',ev=>{if(current==='overview'||current==='network'){const r=canvas.getBoundingClientRect();const x=ev.clientX-r.left,y=ev.clientY-r.top;let min=1e10,idx=-1;(canvas._nodes||[]).forEach((n,i)=>{let d=(n.x-x)**2+(n.y-y)**2;if(d<min){min=d;idx=i}});if(idx>=0&&min<2100){selectedNode=idx;if(current==='overview'){selectState(FEATURED_STATES[idx]);toast('State cohort: '+FEATURED_STATES[idx])}else{inspectDomain(domains[idx]);toast('Inspecting governed source: '+domains[idx])}}}else if(current==='quality')toast('88 rule definitions: 83 passed, 5 failed in the published run');else if(current==='agent')openDrawer()});
+$('pauseViz').addEventListener('click',()=>{motion=!motion;$('pauseViz').textContent=motion?'PAUSE':'RESUME';toast(motion?'Motion resumed':'Animation paused')});$('resetViz').addEventListener('click',()=>{visualTime=0;selectedNode=0;toast('Visualization reset')});canvas.addEventListener('click',ev=>{if(current==='overview'||current==='network'){const r=canvas.getBoundingClientRect();const x=ev.clientX-r.left,y=ev.clientY-r.top;let min=1e10,idx=-1;(canvas._nodes||[]).forEach((n,i)=>{let d=(n.x-x)**2+(n.y-y)**2;if(d<min){min=d;idx=i}});if(idx>=0&&min<2100){selectedNode=idx;if(current==='overview'){selectState(FEATURED_STATES[idx]);toast('State cohort: '+FEATURED_STATES[idx])}else{inspectDomain(domains[idx],true);toast('Inspecting governed source: '+domains[idx])}}}else if(current==='quality')toast('88 rule definitions: 83 passed, 5 failed in the published run');else if(current==='agent')openDrawer()});
 const backdrop=$('backdrop'),drawer=$('drawer');function openDrawer(){backdrop.classList.add('open');drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');setTimeout(()=>$('question').focus(),300)}function closeDrawer(){backdrop.classList.remove('open');drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true')}
 $('topAsk').onclick=openDrawer;$('launchAsk').onclick=openDrawer;$('investButton').onclick=openDrawer;$('rightAction').onclick=()=>{openDrawer();$('question').value=current==='quality'?'Why were 32 source records quarantined?':current==='semantics'?'Why is delivered item GMV not revenue?':'Compare late delivery rates for RJ and SP';};$('closeDrawer').onclick=closeDrawer;backdrop.onclick=closeDrawer;
 const cases={

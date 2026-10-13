@@ -21,7 +21,8 @@ def _domain_question(dataset: str) -> str:
 
 
 class ModelSelectingSourceDictionary:
-    def __init__(self):
+    def __init__(self, tool='source_dictionary'):
+        self.tool = tool
         self.requests = []
         self.responses = self
 
@@ -31,11 +32,11 @@ class ModelSelectingSourceDictionary:
             item = SimpleNamespace(
                 type="function_call", call_id="call-1",
                 name="fetch_governed_evidence",
-                arguments=json.dumps({"tool": "source_dictionary"}),
+                arguments=json.dumps({"tool": self.tool}),
                 model_dump=lambda exclude_none=True: {
                     "type": "function_call", "call_id": "call-1",
                     "name": "fetch_governed_evidence",
-                    "arguments": json.dumps({"tool": "source_dictionary"}),
+                    "arguments": json.dumps({"tool": self.tool}),
                 },
             )
             return SimpleNamespace(output=[item], output_text="")
@@ -90,12 +91,15 @@ def test_generic_orders_analytics_stays_analytics_without_domain_handoff():
     question = "How many orders were delivered in RJ?"
     assert route(question, Context(state="RJ")) == "ANALYTICS"
     # Regression contracts: only source-specific handoffs alter routing.
-    model = ModelSelectingSourceDictionary()
+    model = ModelSelectingSourceDictionary("state_delivery")
     def sql(query):
         if "dq_run_summary" in query:
             return [{"run_id": "published-run-1"}]
+        if "GROUP BY customer_state" in query:
+            return [{"customer_state": "RJ", "delivered_orders": 5,
+                     "late_deliveries": 0, "eligible_deliveries": 4}]
         if "source_dictionary" in query:
-            return [{"dataset": "orders"}]
+            raise AssertionError("Unrequested source dictionary")
         return []
     result = run_agent(
         question, Context(state="RJ"), sql, model, "system.ai.gpt-oss-120b"

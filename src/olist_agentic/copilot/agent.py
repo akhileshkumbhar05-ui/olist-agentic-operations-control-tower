@@ -260,6 +260,13 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
     published_run = str(pub[0]["run_id"])
     mandatory = _required_tools(question, context)
     if source_contract is not None:
+        # The generic KNOWLEDGE route defaults to the rule dictionary. For a
+        # source-semantics request, the scoped source dictionary supersedes it.
+        # Real requests explicitly asking about rules retain the original
+        # guard and run-scoped failure tools.
+        if not any(term in question.lower() for term in
+                   ("rule", "quality", "quarantin", "failed", "rejected")):
+            mandatory.discard("rule_dictionary")
         mandatory.add("source_dictionary")
     # Narrow the model's tool menu to the question to avoid extra warehouse
     # work and unnecessary model rounds. Publication is already pre-fetched.

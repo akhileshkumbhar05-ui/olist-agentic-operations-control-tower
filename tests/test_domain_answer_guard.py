@@ -152,7 +152,7 @@ def test_source_domain_run_agent_repairs_wrong_model_claim_and_marks_evidence():
     assert result["evidence"]["answer_validation"] == "source_contract_repair"
     assert result["evidence"]["source_domain"] == "payments"
     assert result["evidence"]["tool_names"] == ["publication", "source_dictionary"]
-    assert "source dictionary" in result["answer"].lower()
+    assert "workspace.olist_governance.source_dictionary" in result["answer"]
     assert "quarantined records remain in published facts" not in result["answer"]
     assert "|---|" not in result["answer"]
     assert len(executed) == 2

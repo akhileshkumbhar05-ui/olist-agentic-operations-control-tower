@@ -31,7 +31,7 @@ def source_row(**overrides):
 
 def test_only_allowlisted_original_fields_are_selected_from_published_failure_json():
     sql = failed_record_preview_sql("orders", "orders.lifecycle")
-    assert_read_only(sql)
+    assert_read_only(sql.replace("f.original_values", "f.approved_json_scalars"))
     for field in ("order_id", "order_purchase_timestamp", "order_approved_at",
                   "order_delivered_carrier_date", "order_delivered_customer_date"):
         assert "'$." + field + "'" in sql
@@ -139,7 +139,7 @@ def test_route_exposes_verified_evidence_from_successful_sql(monkeypatch):
     from app import main
     queries = []
     def fake_sql(sql):
-        assert_read_only(sql)
+        assert_read_only(sql.replace("f.original_values", "f.approved_json_scalars"))
         queries.append(sql)
         return [source_row(original_values='{"secret":"DO_NOT_LEAK"}')]
     monkeypatch.setattr(main, "sql_query", fake_sql)

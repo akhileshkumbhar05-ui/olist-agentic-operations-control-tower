@@ -878,11 +878,191 @@ for(let k=0;k<2;k++){ellipse(cx,cy,R*1.34,R*.33,k?'#a18aff':'#53c4f3',.38,.9,-.4
 const featured=current==='overview'?FEATURED_STATES:domains;const nodes=[];for(let i=0;i<featured.length;i++){let a=i*Math.PI*2/featured.length+t*.00012;let z=Math.sin(a+.6);let nx=cx+Math.cos(a)*R*1.26;let ny=cy+Math.sin(a)*R*.59;nodes.push({x:nx,y:ny,z});}
 for(let i=0;i<nodes.length;i++){const n=nodes[i];const nxt=nodes[(i+3)%nodes.length];line(n.x,n.y,nxt.x,nxt.y,'#40afce',.08);line(n.x,n.y,cx,cy,'#54c3db',.11);let c=colors[i];point(n.x,n.y,i===selectedNode?4.1:2.6,c,i===selectedNode?19:11);if(i===selectedNode){ellipse(n.x,n.y,11,11,c,.7,1);textAt(featured[i].toUpperCase(),n.x+(n.x>cx?12:-12),n.y-13,'#e5fdff',10,n.x>cx?'left':'right')}else if(i%2===0){textAt(featured[i].toUpperCase(),n.x+(n.x>cx?11:-11),n.y-9,'#729db6',8,n.x>cx?'left':'right')}}
 const g=ctx.createRadialGradient(cx,cy,0,cx,cy,R*.6);g.addColorStop(0,'rgba(100,251,239,.14)');g.addColorStop(1,'rgba(100,251,239,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,R*.6,0,Math.PI*2);ctx.fill();textAt('GOVERNED',cx,cy-13,'#9eeef3',12);textAt('INTELLIGENCE',cx,cy+5,'#e0f8ff',15);textAt('PUBLISHED · HISTORICAL',cx,cy+26,'#6496af',9);return nodes}
-function drawQuality(cx,cy,R,t){ellipse(cx,cy,R*1.1,R*1.1,'#46c8de',.24);ellipse(cx,cy,R*.72,R*.72,'#4ebecb',.3);let points=[];for(let i=0;i<88;i++){let a=-Math.PI/2+i*Math.PI*2/88;let rad=R*(.96+(.025*(i%2)));let nx=cx+Math.cos(a)*rad;let ny=cy+Math.sin(a)*rad;const bad=i>=83;point(nx,ny,bad?3.9:2.2,bad?'#fd7085':'#62dfc8',bad?14:5);points.push({x:nx,y:ny})}const angle=t*.00031;arc(cx,cy,R*.82,angle,angle+.56,'#87f6f2',2,.8);arc(cx,cy,R*.69,-angle,-angle+.32,'#b2a4ff',1.7,.7);textAt('RULES EVALUATED',cx,cy-39,'#9dc2d6',10);ctx.save();ctx.textAlign='center';ctx.fillStyle='#e6f9ff';ctx.font='600 72px Segoe UI, sans-serif';ctx.fillText('88',cx,cy+27);ctx.restore();textAt('83 PASSED   /   5 FAILED',cx,cy+54,'#7ce4d4',10);textAt('0 ERROR · 0 SKIPPED',cx,cy+73,'#7598af',9);return points}
+
+/* Quality Gate operates on actual run-scoped rule records, not decorative counts. */
+const QUALITY_ALIASES={orders:'orders',customers:'customers',order_items:'items',payments:'payments',reviews:'reviews',products:'products',sellers:'sellers',geolocation:'geo',translation:'translations'};
+function qualityOpenSource(dataset){
+ const alias=QUALITY_ALIASES[dataset];
+ if(!alias)return;
+ setView('network');inspectDomain(alias,true);
+}
+function qualityRule(id){return qualityData?.rules.find(r=>r.rule_id===id);}
+function qualitySelect(id,scroll=false){
+ const rule=qualityRule(id);if(!rule)return;
+ qualitySelected=id;qualityPreviewSeq++;
+ $('qualityPreview').hidden=true;$('qualityRecords').replaceChildren();
+ renderQualityList();renderQualityDetail(rule);
+ if(scroll)$('qualityWorkspace').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderQualityList(){
+ const panel=$('qualityRuleList');panel.replaceChildren();
+ const rows=(qualityData?.rules||[]).filter(r=>qualityFilter==='ALL'||r.observed_status==='FAILED');
+ put('qualityRuleCount',rows.length+' definitions');
+ $('qualityFailedFilter').setAttribute('aria-pressed',String(qualityFilter==='FAILED'));
+ $('qualityAllFilter').setAttribute('aria-pressed',String(qualityFilter==='ALL'));
+ for(const rule of rows){
+  const button=document.createElement('button');button.type='button';
+  button.setAttribute('aria-pressed',String(qualitySelected===rule.rule_id));
+  const name=document.createElement('span');name.textContent=rule.rule_id;
+  const status=document.createElement('b');status.textContent=rule.observed_status||'NOT EVALUATED';
+  if(rule.observed_status==='PASSED')status.className='good';
+  button.append(name,status);button.addEventListener('click',()=>qualitySelect(rule.rule_id));
+  panel.appendChild(button);
+ }
+}
+function renderQualityDetail(rule){
+ const panel=$('qualityDetail');panel.replaceChildren();
+ if(!rule){panel.textContent='No run-scoped rule selected.';return;}
+ const h=document.createElement('h4');h.textContent=rule.rule_id;
+ const info=document.createElement('p');info.textContent=rule.description||rule.business_name;
+ const meta=document.createElement('p');
+ meta.textContent='Dataset: '+rule.dataset+' · Observed: '+(rule.observed_status||'NOT EVALUATED')+
+   ' · Action: '+rule.action+' · Severity: '+rule.severity;
+ const count=document.createElement('p');
+ count.textContent=rule.observed_status==='FAILED'?
+  Number(rule.failed_evaluations).toLocaleString('en-US')+' failed rule evaluations (not distinct quarantined records)':
+  'This rule has no observed FAILED status in the active published run.';
+ const actions=document.createElement('div');actions.className='quality-actions';
+ const source=document.createElement('button');source.type='button';source.textContent='Source governance ↗';
+ source.addEventListener('click',()=>qualityOpenSource(rule.dataset));actions.appendChild(source);
+ if(rule.observed_status==='FAILED'){
+  const preview=document.createElement('button');preview.type='button';preview.textContent='Affected records';
+  preview.addEventListener('click',()=>qualityPreviewFor(rule));actions.appendChild(preview);
+  const ask=document.createElement('button');ask.type='button';ask.textContent='Explain with AI';
+  ask.addEventListener('click',()=>investigateFailedRule(rule,qualityData.published_run,rule.dataset));actions.appendChild(ask);
+ }
+ panel.append(h,info,meta,count,actions);
+}
+async function qualityPreviewFor(rule){
+ const ticket=++qualityPreviewSeq,runId=qualityData.published_run;
+ $('qualityPreview').hidden=false;$('qualityRecords').replaceChildren();
+ put('qualityPreviewStatus','Loading published-run record evidence…');
+ try{
+  const url='/api/nexus/domains/'+encodeURIComponent(QUALITY_ALIASES[rule.dataset])+
+   '/failed-rules/'+encodeURIComponent(rule.rule_id)+'/records';
+  const resp=await fetch(url,{credentials:'same-origin',cache:'no-store'});
+  if(!resp.ok)throw Error('Record evidence unavailable (HTTP '+resp.status+')');
+  const evidence=await resp.json();
+  if(ticket!==qualityPreviewSeq||qualitySelected!==rule.rule_id||current!=='quality')return;
+  if(evidence.published_run!==runId||evidence.dataset!==rule.dataset||evidence.rule_id!==rule.rule_id)
+    throw Error('Rule evidence belongs to a different published run');
+  const examples=evidence.record_preview||[];
+  put('qualityPreviewStatus',(evidence.preview_source==='published_rule_result_sample'?
+   'Published rule-result ID sample (individual failure reasons unavailable)':
+   'Detailed failed-record evidence')+' · '+examples.length+' of '+evidence.preview_limit+
+   ' maximum examples · '+evidence.failed_evaluations+' failed evaluations.');
+  examples.forEach((record,i)=>renderFailedRecordEvidence($('qualityRecords'),record,evidence,i));
+  if(!examples.length)put('qualityPreviewStatus','No individual record examples available; no IDs inferred.');
+ }catch(e){if(ticket===qualityPreviewSeq)put('qualityPreviewStatus',String(e?.message||'Evidence unavailable')+' · no records inferred.');}
+}
+function renderQualityImpact(){
+ const panel=$('qualityImpact');panel.replaceChildren();
+ const counts=qualityData?.quarantine_by_dataset||{};
+ for(const dataset of Object.keys(counts).filter(ds=>counts[ds]>0).sort()){
+  const row=document.createElement('div');row.className='quality-impact-row';
+  const name=document.createElement('strong');
+  name.textContent=dataset+': '+counts[dataset]+' distinct excluded source rows';
+  const action=document.createElement('button');action.type='button';
+  action.textContent='Inspect exclusion lineage ↗';
+  action.addEventListener('click',()=>qualityOpenSource(dataset));
+  row.append(name,action);panel.appendChild(row);
+ }
+ if(!panel.children.length)panel.textContent='No excluded source records reported.';
+}
+function qualityRender(data){
+ qualityData=data;
+ if(!qualityRule(qualitySelected))
+  qualitySelected=(data.rules.find(r=>r.observed_status==='FAILED')||data.rules[0])?.rule_id;
+ const total=data.distinct_quarantined_source_rows;
+ put('qualityStatus','SQL VERIFIED · NATIONAL BRAZIL · published run '+data.published_run+
+  ' · '+data.observed_evaluations+'/'+data.rule_definitions+' evaluated · '+
+  data.passed_definitions+' PASSED · '+data.failed_definitions+' FAILED · '+
+  data.failed_evaluations_total.toLocaleString('en-US')+' failed evaluations · '+
+  total+' distinct quarantined rows');
+ put('vizStatus','LIVE PUBLISHED RULES / '+data.rule_definitions+' DEFINITIONS');
+ put('vizCaption','Click a control dot to inspect its SQL-observed status or use the accessible rule list below.');
+ renderQualityList();renderQualityDetail(qualityRule(qualitySelected));renderQualityImpact();
+}
+async function loadQualityGate(){
+ if(current!=='quality')return;
+ const seq=++qualitySeq;qualityPreviewSeq++;qualityData=null;qualitySelected=null;
+ $('qualityRuleList').replaceChildren();$('qualityDetail').replaceChildren();
+ $('qualityImpact').replaceChildren();$('qualityPreview').hidden=true;
+ put('qualityStatus','Retrieving governed rule outcomes for the active published run…');
+ try{
+  const resp=await fetch('/api/nexus/quality-gate',{credentials:'same-origin',cache:'no-store'});
+  if(!resp.ok)throw Error('Quality Gate endpoint unavailable (HTTP '+resp.status+')');
+  const data=await resp.json();
+  if(seq!==qualitySeq||current!=='quality')return;
+  if(!data.published_run||data.scope!=='BRAZIL_ALL_STATES'||!Array.isArray(data.rules)||
+     data.rules.length!==data.rule_definitions)throw Error('Unexpected published-run control matrix');
+  qualityRender(data);
+ }catch(e){
+  if(seq!==qualitySeq)return;
+  put('qualityStatus',String(e?.message||'Quality evidence unavailable')+
+    ' · no failed/passed dot statuses inferred.');
+  put('vizStatus','GOVERNED RULE QUERY UNAVAILABLE');
+  put('vizCaption','The dots are neutral until SQL evidence is available. Open native AI/BI to inspect quality.');
+ }
+}
+$('qualityRefresh').addEventListener('click',loadQualityGate);
+$('qualityFailedFilter').addEventListener('click',()=>{qualityFilter='FAILED';renderQualityList()});
+$('qualityAllFilter').addEventListener('click',()=>{qualityFilter='ALL';renderQualityList()});
+
+function drawQuality(cx,cy,R,t){
+ ellipse(cx,cy,R*1.1,R*1.1,'#46c8de',.24);ellipse(cx,cy,R*.72,R*.72,'#4ebecb',.3);
+ const rules=qualityData?.rules||[],total=rules.length||88,nodes=[];
+ for(let i=0;i<total;i++){
+  const rule=rules[i]||null,angle=-Math.PI/2+i*Math.PI*2/total;
+  const radius=R*(.96+.025*(i%2));
+  const x=cx+Math.cos(angle)*radius,y=cy+Math.sin(angle)*radius;
+  const color=!rule?'#56788e':rule.observed_status==='FAILED'?'#fd7085':
+   rule.observed_status==='PASSED'?'#62dfc8':'#e3bc88';
+  const chosen=rule?.rule_id===qualitySelected&&!!rule;
+  point(x,y,chosen?5.1:rule?.observed_status==='FAILED'?3.9:2.4,color,chosen?18:7);
+  if(chosen)ellipse(x,y,10,10,'#e3ffff',.8,1.3);
+  nodes.push({x,y,rule});
+ }
+ const a=t*.00031;arc(cx,cy,R*.82,a,a+.56,'#87f6f2',2,.8);
+ arc(cx,cy,R*.69,-a,-a+.32,'#b2a4ff',1.7,.7);
+ textAt('RULES EVALUATED',cx,cy-39,'#9dc2d6',10);
+ ctx.save();ctx.textAlign='center';ctx.fillStyle='#e6f9ff';
+ ctx.font='600 72px Segoe UI, sans-serif';
+ ctx.fillText(qualityData?String(qualityData.observed_evaluations):'—',cx,cy+27);ctx.restore();
+ textAt(qualityData?qualityData.passed_definitions+' PASSED / '+qualityData.failed_definitions+' FAILED':
+  'AWAITING VERIFIED SQL',cx,cy+54,'#7ce4d4',10);
+ textAt(qualityData?qualityData.error_definitions+' ERROR · '+qualityData.skipped_definitions+
+  ' SKIPPED · '+qualityData.unobserved_definitions+' UNOBSERVED':'NO LIVE RULE STATUS',
+  cx,cy+73,'#7598af',9);
+ return nodes;
+}
 function drawSemantic(cx,cy,R,t){const items=[['PUBLISHED\nORDERS',0,-.82,'#73eaf1'],['METRIC\nDICTIONARY',-.89,-.22,'#b4a6fd'],['SQL\nTOOLS',.9,-.29,'#86f3dc'],['AI SEARCH',-.67,.76,'#f9b884'],['AGENT',.63,.83,'#f28aa4']];ellipse(cx,cy,R*.6,R*.6,'#4aacc7',.21);const ns=[];for(let i=0;i<items.length;i++){let [lab,x,y,col]=items[i];let nx=cx+x*R,ny=cy+y*R;ns.push([nx,ny,col]);line(cx,cy,nx,ny,col,.34,1.1);for(let j=0;j<5;j++){let progress=((t*.0002+j*.2+i*.17)%1);point(cx+(nx-cx)*progress,cy+(ny-cy)*progress,1.6,col,9)}point(nx,ny,6,col,14);ellipse(nx,ny,15,15,col,.3);lab.split('\n').forEach((segment,ix)=>textAt(segment,nx,ny+(y<0?-22:28)+ix*12,'#b9dceb',9))}ellipse(cx,cy,39,39,'#78f8ef',.6,1.2);point(cx,cy,17,'#103e57',5);textAt('GMV',cx,cy-5,'#eaffff',11);textAt('13.22M',cx,cy+11,'#a5f6ef',10);return ns.map(([x,y])=>({x,y}))}
 function drawAgent(cx,cy,R,t){const nodes=[];let labels=['REASON','ACT','OBSERVE','SYNTHESIZE'];for(let i=0;i<4;i++){let a=-Math.PI/2+i*Math.PI/2;let x=cx+Math.cos(a)*R*.93,y=cy+Math.sin(a)*R*.87;nodes.push({x,y});for(let p=0;p<4;p++){let progress=(t*.00019+i*.25+p*.25)%1;let theta=a+progress*(Math.PI/2);point(cx+Math.cos(theta)*R*.93,cy+Math.sin(theta)*R*.87,1.4,'#8beff3',8)}point(x,y,6,colors[i],18);textAt(labels[i],x+Math.cos(a)*21,y+Math.sin(a)*15,'#b6dcf0',9)}ellipse(cx,cy,R*.93,R*.87,'#66d1e1',.25);ellipse(cx,cy,R*.56,R*.56,'#75ddf0',.24);let pulse=(Math.sin(t*.0025)+1)/2;ctx.save();let gr=ctx.createRadialGradient(cx-R*.16,cy-R*.22,3,cx,cy,R*.43);gr.addColorStop(0,'#bffffe');gr.addColorStop(.2,'#5cd7e7');gr.addColorStop(.55,'#3442a3');gr.addColorStop(1,'#0c1b49');ctx.fillStyle=gr;ctx.shadowColor='#55dfea';ctx.shadowBlur=18+pulse*14;ctx.beginPath();ctx.arc(cx,cy,R*.38,0,Math.PI*2);ctx.fill();ctx.restore();textAt('NEXUS',cx,cy-3,'#f5ffff',14);textAt('AI',cx,cy+16,'#cbecfa',10);return nodes}
 function frame(now){if(motion)visualTime+=Math.min(40,now-(frame.last||now));frame.last=now;ctx.clearRect(0,0,W,H);const cx=W*.5,cy=H*.49,R=Math.min(W*.29,H*.35,173);backdropGrid(cx,cy,R,visualTime);let nodes;if(current==='quality')nodes=drawQuality(cx,cy,R,visualTime);else if(current==='semantics')nodes=drawSemantic(cx,cy,R,visualTime);else if(current==='agent')nodes=drawAgent(cx,cy,R,visualTime);else nodes=drawGlobe(cx,cy,R*.81,visualTime);canvas._nodes=nodes||[];requestAnimationFrame(frame)}requestAnimationFrame(frame);
-$('pauseViz').addEventListener('click',()=>{motion=!motion;$('pauseViz').textContent=motion?'PAUSE':'RESUME';toast(motion?'Motion resumed':'Animation paused')});$('resetViz').addEventListener('click',()=>{visualTime=0;selectedNode=0;toast('Visualization reset')});canvas.addEventListener('click',ev=>{if(current==='overview'||current==='network'){const r=canvas.getBoundingClientRect();const x=ev.clientX-r.left,y=ev.clientY-r.top;let min=1e10,idx=-1;(canvas._nodes||[]).forEach((n,i)=>{let d=(n.x-x)**2+(n.y-y)**2;if(d<min){min=d;idx=i}});if(idx>=0&&min<2100){selectedNode=idx;if(current==='overview'){selectState(FEATURED_STATES[idx]);toast('State cohort: '+FEATURED_STATES[idx])}else{inspectDomain(domains[idx],true);toast('Inspecting governed source: '+domains[idx])}}}else if(current==='quality')toast('88 rule definitions: 83 passed, 5 failed in the published run');else if(current==='agent')openDrawer()});
+$('pauseViz').addEventListener('click',()=>{motion=!motion;$('pauseViz').textContent=motion?'PAUSE':'RESUME';toast(motion?'Motion resumed':'Animation paused')});$('resetViz').addEventListener('click',()=>{visualTime=0;selectedNode=0;toast('Visualization reset')});canvas.addEventListener('click',ev=>{if(current==='overview'||current==='network'){const r=canvas.getBoundingClientRect();const x=ev.clientX-r.left,y=ev.clientY-r.top;let min=1e10,idx=-1;(canvas._nodes||[]).forEach((n,i)=>{let d=(n.x-x)**2+(n.y-y)**2;if(d<min){min=d;idx=i}});if(idx>=0&&min<2100){selectedNode=idx;if(current==='overview'){selectState(FEATURED_STATES[idx]);toast('State cohort: '+FEATURED_STATES[idx])}else{inspectDomain(domains[idx],true);toast('Inspecting governed source: '+domains[idx])}}}else if(current==='quality'){const r=qualityNearestRule(ev);if(r)qualitySelect(r.rule_id,true);else toast('Choose a verified rule dot or the list below')}else if(current==='agent')openDrawer()});
+
+function qualityNearestRule(ev){
+ if(current!=='quality'||!qualityData)return null;
+ const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;
+ let match=null,distance=240;
+ for(const node of canvas._nodes||[]){
+  const d=(node.x-x)**2+(node.y-y)**2;
+  if(d<distance){match=node.rule;distance=d;}
+ }
+ return match;
+}
+canvas.addEventListener('mousemove',ev=>{
+ const rule=qualityNearestRule(ev),tip=$('qualityTip');
+ if(!rule){tip.hidden=true;canvas.style.cursor='default';return;}
+ tip.hidden=false;canvas.style.cursor='pointer';
+ tip.textContent=rule.rule_id+' · '+(rule.observed_status||'UNOBSERVED')+' · '+rule.action+
+  (rule.observed_status==='FAILED'?' · '+rule.failed_evaluations+' failed evaluations':'');
+ const rect=canvas.getBoundingClientRect();
+ tip.style.left=Math.max(3,Math.min(rect.width-231,ev.clientX-rect.left+12))+'px';
+ tip.style.top=Math.max(3,ev.clientY-rect.top-46)+'px';
+});
+canvas.addEventListener('mouseleave',()=>{$('qualityTip').hidden=true;canvas.style.cursor='default'});
+
 const backdrop=$('backdrop'),drawer=$('drawer');function openDrawer(){backdrop.classList.add('open');drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');setTimeout(()=>$('question').focus(),300)}function closeDrawer(){backdrop.classList.remove('open');drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true')}
 $('topAsk').onclick=openDrawer;$('launchAsk').onclick=openDrawer;$('investButton').onclick=openDrawer;$('rightAction').onclick=()=>{openDrawer();$('question').value=current==='quality'?'Why were 32 source records quarantined?':current==='semantics'?'Why is delivered item GMV not revenue?':'Compare late delivery rates for RJ and SP';};$('closeDrawer').onclick=closeDrawer;backdrop.onclick=closeDrawer;
 const cases={

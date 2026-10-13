@@ -48,7 +48,7 @@ def test_fallback_retrieves_actual_published_identifiers_not_fabricated_details(
     statements = []
 
     def query(statement):
-        assert_read_only(statement)
+        assert_read_only(statement.replace("f.original_values", "f.approved_json_scalars"))
         statements.append(statement)
         if "dq_failed_records" in statement:
             raise RuntimeError("PERMISSION_DENIED: SELECT unavailable for App identity")

@@ -130,6 +130,26 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
 @media(max-width:940px){.domain-inspector-grid{grid-template-columns:1fr}.domain-inspector{padding:18px}}
 @media(max-width:620px){.domain-inspector-head{flex-direction:column}.domain-inspector .domain-ai{align-self:stretch}.domain-observations{grid-template-columns:1fr 1fr 1fr}.domain-observations strong{font-size:16px}}
 
+
+/* Run-scoped failed rule summary, separate from quarantine counts. */
+.domain-failed-rules{margin:15px 0;border:1px solid rgba(230,143,113,.3);border-radius:5px;padding:14px;background:rgba(60,38,46,.16)}
+.domain-failed-rules[hidden],.domain-rule-preview[hidden]{display:none}
+.domain-failed-rules h3{margin:0 0 8px}
+.domain-failure-note{font:10px/1.65 var(--mono);color:#a9c4d1;margin:0 0 11px}
+.domain-failure-list{display:grid;gap:8px}
+.domain-failed-card{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:11px;padding:12px;border:1px solid rgba(236,133,142,.28);background:rgba(33,41,58,.75);border-radius:4px}
+.domain-failed-card strong{display:block;overflow-wrap:anywhere;color:#f5d7df;font:600 11px/1.5 var(--mono)}
+.domain-failed-card small{display:block;margin-top:5px;font:10px/1.55 var(--mono);color:#bdadba}
+.domain-failed-count{font:700 20px/1.1 var(--mono);color:#ffd0a3;font-variant-numeric:tabular-nums;text-align:right}
+.domain-rule-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.domain-rule-actions button,.domain-preview-dismiss{padding:8px 10px;border-radius:4px;background:rgba(21,75,96,.45);border:1px solid rgba(104,195,220,.43);color:#c9f7ff;font:10px var(--mono)}
+.domain-rule-actions button:hover,.domain-rule-actions button:focus-visible,.domain-preview-dismiss:hover{background:rgba(38,118,139,.4);border-color:#8df0f2}
+.domain-rule-preview{margin-top:13px;padding:14px;background:rgba(7,27,43,.89);border:1px solid rgba(123,194,218,.35);border-radius:5px}
+.domain-rule-preview .domain-record{margin:8px 0}
+.domain-rule-preview .domain-scroll{max-height:265px}
+.domain-preview-dismiss{margin-top:10px}
+@media(max-width:620px){.domain-failed-card{align-items:flex-start}.domain-failed-count{text-align:left}}
+
 </style>
 </head>
 <body><script id="geoBoundaryData" type="application/json">{"PB":["Paraíba","M343,119L340,124L343,127L358,119L362,121L361,111L349,110L345,116L339,113L342,108L330,110L329,122L343,119Z"],"TO":["Tocantins","M251,116L251,103L241,102L246,104L237,115L236,128L225,148L225,167L229,163L227,166L235,170L240,166L242,171L250,172L251,169L264,167L264,156L260,153L267,143L262,144L256,134L261,125L256,125L251,116Z"],"MA":["Maranhão","M259,137L265,144L270,122L281,114L292,113L291,92L301,81L286,75L276,81L277,69L266,64L255,89L241,102L251,103L250,117L256,125L260,124L256,134L259,137Z"],"GO":["Goiás","M259,168L251,169L250,172L238,166L235,170L227,164L221,185L202,205L205,217L223,224L228,218L248,216L254,212L253,195L245,193L252,190L253,195L258,193L257,186L264,184L264,167L259,168Z"],"AL":["Alagoas","M334,135L333,137L348,146L359,133L344,137L337,132L334,135Z"],"PA":["Pará","M245,103L241,102L251,95L259,82L263,63L248,60L244,63L244,57L235,57L228,49L212,66L200,44L189,40L187,32L178,33L178,39L166,38L153,44L157,64L172,74L177,72L156,114L164,131L171,137L228,141L245,103Z"],"RS":["Rio Grande do Sul","M175,307L164,318L170,317L178,325L181,323L202,339L207,335L201,349L217,325L219,316L225,320L212,335L223,326L233,304L204,291L188,295L175,307Z"],"SC":["Santa Catarina","M242,286L242,281L225,281L218,287L198,283L197,291L216,294L225,302L232,303L229,310L232,310L241,302L244,294L242,286Z"],"MG":["Minas Gerais","M257,241L260,242L259,249L264,254L297,244L301,232L309,223L307,214L315,211L312,204L318,194L286,184L282,179L264,188L260,183L252,198L254,212L248,216L228,218L221,226L221,230L234,228L240,233L252,229L257,241Z"],"AM":["Amazonas","M57,87L56,93L49,91L31,100L29,111L23,117L56,123L84,140L107,133L111,124L118,124L126,132L157,132L157,113L177,72L172,74L158,65L153,53L143,53L138,63L130,61L130,69L121,62L124,58L119,38L108,38L95,49L95,46L88,48L81,45L79,36L72,40L57,40L57,46L64,49L56,50L61,65L57,87Z"],"SP":["São Paulo","M234,262L236,270L242,270L247,275L281,252L275,250L262,254L259,249L260,242L256,241L252,229L240,233L226,227L203,252L230,254L234,262Z"],"RJ":["Rio de Janeiro","M283,254L299,255L308,247L309,240L301,236L297,244L275,250L281,252L276,258L283,254Z"],"ES":["Espírito Santo","M312,236L319,226L320,215L312,211L307,214L309,223L301,236L309,240L312,236Z"],"MT":["Mato Grosso","M169,135L159,119L157,132L129,132L130,151L144,154L145,162L137,174L141,197L158,197L157,205L165,211L177,204L185,209L198,205L196,211L203,212L202,205L207,197L221,185L228,141L169,135Z"],"CE":["Ceará","M306,82L312,119L326,123L329,110L341,97L318,80L306,82Z"],"RN":["Rio Grande do Norte","M336,101L330,110L342,108L339,113L345,116L349,110L361,111L356,100L341,97L336,101Z"],"SE":["Sergipe","M347,146L334,138L337,145L333,150L338,156L347,146Z"],"BA":["Bahia","M330,133L323,129L312,138L307,131L293,139L287,136L281,147L274,150L267,143L260,153L264,156L261,160L264,188L282,179L286,184L301,186L305,192L315,192L318,195L312,206L320,215L325,209L327,193L326,170L340,155L336,155L333,150L337,145L330,133Z"],"PR":["Paraná","M219,286L225,281L242,281L245,272L236,270L230,254L203,252L192,265L190,278L195,278L198,283L219,286Z"],"MS":["Mato Grosso do Sul","M163,208L165,214L159,227L160,247L179,249L183,264L193,264L212,244L222,224L196,211L198,205L193,209L177,204L165,211L163,208Z"],"PE":["Pernambuco","M346,136L359,133L362,121L358,119L343,127L341,118L325,123L312,119L312,126L305,131L312,138L323,129L332,136L337,132L346,136Z"],"PI":["Piauí","M266,139L265,145L268,143L274,150L284,145L284,137L300,136L312,126L314,114L306,97L305,80L301,79L291,92L291,114L283,114L270,122L265,133L266,139Z"],"AP":["Amapá","M220,21L216,16L205,36L188,34L189,40L200,44L212,66L231,46L220,21Z"],"RO":["Rondônia","M130,151L130,133L118,124L111,124L107,133L98,137L87,137L84,140L96,140L97,155L105,163L137,174L145,162L143,152L130,151Z"],"RR":["Roraima","M144,24L147,21L142,16L141,9L117,24L101,19L107,25L108,33L119,38L124,58L121,62L130,69L130,61L138,63L143,53L153,53L152,44L144,34L144,24Z"],"AC":["Acre","M39,121L23,117L21,121L30,133L28,137L36,138L37,142L52,137L51,151L69,152L85,141L68,134L56,123L39,121Z"],"DF":["Distrito Federal","M247,195L253,195L253,191L246,190L247,195Z"]}</script>
@@ -172,6 +192,17 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
   <article class="domain-panel"><h3>Published governance evidence</h3>
    <p class="domain-inspector-sub" id="domainStatus" role="status">Choose a domain to load evidence.</p>
    <div class="domain-observations" id="domainObservations"></div>
+    <section class="domain-failed-rules" id="domainFailedRules" hidden aria-label="Failed rules in the published run">
+     <h3>Failed rules in selected source</h3>
+     <p class="domain-failure-note">Failed evaluations are rule checks, not distinct quarantined records. WARN findings are not automatically excluded.</p>
+     <div id="domainFailureList" class="domain-failure-list"></div>
+     <div class="domain-rule-preview" id="domainRulePreview" hidden>
+      <h3 id="domainPreviewTitle">Affected-record sample</h3>
+      <p id="domainPreviewStatus" class="domain-failure-note" role="status"></p>
+      <div id="domainPreviewRecords" class="domain-scroll"></div>
+      <button type="button" id="domainPreviewClose" class="domain-preview-dismiss">Close preview</button>
+     </div>
+    </section>
    <div class="domain-inspector-grid" style="grid-template-columns:1fr 1fr;gap:12px">
     <div><h3>Field dictionary</h3><div class="domain-scroll" id="domainFields"></div></div>
     <div><h3>Quality rules &amp; outcomes</h3><div class="domain-scroll" id="domainRules"></div></div>
@@ -373,7 +404,7 @@ const DOMAIN_LABELS={
  reviews:'Reviews',products:'Products',sellers:'Sellers',geo:'Geolocation',
  translations:'Translations'
 };
-let inspectedDomain='orders',domainContractData=null,domainLoadSequence=0,domainInvestigationPrompt='',domainPromptDomain=null;
+let inspectedDomain='orders',domainContractData=null,domainLoadSequence=0,domainInvestigationPrompt='',domainPromptDomain=null,domainRulePrompt='',domainPreviewSequence=0;
 const domainPicker=$('domainPicker');
 for(const domain of domains){
  const btn=document.createElement('button');btn.type='button';btn.dataset.domain=domain;
@@ -430,6 +461,88 @@ function renderDomainContract(d){
  }
  put('domainSources','Source contracts: '+d.metadata_origin+'. '+d.relationship_scope);
 }
+
+function investigateFailedRule(rule,runId,dataset){
+ domainRulePrompt='For the active published Olist run '+runId+
+  ', investigate the observed failure of rule '+rule.rule_id+
+  ' in dataset '+dataset+'. The governed result recorded '+rule.failed_evaluations+
+  ' failed rule evaluations and configured action '+rule.action+'. Explain the '+
+  'rule and its actual published outcome using run-scoped failed_rules and rule_dictionary. '+
+  'Distinguish WARN findings from QUARANTINE exclusions; never equate evaluations '+
+  'with distinct excluded records or invent causal impact. Cite sources.';
+ domainInvestigationPrompt='';domainPromptDomain=null;
+ $('question').value=domainRulePrompt;openDrawer();
+ toast('Rule-specific quality investigation ready to ask');
+}
+async function inspectFailedRuleRecords(rule,runId,dataset){
+ const token=++domainPreviewSequence,box=$('domainRulePreview');
+ box.hidden=false;put('domainPreviewTitle',rule.rule_id+' · affected-record sample');
+ put('domainPreviewStatus','Retrieving up to 20 published-run source record identifiers…');
+ $('domainPreviewRecords').replaceChildren();
+ box.scrollIntoView({behavior:'smooth',block:'nearest'});
+ try{
+  const url='/api/nexus/domains/'+encodeURIComponent(inspectedDomain)+
+   '/failed-rules/'+encodeURIComponent(rule.rule_id)+'/records';
+  const response=await fetch(url,{credentials:'same-origin',cache:'no-store'});
+  if(!response.ok)throw Error('Unable to retrieve governed failed-record sample (HTTP '+response.status+')');
+  const evidence=await response.json();
+  if(token!==domainPreviewSequence||dataset!==domainContractData?.dataset)return;
+  if(evidence.dataset!==dataset||evidence.rule_id!==rule.rule_id||evidence.published_run!==runId)
+   throw Error('Unexpected source, rule or run in returned evidence');
+  const rows=evidence.record_preview||[];
+  put('domainPreviewStatus','Published rule: '+evidence.configured_action+
+   ' · '+Number(evidence.failed_evaluations).toLocaleString('en-US')+
+   ' failed evaluations. Showing '+rows.length+' example identifiers (maximum '+
+   evidence.preview_limit+'), not a complete export or raw row payloads.');
+  const panel=$('domainPreviewRecords');
+  if(!rows.length)domainRecord(panel,'No record examples available',
+   'The rule status remains published, but this read-only preview returned no individual identifiers.','','');
+  for(const record of rows)domainRecord(panel,record.source_record_id,
+    record.failure_reason||'Record flagged by governed rule',
+    'Recorded action: '+record.record_action,'');
+ }catch(err){
+  if(token!==domainPreviewSequence)return;
+  put('domainPreviewStatus',(err?.message||'Failed-record preview unavailable')+
+   '. No record-level claims are inferred.');
+ }
+}
+$('domainPreviewClose').addEventListener('click',()=>{
+ ++domainPreviewSequence;$('domainRulePreview').hidden=true;
+ $('domainPreviewRecords').replaceChildren();
+});
+function renderFailedRuleSummary(e){
+ $('domainFailedRules').hidden=false;
+ const failures=e.rules.filter(r=>r.observed_status==='FAILED')
+  .sort((a,b)=>(b.failed_evaluations||0)-(a.failed_evaluations||0)||a.rule_id.localeCompare(b.rule_id));
+ const panel=$('domainFailureList');panel.replaceChildren();
+ if(!failures.length){
+  domainRecord(panel,'No FAILED rule definitions',
+    e.distinct_quarantined_source_rows?
+     'Distinct excluded records may result from an upstream accepted-parent cascade; the cause is not established from this count.':
+     'No failed rules or quarantined source records in this domain.',
+    'Published run '+e.published_run,'pass');
+  return;
+ }
+ for(const rule of failures){
+  const card=document.createElement('article');card.className='domain-failed-card';
+  const info=document.createElement('div');
+  const title=document.createElement('strong');title.textContent=rule.rule_id;
+  const detail=document.createElement('small');detail.textContent=
+   'FAILED · '+rule.action+' · '+rule.description;info.append(title,detail);
+  const side=document.createElement('div');
+  const count=document.createElement('div');count.className='domain-failed-count';
+  count.textContent=Number(rule.failed_evaluations).toLocaleString('en-US');
+  count.setAttribute('aria-label',rule.failed_evaluations+' failed rule evaluations');
+  const buttons=document.createElement('div');buttons.className='domain-rule-actions';
+  const preview=document.createElement('button');preview.type='button';
+  preview.textContent='View affected records';
+  preview.addEventListener('click',()=>inspectFailedRuleRecords(rule,e.published_run,e.dataset));
+  const ask=document.createElement('button');ask.type='button';ask.textContent='Explain with AI';
+  ask.addEventListener('click',()=>investigateFailedRule(rule,e.published_run,e.dataset));
+  buttons.append(preview,ask);side.append(count,buttons);card.append(info,side);panel.appendChild(card);
+ }
+}
+
 function renderDomainEvidence(e){
  put('domainStatus','SQL verified against the active published run '+e.published_run+'. Rule definitions and observed outcomes are shown separately.');
  const metrics=$('domainObservations');metrics.replaceChildren();
@@ -442,6 +555,7 @@ function renderDomainEvidence(e){
   const tile=document.createElement('div');const label=document.createElement('small');const number=document.createElement('strong');
   label.textContent=name;number.textContent=String(val);tile.append(label,number);metrics.appendChild(tile);
  }
+ renderFailedRuleSummary(e);
  const fields=$('domainFields');fields.replaceChildren();
  if(!e.fields.length)domainRecord(fields,'No field dictionary entries returned','The source contract above is still available.','','');
  for(const field of e.fields){
@@ -463,7 +577,9 @@ function renderDomainEvidence(e){
 async function inspectDomain(domain,scrollToDetails=false){
  if(!domains.includes(domain))return;
  inspectedDomain=domain;selectedNode=domains.indexOf(domain);
+ domainRulePrompt='';
  const currentRequest=++domainLoadSequence;
+ ++domainPreviewSequence;
  $('domainInspector').hidden=false;
  if(scrollToDetails)$('domainInspector').scrollIntoView({behavior:'smooth',block:'start'});
  document.querySelectorAll('#domainPicker button').forEach(b=>{
@@ -482,6 +598,8 @@ async function inspectDomain(domain,scrollToDetails=false){
  $('domainContract').replaceChildren();$('domainRelations').replaceChildren();
  $('domainFields').replaceChildren();$('domainRules').replaceChildren();
  $('domainObservations').replaceChildren();
+ $('domainFailureList').replaceChildren();$('domainFailedRules').hidden=true;
+ $('domainPreviewRecords').replaceChildren();$('domainRulePreview').hidden=true;
  put('domainName',(DOMAIN_LABELS[domain]||domain)+' / loading contract');
  put('domainSubtitle','Loading the approved source registry…');
  put('domainStatus','Waiting for the source contract.');
@@ -622,7 +740,7 @@ let sequence=0,receiptText='';function escapeText(s){return String(s).replace(/[
    flush();
  }
 async function runRealNexusQuestion(question){
-  const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='AGENT EXECUTING · LIVE';const selectedDomain=question===domainInvestigationPrompt?domainPromptDomain:null;const questionScope=selectedDomain?'ALL':agentStateScope(question);receiptText='';put('agentPlaybackLabel','LIVE AGENT / REQUEST IN PROGRESS');
+  const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='AGENT EXECUTING · LIVE';const selectedDomain=question===domainInvestigationPrompt?domainPromptDomain:null;const questionScope=selectedDomain||question===domainRulePrompt?'ALL':agentStateScope(question);receiptText='';put('agentPlaybackLabel','LIVE AGENT / REQUEST IN PROGRESS');
   $('steps').replaceChildren();$('answerBox').style.display='block';$('answerBox').textContent='Reasoning over governed SQL and AI Search…';
   $('evidenceItems').replaceChildren();$('submitAsk').disabled=true;
   try{

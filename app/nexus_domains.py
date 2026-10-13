@@ -215,11 +215,24 @@ def failed_record_preview_sql(dataset: str, rule_id: str) -> str:
                 ", get_json_object(f.original_values, '$.order_delivered_carrier_date') AS carrier_handoff_at"
                 ", get_json_object(f.original_values, '$.order_delivered_customer_date') AS delivered_at"
             )
+    # The two observed Products category WARN rules can be explained from
+    # precisely two fields: the real product key and its Portuguese category.
+    # This does not read customer data or perform a new translation lookup:
+    # the FK failure itself was verified against the source translation table
+    # by the quality engine at publication time.
+    product_fields = ""
+    if dataset == "products" and rule_id in (
+        "products.category", "products.fk_product_category_name"
+    ):
+        product_fields = (
+            ", get_json_object(f.original_values, '$.product_id') AS original_product_id"
+            ", get_json_object(f.original_values, '$.product_category_name') AS original_category_name"
+        )
     return (
         "SELECT p.run_id AS published_run, r.dataset, r.rule_id, "
         "r.action AS rule_action, r.records_failed AS failed_evaluations, "
         "f.source_record_id, f.failure_reason, f.action AS record_action "
-        f"{order_fields} "
+        f"{order_fields}{product_fields} "
         f"FROM {RESULT_TABLE} r "
         f"JOIN {PUBLISHED_TABLE} p ON r.run_id = p.run_id "
         f"LEFT JOIN {FAILED_RECORD_TABLE} f "
@@ -351,6 +364,63 @@ def recorded_lifecycle_evidence(row: dict) -> dict:
     return {"recorded_timestamps": stages, "chronology_violations": problems}
 
 
+
+def product_category_evidence(rule_id: str, row: dict) -> dict:
+    """Explain only the actual published Products category predicate.
+
+    The product category translation rule uses an optional FK: it flags a
+    non-null Portuguese category key that was absent from the evaluated
+    translation source. A non-match must not be labelled a missing category,
+    nor interpreted as a blocked/removed product.
+    """
+    if rule_id not in ("products.category", "products.fk_product_category_name"):
+        raise ValueError("Unsupported category rule")
+
+    raw_value = row.get("original_category_name")
+    value = str(raw_value) if raw_value is not None else None
+    if rule_id == "products.category":
+        if value is None:
+            condition, reason = (
+                "NULL_CATEGORY",
+                "product_category_name was NULL in this source record."
+            )
+        elif value == "":
+            condition, reason = (
+                "EMPTY_CATEGORY",
+                "product_category_name was the empty string in this source record."
+            )
+        else:
+            condition, reason = (
+                "SOURCE_VALUE_CONFLICT",
+                "The stored category value is present despite the recorded "
+                "missing-category rule failure; review the published record."
+            )
+    elif value is not None and value != "":
+        condition = "MISSING_TRANSLATION_REFERENCE"
+        reason = (
+            "The Portuguese category key had no matching "
+            "translation.product_category_name when this rule ran. "
+            "The English category label is not available from this "
+            "failure record."
+        )
+    else:
+        condition = "SOURCE_VALUE_CONFLICT"
+        reason = (
+            "The stored category key is NULL or empty, inconsistent with the "
+            "foreign-key predicate's non-null requirement. Review the "
+            "published record; no translation mismatch is inferred."
+        )
+    return {
+        "original_category_name": value,
+        "category_condition": condition,
+        "category_explanation": reason,
+        "evaluation_basis": (
+            "Observed published-run quality rule and original product category "
+            "scalar; not a new join against the current translation table."
+        ),
+    }
+
+
 def _failed_record_example(dataset: str, rule_id: str, row: dict) -> dict:
     record = {
         "source_record_id": str(row["source_record_id"]),
@@ -365,6 +435,13 @@ def _failed_record_example(dataset: str, rule_id: str, row: dict) -> dict:
             field in row for field, _ in LIFECYCLE_STAGES
         ):
             record.update(recorded_lifecycle_evidence(row))
+    elif dataset == "products" and rule_id in (
+        "products.category", "products.fk_product_category_name"
+    ) and "original_category_name" in row:
+        original_product_id = row.get("original_product_id")
+        if original_product_id:
+            record["original_product_id"] = str(original_product_id)
+        record.update(product_category_evidence(rule_id, row))
     return record
 
 

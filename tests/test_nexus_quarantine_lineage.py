@@ -1,5 +1,6 @@
 """Read-only published quarantine lineage, with verified parent-order matches."""
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -42,7 +43,14 @@ def test_lineage_query_select_only_run_scoped_and_bounded(dataset):
     sql = quarantine_lineage_sql(dataset)
     # General AI SQL has no access to raw source JSON. Fixed app SQL limits
     # reads to the approved scalar order_id under an allowlisted dataset.
-    assert_read_only(sql.replace("original_values", "approved_order_id_json"))
+    # The general LLM guard intentionally permits only SELECT statements.
+    # This fixed, code-owned application query uses a read-only CTE. Keep the
+    # model SQL guard unchanged and validate the CTE's restricted shape here.
+    assert sql.startswith("WITH parent_orders AS (SELECT ")
+    safe_sql = sql.replace("original_values", "approved_order_id_json")
+    assert ";" not in safe_sql and "--" not in safe_sql and "/*" not in safe_sql
+    assert not re.search(r"\b(INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|MERGE|COPY|GRANT|REVOKE|EXECUTE)\b", safe_sql, re.I)
+    assert safe_sql.count(" SELECT ") >= 1
     assert "workspace.olist_agentic_quality.quarantine" in sql
     assert "workspace.olist_agentic_quality.published_run" in sql
     assert "p.run_id = q.run_id" in sql

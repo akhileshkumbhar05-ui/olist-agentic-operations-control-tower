@@ -14,6 +14,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.4,<9",
+  "fastapi>=0.115,<1",
 ]
 
 [tool.setuptools.packages.find]

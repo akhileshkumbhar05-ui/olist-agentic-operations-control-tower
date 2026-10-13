@@ -330,9 +330,9 @@ async function runRealNexusQuestion(question){
     const selections=data.evidence?.model_selected_tools||[];
     const gen=data.generation==='agentic_tool_calling'?'AI TOOL CALLING':'DETERMINISTIC FALLBACK';
     $('runStatus').textContent=gen+' · REAL RESPONSE';
-    const evidence=[['Question sent',question],['State context',questionScope],['Published run',data.published_run||'Not returned'],['Executed SQL tools',tools.join(', ')||'None'],['Model-selected tools',selections.join(', ')||'None'],['SQL verified correction',data.evidence?.answer_validation==='sql_verified_quality_repair'?'Yes':'No']];
+    const evidence=[['Question sent',question],['State context',questionScope],['Purchase-date filter',data.context?.start_date||data.context?.end_date?((data.context?.start_date||'…')+' → '+(data.context?.end_date||'…')):'No explicit period'],['Published run',data.published_run||'Not returned'],['Executed SQL tools',tools.join(', ')||'None'],['Model-selected tools',selections.join(', ')||'None'],['SQL verified correction',data.evidence?.answer_validation==='sql_verified_quality_repair'?'Yes':'No']];
     for(const [label,value] of evidence){const row=document.createElement('div');row.className='evidence-item';row.textContent=label+' · '+value;$('evidenceItems').appendChild(row)}
-    receiptText=JSON.stringify({question,requested_state:questionScope,generation:data.generation,published_run:data.published_run,evidence:data.evidence},null,2);
+    receiptText=JSON.stringify({question,requested_state:questionScope,context:data.context,generation:data.generation,published_run:data.published_run,evidence:data.evidence},null,2);
   }catch(err){$('runStatus').textContent='LIVE REQUEST FAILED';$('answerBox').textContent=err?.message||'Could not reach the agent';put('agentPlaybackLabel','LIVE AGENT / REQUEST ERROR');receiptText='';}
   finally{$('submitAsk').disabled=false;}
 }

@@ -69,6 +69,13 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
 #statePaths path{fill:#1c4762;stroke:#70bfd6;stroke-width:1;stroke-linejoin:round;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .16s ease,stroke .16s ease,filter .16s ease}
 #statePaths path:hover,#statePaths path:focus-visible{fill:#3488a9;stroke:#b1fcff;stroke-width:1.5;filter:drop-shadow(0 0 5px rgba(114,235,246,.46));outline:none}
 #statePaths path.selected,#statePaths path[aria-pressed="true"]{fill:#4bb9ca;stroke:#dbffff;stroke-width:1.7;filter:drop-shadow(0 0 5px rgba(100,239,243,.45))}
+
+/* State-code labels are SVG annotations, not additional hit targets. */
+#stateLabels{pointer-events:none}
+#stateLabels .map-state-code{font:700 10.5px var(--mono);letter-spacing:.03em;text-anchor:middle;dominant-baseline:middle;fill:#f2fbff;stroke:#082137;stroke-width:3px;stroke-linejoin:round;paint-order:stroke fill;pointer-events:none;user-select:none}
+#stateLabels .map-state-code.callout{font-size:10px;fill:#a8f9f5}
+#stateLabels .map-state-code.active{fill:#fff;stroke:#116279;stroke-width:3.5px;filter:drop-shadow(0 0 4px rgba(133,253,250,.75))}
+#stateLabels .map-state-leader{stroke:#9addf1;stroke-width:1;stroke-linecap:round;fill:none;opacity:.83;pointer-events:none}
 .map-tooltip{position:absolute;bottom:15px;left:17px;max-width:48%;padding:7px 10px;border:1px solid rgba(113,200,226,.28);border-radius:4px;background:rgba(7,29,46,.87);color:#ccf7fa;font:10px var(--mono);pointer-events:none}
 .map-source{position:absolute;right:16px;bottom:17px;max-width:46%;color:#718fa8;font:9px/1.4 var(--mono);text-align:right;pointer-events:none}
 .geo-intel{display:flex;flex-direction:column;min-width:0;padding:19px;border:1px solid rgba(110,185,214,.17);border-radius:7px;background:rgba(6,24,42,.7)}
@@ -130,7 +137,7 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
   <div class="live-tagline"><span>NATIVE DATABRICKS DASHBOARD / PUBLISHED SOURCE</span><span><b>AUTHENTICATED VIEW</b> · NO RECREATED CHARTS</span></div>
   <section class="geo-explorer" id="geoExplorer" aria-label="Interactive Brazil state explorer">
   <div class="geo-header"><div><span class="geo-kicker">GEOSPATIAL INTELLIGENCE // BRAZIL</span><h2>Explore operational performance <em>by state.</em></h2><p>Choose any of Brazil's 27 federal units to view governed state-level KPIs above the unmodified Databricks AI/BI dashboard.</p></div><button id="toggleGeo" type="button" aria-expanded="true">Hide state explorer ↑</button></div>
-  <div class="geo-content" id="geoContent"><div class="geo-map-wrap"><svg id="brazilMap" viewBox="5 0 380 365" role="img" aria-label="Interactive map of Brazil's 26 states and Federal District"><defs><radialGradient id="mapGlow"><stop offset="0%" stop-color="#2b7a9e" stop-opacity="0.28"/><stop offset="100%" stop-color="#0b162d" stop-opacity="0"/></radialGradient></defs><circle cx="190" cy="180" r="175" fill="url(#mapGlow)"/><g id="statePaths" role="group" aria-label="Select a state"></g></svg><div id="mapTooltip" class="map-tooltip" aria-live="polite">Select a state</div><div class="map-source">Simplified IBGE-derived state outlines · illustrative geography</div></div>
+  <div class="geo-content" id="geoContent"><div class="geo-map-wrap"><svg id="brazilMap" viewBox="5 0 380 365" role="img" aria-label="Interactive map of Brazil's 26 states and Federal District"><defs><radialGradient id="mapGlow"><stop offset="0%" stop-color="#2b7a9e" stop-opacity="0.28"/><stop offset="100%" stop-color="#0b162d" stop-opacity="0"/></radialGradient></defs><circle cx="190" cy="180" r="175" fill="url(#mapGlow)"/><g id="statePaths" role="group" aria-label="Select a state"></g><g id="stateLabels" aria-hidden="true"></g></svg><div id="mapTooltip" class="map-tooltip" aria-live="polite">Select a state</div><div class="map-source">Simplified IBGE-derived state outlines · illustrative geography</div></div>
   <div class="geo-intel"><div class="geo-headline"><div><span>ACTIVE COHORT</span><strong id="mapStateName">Brazil · All states</strong></div><button id="mapReset" type="button">RESET ↺</button></div><div class="geo-numbers"><div><span>ACCEPTED ORDERS</span><strong id="mapAccepted">99,433</strong></div><div><span>DELIVERED ORDERS</span><strong id="mapDelivered">96,470</strong></div><div><span>DELIVERED ITEM GMV</span><strong id="mapGmv">BRL 13.22M</strong></div><div><span>LATE DELIVERY RATE</span><strong id="mapLate">6.77%</strong></div></div><div class="geo-readiness" id="mapEvidence">Nationwide published-run figures. State details load from governed SQL when NEXUS is deployed.</div><button id="returnHolo" type="button" class="outlinebtn primary">Return to 3D Intelligence ↗</button></div></div>
 </section>
 <div class="native-shell"><iframe id="nativeDashboard" title="Olist Agentic Operations Control Tower published Databricks AI/BI dashboard" allow="fullscreen" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
@@ -163,6 +170,7 @@ function selectState(uf){
  put('cohortContext',label.toUpperCase());put('mapStateName',label);
  document.querySelectorAll('.cohort-select').forEach(b=>b.classList.toggle('active',b.dataset.uf===uf));
  document.querySelectorAll('#statePaths path[data-uf]').forEach(p=>{p.classList.toggle('selected',p.dataset.uf===uf);p.setAttribute('aria-pressed',String(p.dataset.uf===uf))});
+ document.querySelectorAll('#stateLabels text[data-uf]').forEach(t=>t.classList.toggle('active',t.dataset.uf===uf));
  put('nexusKpiLabel1','Accepted orders');put('nexusKpiValue1',comma(row?.accepted_orders));
  put('nexusKpiNote1',uf==='ALL'?'Nationwide order-level population':'Selected state · accepted orders');
  put('nexusKpiLabel2','Delivered orders');put('nexusKpiValue2',comma(row?.delivered_orders));
@@ -190,6 +198,36 @@ async function loadNexusStateData(){
   dataConnected=true;put("nexusRuntime","LIVE GOVERNED SQL");selectState(activeState);
  }catch(e){put('mapEvidence','Live SQL metrics unavailable. National metrics and verified RJ/SP reference rates remain visible.');}
 }
+/* Fixed placements align to the embedded simplified state boundaries.
+   Coastal microstates and DF are called out to prevent unreadable overlap. */
+const STATE_CODE_POSITIONS={
+ AC:[52,135],AL:[374,146,345,138],AM:[103,91],AP:[213,42],
+ BA:[302,164],CE:[320,100],DF:[274,194,250,193],ES:[337,222,312,225],
+ GO:[233,195],MA:[270,99],MG:[277,218],MS:[188,232],MT:[179,168],
+ PA:[203,90],PB:[374,114,345,117],PE:[374,130,335,128],PI:[291,119],
+ PR:[214,270],RJ:[321,253,295,248],RN:[374,98,346,106],
+ RO:[118,150],RR:[131,38],RS:[201,314],SC:[226,293],SE:[374,162,339,148],
+ SP:[241,250],TO:[245,145]
+};
+function renderStateCodes(ns){
+ const labels=$('stateLabels');labels.replaceChildren();
+ for(const [uf,place] of Object.entries(STATE_CODE_POSITIONS)){
+  if(!stateShapes[uf])continue;
+  const [x,y,px,py]=place;
+  if(px!==undefined){
+   const guide=document.createElementNS(ns,'line');
+   guide.setAttribute('class','map-state-leader');
+   guide.setAttribute('x1',px);guide.setAttribute('y1',py);
+   guide.setAttribute('x2',x+(x>px?-9:9));guide.setAttribute('y2',y);
+   labels.appendChild(guide);
+  }
+  const code=document.createElementNS(ns,'text');
+  code.setAttribute('x',x);code.setAttribute('y',y);
+  code.setAttribute('class','map-state-code'+(px!==undefined?' callout':''));
+  code.setAttribute('data-uf',uf);code.textContent=uf;
+  labels.appendChild(code);
+ }
+}
 async function loadBrazilMap(){
  try{let payload;const base=new URL(location.protocol==='file:'?'br_states_paths.json':'/nexus/br_states_paths.json',location.href);const inlineData=$('geoBoundaryData');if(inlineData){payload=JSON.parse(inlineData.textContent)}else{const r=await fetch(base);if(!r.ok)throw Error('Could not load local map boundaries');payload=await r.json();}
   stateShapes=payload;
@@ -204,6 +242,7 @@ async function loadBrazilMap(){
     el.addEventListener('pointerleave',()=>put('mapTooltip',nameOf(activeState)));
     group.appendChild(el);
   }
+  renderStateCodes(ns);
   selectState(activeState);
  }catch(e){put('mapTooltip','Map unavailable');put('mapEvidence','Map boundaries could not load. Cohort metrics are still available in deployed NEXUS.');}
 }

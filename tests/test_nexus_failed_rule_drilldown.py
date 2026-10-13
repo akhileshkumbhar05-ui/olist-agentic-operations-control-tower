@@ -149,7 +149,7 @@ def test_sql_error_returns_503_without_fake_records(monkeypatch):
     with pytest.raises(HTTPException) as error:
         failed_rule_records("orders", "orders.lifecycle")
     assert error.value.status_code == 503
-    assert "No record preview is shown" in error.value.detail
+    assert "Neither detailed failed records nor published rule-result samples" in error.value.detail
 
 
 def test_ui_failed_summary_record_drilldown_and_ai_actions():

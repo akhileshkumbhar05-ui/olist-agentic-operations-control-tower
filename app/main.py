@@ -193,6 +193,16 @@ def config():
             "semantic_search_configured": bool(os.getenv("DATABRICKS_GOVERNANCE_SEARCH_INDEX"))}
 
 
+# Optional alternate frontend: the existing '/' route and all APIs stay unchanged.
+from app.nexus_api import router as nexus_router
+app.include_router(nexus_router)
+
+
+@app.get("/nexus", response_class=HTMLResponse, include_in_schema=False)
+def nexus_home():
+    return (ROOT / "app" / "static" / "nexus.html").read_text(encoding="utf-8")
+
+
 @app.get("/", response_class=HTMLResponse)
 def home():
     return (ROOT / "app" / "static" / "index.html").read_text(encoding="utf-8")

@@ -95,6 +95,41 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
 @media(max-width:620px){.geo-header{flex-direction:column;align-items:flex-start;padding:19px 16px 16px;gap:15px}.geo-content{padding:14px 16px 18px;gap:14px}.geo-map-wrap{min-height:270px}#brazilMap{max-width:390px;max-height:340px;padding:7px}.geo-intel{padding:14px}.map-tooltip{left:9px;bottom:8px}.map-source{right:9px;bottom:8px}}
 @media(max-width:390px){.geo-numbers{grid-template-columns:1fr}.geo-numbers>div{padding:11px}.map-source{position:static;max-width:unset;padding:0 8px 9px;text-align:center}.map-tooltip{max-width:65%}}
 
+
+/* Data Constellation inspector: published evidence separated from source contracts. */
+.domain-inspector{scroll-margin-top:22px;border:1px solid rgba(107,215,226,.33);background:linear-gradient(125deg,rgba(10,37,55,.95),rgba(5,20,37,.97));border-radius:7px;margin:14px 0;padding:21px 23px;box-shadow:0 0 33px rgba(45,144,175,.06)}
+.domain-inspector[hidden]{display:none}
+.domain-inspector-head{display:flex;align-items:flex-start;justify-content:space-between;gap:17px;padding-bottom:16px;border-bottom:1px solid rgba(114,176,204,.2)}
+.domain-inspector-kicker{font:10px var(--mono);letter-spacing:.16em;color:var(--cyan);text-transform:uppercase}
+.domain-inspector h2{font-size:23px;letter-spacing:-.03em;margin:7px 0;color:#e6f6ff;font-weight:640}
+.domain-inspector-sub{font-size:11px;line-height:1.65;color:#93b7cd;margin:0;max-width:640px}
+.domain-inspector .domain-ai{white-space:nowrap;align-self:center}
+.domain-picker{display:flex;flex-wrap:wrap;gap:7px;margin:17px 0}
+.domain-picker button{padding:9px 11px;background:rgba(10,40,60,.7);border:1px solid rgba(101,165,203,.25);border-radius:4px;color:#a7cfe2;font:10px var(--mono);transition:.17s}
+.domain-picker button:hover,.domain-picker button:focus-visible{border-color:#8af1f1;color:#e6ffff}
+.domain-picker button.active{border-color:#79e9ec;background:rgba(52,143,159,.28);color:#eaffff;box-shadow:inset 0 0 16px rgba(74,187,205,.1)}
+.domain-inspector-grid{display:grid;grid-template-columns:minmax(0,.96fr) minmax(0,1.12fr);gap:15px}
+.domain-panel{border:1px solid rgba(122,187,218,.16);background:rgba(4,20,36,.65);padding:16px;min-width:0;border-radius:5px}
+.domain-panel h3{font:11px var(--mono);color:#80e3eb;letter-spacing:.12em;text-transform:uppercase;margin:0 0 13px}
+.domain-fact{border-bottom:1px solid rgba(118,183,204,.13);padding:10px 0}
+.domain-fact:last-child{border-bottom:none}
+.domain-fact small{display:block;color:#7ba2b9;font:9px var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.domain-fact strong{display:block;color:#dceffd;font-size:12px;font-weight:570;line-height:1.65;overflow-wrap:anywhere}
+.domain-fact p{color:#a6c3d2;font-size:11px;line-height:1.65;margin:0}
+.domain-scroll{max-height:267px;overflow-y:auto;scrollbar-color:#2c647b transparent;display:grid;gap:7px}
+.domain-record{border:1px solid rgba(114,180,203,.18);background:rgba(17,52,72,.45);padding:10px 11px}
+.domain-record b{color:#d7f6ff;font-size:11px;font-weight:650;overflow-wrap:anywhere}
+.domain-record p{margin:5px 0 0;color:#acc7d7;font-size:11px;line-height:1.55;overflow-wrap:anywhere}
+.domain-record small{display:block;font:9px/1.5 var(--mono);color:#78abba;margin-top:5px;overflow-wrap:anywhere}
+.domain-record .fail{color:#ff9dae}.domain-record .pass{color:#7fe0c9}.domain-record .not-evaluated{color:#e9c991}
+.domain-source-note{font:10px/1.7 var(--mono);color:#86acc0;margin:13px 0 0;overflow-wrap:anywhere}
+.domain-observations{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.domain-observations div{border:1px solid rgba(127,195,209,.18);background:rgba(23,62,81,.25);padding:12px 10px}
+.domain-observations small{display:block;color:#8aafc0;font:9px/1.4 var(--mono);letter-spacing:.04em}
+.domain-observations strong{display:block;color:#d5f9ff;font-size:20px;margin-top:6px}
+@media(max-width:940px){.domain-inspector-grid{grid-template-columns:1fr}.domain-inspector{padding:18px}}
+@media(max-width:620px){.domain-inspector-head{flex-direction:column}.domain-inspector .domain-ai{align-self:stretch}.domain-observations{grid-template-columns:1fr 1fr 1fr}.domain-observations strong{font-size:16px}}
+
 </style>
 </head>
 <body><script id="geoBoundaryData" type="application/json">{"PB":["Paraíba","M343,119L340,124L343,127L358,119L362,121L361,111L349,110L345,116L339,113L342,108L330,110L329,122L343,119Z"],"TO":["Tocantins","M251,116L251,103L241,102L246,104L237,115L236,128L225,148L225,167L229,163L227,166L235,170L240,166L242,171L250,172L251,169L264,167L264,156L260,153L267,143L262,144L256,134L261,125L256,125L251,116Z"],"MA":["Maranhão","M259,137L265,144L270,122L281,114L292,113L291,92L301,81L286,75L276,81L277,69L266,64L255,89L241,102L251,103L250,117L256,125L260,124L256,134L259,137Z"],"GO":["Goiás","M259,168L251,169L250,172L238,166L235,170L227,164L221,185L202,205L205,217L223,224L228,218L248,216L254,212L253,195L245,193L252,190L253,195L258,193L257,186L264,184L264,167L259,168Z"],"AL":["Alagoas","M334,135L333,137L348,146L359,133L344,137L337,132L334,135Z"],"PA":["Pará","M245,103L241,102L251,95L259,82L263,63L248,60L244,63L244,57L235,57L228,49L212,66L200,44L189,40L187,32L178,33L178,39L166,38L153,44L157,64L172,74L177,72L156,114L164,131L171,137L228,141L245,103Z"],"RS":["Rio Grande do Sul","M175,307L164,318L170,317L178,325L181,323L202,339L207,335L201,349L217,325L219,316L225,320L212,335L223,326L233,304L204,291L188,295L175,307Z"],"SC":["Santa Catarina","M242,286L242,281L225,281L218,287L198,283L197,291L216,294L225,302L232,303L229,310L232,310L241,302L244,294L242,286Z"],"MG":["Minas Gerais","M257,241L260,242L259,249L264,254L297,244L301,232L309,223L307,214L315,211L312,204L318,194L286,184L282,179L264,188L260,183L252,198L254,212L248,216L228,218L221,226L221,230L234,228L240,233L252,229L257,241Z"],"AM":["Amazonas","M57,87L56,93L49,91L31,100L29,111L23,117L56,123L84,140L107,133L111,124L118,124L126,132L157,132L157,113L177,72L172,74L158,65L153,53L143,53L138,63L130,61L130,69L121,62L124,58L119,38L108,38L95,49L95,46L88,48L81,45L79,36L72,40L57,40L57,46L64,49L56,50L61,65L57,87Z"],"SP":["São Paulo","M234,262L236,270L242,270L247,275L281,252L275,250L262,254L259,249L260,242L256,241L252,229L240,233L226,227L203,252L230,254L234,262Z"],"RJ":["Rio de Janeiro","M283,254L299,255L308,247L309,240L301,236L297,244L275,250L281,252L276,258L283,254Z"],"ES":["Espírito Santo","M312,236L319,226L320,215L312,211L307,214L309,223L301,236L309,240L312,236Z"],"MT":["Mato Grosso","M169,135L159,119L157,132L129,132L130,151L144,154L145,162L137,174L141,197L158,197L157,205L165,211L177,204L185,209L198,205L196,211L203,212L202,205L207,197L221,185L228,141L169,135Z"],"CE":["Ceará","M306,82L312,119L326,123L329,110L341,97L318,80L306,82Z"],"RN":["Rio Grande do Norte","M336,101L330,110L342,108L339,113L345,116L349,110L361,111L356,100L341,97L336,101Z"],"SE":["Sergipe","M347,146L334,138L337,145L333,150L338,156L347,146Z"],"BA":["Bahia","M330,133L323,129L312,138L307,131L293,139L287,136L281,147L274,150L267,143L260,153L264,156L261,160L264,188L282,179L286,184L301,186L305,192L315,192L318,195L312,206L320,215L325,209L327,193L326,170L340,155L336,155L333,150L337,145L330,133Z"],"PR":["Paraná","M219,286L225,281L242,281L245,272L236,270L230,254L203,252L192,265L190,278L195,278L198,283L219,286Z"],"MS":["Mato Grosso do Sul","M163,208L165,214L159,227L160,247L179,249L183,264L193,264L212,244L222,224L196,211L198,205L193,209L177,204L165,211L163,208Z"],"PE":["Pernambuco","M346,136L359,133L362,121L358,119L343,127L341,118L325,123L312,119L312,126L305,131L312,138L323,129L332,136L337,132L346,136Z"],"PI":["Piauí","M266,139L265,145L268,143L274,150L284,145L284,137L300,136L312,126L314,114L306,97L305,80L301,79L291,92L291,114L283,114L270,122L265,133L266,139Z"],"AP":["Amapá","M220,21L216,16L205,36L188,34L189,40L200,44L212,66L231,46L220,21Z"],"RO":["Rondônia","M130,151L130,133L118,124L111,124L107,133L98,137L87,137L84,140L96,140L97,155L105,163L137,174L145,162L143,152L130,151Z"],"RR":["Roraima","M144,24L147,21L142,16L141,9L117,24L101,19L107,25L108,33L119,38L124,58L121,62L130,69L130,61L138,63L143,53L153,53L152,44L144,34L144,24Z"],"AC":["Acre","M39,121L23,117L21,121L30,133L28,137L36,138L37,142L52,137L51,151L69,152L85,141L68,134L56,123L39,121Z"],"DF":["Distrito Federal","M247,195L253,195L253,191L246,190L247,195Z"]}</script>
@@ -119,6 +154,32 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
 <div class="stage-center" id="holoContainer"><canvas id="holo" aria-label="Animated abstract data topology visualization"></canvas><div class="holo-top"><span id="vizPrefix">NEXUS MODEL / 001</span><span id="vizStatus">TOPOLOGY: 9 SOURCE DOMAINS</span></div><div class="coordinate one">+ / 016</div><div class="coordinate two">SYS: OK</div><div class="holo-bottom"><div class="figcaption" id="vizCaption">Click an orbiting state to update governed KPIs · abstract topology, not geographic routes</div><div class="holo-controls"><button id="resetViz" title="Reset visualization">RESET</button><button id="pauseViz" title="Pause animation">PAUSE</button></div></div></div>
 <div class="stage-side stage-right"><div class="panel-label" id="rightTag">Operational anomaly</div><div class="risk-badge" id="rightBadge">COHORT DIFFERENTIAL</div><h3 id="rightTitle">Late delivery exposure</h3><p id="rightDesc">Compare eligible-delivery cohorts before drawing conclusions. Rates are descriptive, not causal.</p><div class="compare"><div class="compare-head"><span id="bar1Label">RJ / Rio de Janeiro</span><b class="high" id="bar1Value">12.11%</b></div><div class="bar-back"><div id="bar1" class="bar-fill" style="width:80%"></div></div><div class="compare-foot"><span id="bar1Foot">1,495 late</span><span id="bar1Den">12,350 eligible</span></div></div><div class="compare"><div class="compare-head"><span id="bar2Label">SP / São Paulo</span><b class="low" id="bar2Value">4.49%</b></div><div class="bar-back"><div id="bar2" class="bar-fill low" style="width:30%"></div></div><div class="compare-foot"><span id="bar2Foot">1,820 late</span><span id="bar2Den">40,494 eligible</span></div></div><div class="delta"><div><span id="deltaLabel">RATE DIFFERENCE</span><br><strong id="deltaValue">+7.61 <span style="font-size:13px;color:inherit">pp</span></strong></div><span id="deltaSub">UNROUNDED</span></div><button id="rightAction" class="right-action">Ask the AI investigator ↗</button></div>
 </div></section>
+<section class="domain-inspector" id="domainInspector" hidden aria-label="Governed source domain details">
+ <div class="domain-inspector-head">
+  <div><div class="domain-inspector-kicker">SOURCE CONTRACT // GOVERNANCE EVIDENCE</div>
+   <h2 id="domainName">Select a source domain</h2>
+   <p class="domain-inspector-sub" id="domainSubtitle">Click a node above or use the domain selectors to explore documented relationships and published-run quality results.</p>
+  </div>
+  <button class="outlinebtn primary domain-ai" id="domainAsk" type="button" disabled>Investigate this domain with AI ↗</button>
+ </div>
+ <div class="domain-picker" id="domainPicker" aria-label="Select one of nine source domains"></div>
+ <div class="domain-inspector-grid">
+  <article class="domain-panel"><h3>Documented source contract</h3>
+   <div id="domainContract" aria-live="polite">Select a domain to load its approved source contract.</div>
+   <h3 style="margin-top:19px">Logical relationships</h3>
+   <div class="domain-scroll" id="domainRelations"></div>
+  </article>
+  <article class="domain-panel"><h3>Published governance evidence</h3>
+   <p class="domain-inspector-sub" id="domainStatus" role="status">Choose a domain to load evidence.</p>
+   <div class="domain-observations" id="domainObservations"></div>
+   <div class="domain-inspector-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+    <div><h3>Field dictionary</h3><div class="domain-scroll" id="domainFields"></div></div>
+    <div><h3>Quality rules &amp; outcomes</h3><div class="domain-scroll" id="domainRules"></div></div>
+   </div>
+   <p class="domain-source-note" id="domainSources"></p>
+  </article>
+ </div>
+</section>
 <div class="lower"><article class="module"><div class="module-head"><span class="module-id">01 / DATA PROVENANCE</span><svg class="icon" style="color:#74b6d4"><use href="#i-database"/></svg></div><div class="module-title">From raw source to governed truth</div><p class="module-caption">The application combines published data and documented rules.</p><div class="flow-nodes"><div class="flow-node"><div class="node-icon"><svg class="icon"><use href="#i-database"/></svg></div><div class="node-lab">SOURCE</div><strong>1.55M</strong></div><div class="flow-wire"></div><div class="flow-node"><div class="node-icon"><svg class="icon"><use href="#i-shield"/></svg></div><div class="node-lab">GATE</div><strong>88 rules</strong></div><div class="flow-wire"></div><div class="flow-node"><div class="node-icon"><svg class="icon"><use href="#i-layers"/></svg></div><div class="node-lab">ACCEPTED</div><strong>1.55M</strong></div></div><button class="mini-link" data-jump="network">EXPLORE DATA CONSTELLATION <svg class="tinyicon icon"><use href="#i-chevron"/></svg></button></article>
 <article class="module"><div class="module-head"><span class="module-id">02 / QUALITY INTELLIGENCE</span><svg class="icon" style="color:#74b6d4"><use href="#i-shield"/></svg></div><div class="module-title">Every control accounted for</div><p class="module-caption">The published run was evaluated without skipped rules.</p><div class="quality-visual"><div class="quality-ring"><div><strong>83</strong><small>/ 88 PASS</small></div></div><div class="quality-legend"><div class="legend-row">Passed <strong class="mint">83</strong></div><div class="legend-row">Failed definitions <strong class="red">5</strong></div><div class="legend-row">Distinct quarantine <strong>32</strong></div></div></div><button class="mini-link" data-jump="quality">OPEN QUALITY GATES <svg class="tinyicon icon"><use href="#i-chevron"/></svg></button></article>
 <article class="module"><div class="module-head"><span class="module-id">03 / AGENT EXECUTION</span><svg class="icon" style="color:#74b6d4"><use href="#i-spark"/></svg></div><div class="module-title">An investigation, not a guess</div><p class="module-caption">A governed AI workflow with executed tools shown in the Investigator.</p><div class="terminal-lines"><div><span class="ts">01</span> <span class="prompt">▶</span> Interpret business question</div><div><span class="ts">02</span> <span class="prompt">▶</span> Select approved <span class="accent">SQL tools</span></div><div><span class="ts">03</span> <span class="prompt">▶</span> Retrieve governance passages</div><div><span class="ts">04</span> <span class="prompt">▶</span> Synthesize with <span class="amber">quality guard</span></div></div><button class="invest-pill" id="investButton"><svg class="tinyicon icon"><use href="#i-spark"/></svg> OPEN AGENT WORKSPACE <svg class="tinyicon icon"><use href="#i-chevron"/></svg></button></article></div>
@@ -300,10 +361,173 @@ $('refreshDashboard').addEventListener('click',()=>activateDashboard(true));
 $('retryDashboard').addEventListener('click',()=>activateDashboard(true));
 resolveDashboardConfig();
 let current='overview';let motion=true;let visualTime=0;let phaseStart=performance.now();let selectedNode=0;
-function setView(name){if(name==='dashboard'){showNativeView();return;}if(!pages[name])return;document.querySelector('.content').classList.remove('nexus-hidden');$('liveView').classList.remove('active');$('liveView').hidden=true;current=name;const d=pages[name];if(name==='overview')requestAnimationFrame(()=>selectState(activeState));document.querySelectorAll('.railbutton[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===name);b.setAttribute('aria-current',b.dataset.view===name?'page':'false')});$('sectionKicker').textContent=d.kicker;$('mainTitle').innerHTML=d.title;$('mainLead').textContent=d.desc;$('leftTag').textContent=d.leftTag;$('leftSector').textContent=d.sector;$('leftTitle').innerHTML=d.leftTitle;$('leftDesc').textContent=d.leftDesc;$('leftSignals').replaceChildren(...d.signals.map(([label,val,klass])=>{const row=document.createElement('div');row.className='signal-row';const s=document.createElement('span');s.textContent=label;const b=document.createElement('strong');b.textContent=val;if(klass)b.className=klass;row.append(s,b);return row}));$('leftFoot').textContent=d.foot;$('rightTag').textContent=d.rightTag;$('rightBadge').textContent=d.badge;$('rightTitle').textContent=d.rightTitle;$('rightDesc').textContent=d.rightDesc;d.bars.forEach((bar,i)=>{let n=i+1;$('bar'+n+'Label').textContent=bar[0];$('bar'+n+'Value').textContent=bar[1];$('bar'+n+'Foot').textContent=bar[2];$('bar'+n+'Den').textContent=bar[3];$('bar'+n).style.width=Math.max(.5,bar[4])+'%'});$('deltaLabel').textContent=d.deltaLabel;$('deltaValue').textContent=(name==='overview'?'+':'')+d.delta+(name==='overview'?' pp':'');$('deltaSub').textContent=d.deltaSub;$('vizPrefix').textContent=d.vizPrefix;$('vizStatus').textContent=d.vizStatus;$('vizCaption').textContent=d.vizCaption;selectedNode=0;phaseStart=performance.now();if(name==='agent'){openDrawer()} }
+function setView(name){if(name==='dashboard'){showNativeView();return;}if(!pages[name])return;document.querySelector('.content').classList.remove('nexus-hidden');$('liveView').classList.remove('active');$('liveView').hidden=true;current=name;const d=pages[name];if(name==='overview')requestAnimationFrame(()=>selectState(activeState));document.querySelectorAll('.railbutton[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===name);b.setAttribute('aria-current',b.dataset.view===name?'page':'false')});$('sectionKicker').textContent=d.kicker;$('mainTitle').innerHTML=d.title;$('mainLead').textContent=d.desc;$('leftTag').textContent=d.leftTag;$('leftSector').textContent=d.sector;$('leftTitle').innerHTML=d.leftTitle;$('leftDesc').textContent=d.leftDesc;$('leftSignals').replaceChildren(...d.signals.map(([label,val,klass])=>{const row=document.createElement('div');row.className='signal-row';const s=document.createElement('span');s.textContent=label;const b=document.createElement('strong');b.textContent=val;if(klass)b.className=klass;row.append(s,b);return row}));$('leftFoot').textContent=d.foot;$('rightTag').textContent=d.rightTag;$('rightBadge').textContent=d.badge;$('rightTitle').textContent=d.rightTitle;$('rightDesc').textContent=d.rightDesc;d.bars.forEach((bar,i)=>{let n=i+1;$('bar'+n+'Label').textContent=bar[0];$('bar'+n+'Value').textContent=bar[1];$('bar'+n+'Foot').textContent=bar[2];$('bar'+n+'Den').textContent=bar[3];$('bar'+n).style.width=Math.max(.5,bar[4])+'%'});$('deltaLabel').textContent=d.deltaLabel;$('deltaValue').textContent=(name==='overview'?'+':'')+d.delta+(name==='overview'?' pp':'');$('deltaSub').textContent=d.deltaSub;$('vizPrefix').textContent=d.vizPrefix;$('vizStatus').textContent=d.vizStatus;$('vizCaption').textContent=d.vizCaption;selectedNode=0;phaseStart=performance.now();$('domainInspector').hidden=name!=='network';if(name==='network')inspectDomain('orders');if(name==='agent'){openDrawer()} }
 document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>setView(btn.dataset.view)));document.querySelectorAll('[data-jump]').forEach(btn=>btn.addEventListener('click',()=>setView(btn.dataset.jump)));
 // Abstract holographic 3D constellation — deliberately NOT a geographic map or a live data feed.
 const canvas=$('holo');const ctx=canvas.getContext('2d');let W=600,H=450,dpr=1;const domains=['orders','customers','items','payments','reviews','products','sellers','geo','translations'];const colors=['#7ce9ec','#76b8ff','#b99bff','#80e3c5','#fa94ab','#f8be7d','#73dfed','#a6a0ff','#e3c7fc'];
+
+/* Data Constellation: documented source lineage + published-run evidence.
+   Never treat a diagram node as an implicit SQL or AI query parameter. */
+const DOMAIN_LABELS={
+ orders:'Orders',customers:'Customers',items:'Order Items',payments:'Payments',
+ reviews:'Reviews',products:'Products',sellers:'Sellers',geo:'Geolocation',
+ translations:'Translations'
+};
+let inspectedDomain='orders',domainContractData=null,domainLoadSequence=0,domainInvestigationPrompt='';
+const domainPicker=$('domainPicker');
+for(const domain of domains){
+ const btn=document.createElement('button');btn.type='button';btn.dataset.domain=domain;
+ btn.textContent=DOMAIN_LABELS[domain]||domain;
+ btn.addEventListener('click',()=>inspectDomain(domain));
+ domainPicker.appendChild(btn);
+}
+function domainFact(parent,label,value){
+ const row=document.createElement('div');row.className='domain-fact';
+ const title=document.createElement('small');title.textContent=label;
+ const body=document.createElement('strong');body.textContent=value||'Not declared';
+ row.append(title,body);parent.appendChild(row);
+}
+function domainRecord(parent,title,description,sub,status){
+ const card=document.createElement('div');card.className='domain-record';
+ const heading=document.createElement('b');heading.textContent=title;
+ if(status)heading.className=status;
+ const p=document.createElement('p');p.textContent=description||'No description supplied';
+ card.append(heading,p);
+ if(sub){const small=document.createElement('small');small.textContent=sub;card.appendChild(small);}
+ parent.appendChild(card);
+}
+function renderDomainContract(d){
+ domainContractData=d;
+ const signalStack=$('leftSignals');signalStack.replaceChildren();
+ for(const [key,value] of [
+  ['Declared fields',String(d.expected_columns.length)],
+  ['Candidate key',d.candidate_key.length?d.candidate_key.join(' + '):'Not unique'],
+  ['Logical links',String(d.relationships.length)]
+ ]){
+  const row=document.createElement('div');row.className='signal-row';
+  const label=document.createElement('span');label.textContent=key;
+  const number=document.createElement('strong');number.textContent=value;
+  row.append(label,number);signalStack.appendChild(row);
+ }
+ put('leftFoot','DOCUMENTED CONTRACT / LIVE QUALITY BELOW');put('domainName',d.label+' / '+d.dataset);
+ put('domainSubtitle','Source: '+d.source_file+' · Documented registry contract, not a live source-table scan.');
+ $('domainAsk').disabled=false;
+ const el=$('domainContract');el.replaceChildren();
+ domainFact(el,'Record grain',d.grain);
+ domainFact(el,'Candidate key',d.candidate_key.length?d.candidate_key.join(' + '):'No unique candidate key declared');
+ domainFact(el,'Declared columns',String(d.expected_columns.length)+' fields');
+ domainFact(el,'Business interpretation',d.context);
+ domainFact(el,'Usage caveat',d.caution);
+ const rel=$('domainRelations');rel.replaceChildren();
+ if(!d.relationships.length){
+  domainRecord(rel,'No direct registered foreign-key edge',
+    'This registry contains no explicit key relationship for this domain. Do not infer a join from proximity on the constellation.','','');
+ }else{
+  for(const row of d.relationships){
+   domainRecord(rel,row.from_dataset+'.'+row.from_key+' → '+row.to_dataset+'.'+row.to_key,
+     'Documented logical key mapping. Check join grain and cardinality before aggregation.','Source: project relationship registry','');
+  }
+ }
+ put('domainSources','Source contracts: '+d.metadata_origin+'. '+d.relationship_scope);
+}
+function renderDomainEvidence(e){
+ put('domainStatus','SQL verified against the active published run '+e.published_run+'. Rule definitions and observed outcomes are shown separately.');
+ const metrics=$('domainObservations');metrics.replaceChildren();
+ const values=[
+  ['Governed rules',e.rule_definitions],
+  ['Failed definitions',e.observed_failed_definitions],
+  ['Distinct quarantined rows',e.distinct_quarantined_source_rows]
+ ];
+ for(const [name,val] of values){
+  const tile=document.createElement('div');const label=document.createElement('small');const number=document.createElement('strong');
+  label.textContent=name;number.textContent=String(val);tile.append(label,number);metrics.appendChild(tile);
+ }
+ const fields=$('domainFields');fields.replaceChildren();
+ if(!e.fields.length)domainRecord(fields,'No field dictionary entries returned','The source contract above is still available.','','');
+ for(const field of e.fields){
+  domainRecord(fields,field.column_name,field.business_definition,
+   'Use: '+field.recommended_use+' | Avoid: '+field.avoid_use,'');
+ }
+ const rules=$('domainRules');rules.replaceChildren();
+ for(const rule of e.rules){
+  const status=rule.observed_status||'NO RUN RESULT';
+  const detail='Configured action: '+(rule.action||'unspecified')+
+   ' · Published outcome: '+status+
+   (rule.failed_evaluations!=null?' · Rule evaluations: '+rule.failed_evaluations:'');
+  domainRecord(rules,rule.rule_id,rule.description,detail,
+   status==='FAILED'?'fail':status==='PASSED'?'pass':'not-evaluated');
+ }
+ put('domainSources', 'SQL evidence: '+e.source.join(' · ')+
+  '. '+e.note);
+}
+async function inspectDomain(domain,scrollToDetails=false){
+ if(!domains.includes(domain))return;
+ inspectedDomain=domain;selectedNode=domains.indexOf(domain);
+ const currentRequest=++domainLoadSequence;
+ $('domainInspector').hidden=false;
+ if(scrollToDetails)$('domainInspector').scrollIntoView({behavior:'smooth',block:'start'});
+ document.querySelectorAll('#domainPicker button').forEach(b=>{
+  const isSelected=b.dataset.domain===domain;
+  b.classList.toggle('active',isSelected);b.setAttribute('aria-pressed',String(isSelected));
+ });
+ put('vizStatus','SELECTED SOURCE: '+domain.toUpperCase());
+ put('vizCaption','Exploring '+(DOMAIN_LABELS[domain]||domain)+
+  ' · documented source contract and published-run quality evidence below');
+ put('leftTag','SELECTED SOURCE DOMAIN');
+ put('leftSector','DATA CONTRACT / '+domain.toUpperCase());
+ put('leftTitle',DOMAIN_LABELS[domain]||domain);
+ put('leftDesc','Source grain, registered relationships and published quality evidence are available in the inspector below.');
+ $('domainAsk').disabled=true;
+ domainContractData=null;
+ $('domainContract').replaceChildren();$('domainRelations').replaceChildren();
+ $('domainFields').replaceChildren();$('domainRules').replaceChildren();
+ $('domainObservations').replaceChildren();
+ put('domainName',(DOMAIN_LABELS[domain]||domain)+' / loading contract');
+ put('domainSubtitle','Loading the approved source registry…');
+ put('domainStatus','Waiting for the source contract.');
+ put('domainSources','');
+ try{
+  const response=await fetch('/api/nexus/domains/'+domain,{credentials:'same-origin'});
+  if(!response.ok)throw Error('Source contract endpoint: HTTP '+response.status);
+  const contract=await response.json();
+  if(currentRequest!==domainLoadSequence)return;
+  if(contract.domain!==domain)throw Error('Source registry mismatch');
+  renderDomainContract(contract);
+ }catch(err){
+  if(currentRequest!==domainLoadSequence)return;
+  put('domainName',(DOMAIN_LABELS[domain]||domain)+' / temporarily unavailable');
+  put('domainSubtitle','Could not load the source registry. The visualization remains illustrative.');
+  put('domainStatus','No live governance request made without a verified source contract.');
+  return;
+ }
+ put('domainStatus','Loading run-scoped field definitions and quality observations from governed SQL…');
+ try{
+  const response=await fetch('/api/nexus/domains/'+domain+'/governance',{credentials:'same-origin',cache:'no-store'});
+  if(!response.ok)throw Error('Published governance lookup unavailable (HTTP '+response.status+')');
+  const evidence=await response.json();
+  if(currentRequest!==domainLoadSequence)return;
+  if(evidence.dataset!==domainContractData.dataset)throw Error('Published dataset mismatch');
+  renderDomainEvidence(evidence);
+ }catch(err){
+  if(currentRequest!==domainLoadSequence)return;
+  put('domainStatus','Live governed evidence unavailable. Contract and key relationships above remain documented metadata, not verified runtime statistics.');
+  put('domainSources','Unavailable: '+String(err?.message||'SQL request failed')+
+   '. Do not infer published-run failures or quarantine totals without SQL evidence.');
+ }
+}
+$('domainAsk').addEventListener('click',()=>{
+ if(!domainContractData)return;
+ domainInvestigationPrompt='For the Olist '+domainContractData.dataset+
+  ' source dataset, explain its grain, candidate keys, documented relationships, '+
+  'relevant source dictionary fields and their usage caveats, and applicable quality rules. '+
+  'Distinguish documented rule definitions from actual failures in the published run; '+
+  'do not attribute any failure or quarantine to this dataset unless run-scoped SQL evidence supports it. '+
+  'Investigate across all customer states and cite the governance sources.';
+ $('question').value=domainInvestigationPrompt;
+ openDrawer();
+ toast('Domain context added to your editable AI question');
+});
+
 function resize(){const r=canvas.getBoundingClientRect();W=Math.max(250,r.width);H=Math.max(300,r.height);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
 window.addEventListener('resize',resize);resize();
 function ellipse(x,y,rx,ry,stroke,alpha=1,width=1,rotation=0){ctx.save();ctx.translate(x,y);ctx.rotate(rotation);ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);ctx.strokeStyle=stroke;ctx.globalAlpha=alpha;ctx.lineWidth=width;ctx.stroke();ctx.restore()}
@@ -321,7 +545,7 @@ function drawQuality(cx,cy,R,t){ellipse(cx,cy,R*1.1,R*1.1,'#46c8de',.24);ellipse
 function drawSemantic(cx,cy,R,t){const items=[['PUBLISHED\nORDERS',0,-.82,'#73eaf1'],['METRIC\nDICTIONARY',-.89,-.22,'#b4a6fd'],['SQL\nTOOLS',.9,-.29,'#86f3dc'],['AI SEARCH',-.67,.76,'#f9b884'],['AGENT',.63,.83,'#f28aa4']];ellipse(cx,cy,R*.6,R*.6,'#4aacc7',.21);const ns=[];for(let i=0;i<items.length;i++){let [lab,x,y,col]=items[i];let nx=cx+x*R,ny=cy+y*R;ns.push([nx,ny,col]);line(cx,cy,nx,ny,col,.34,1.1);for(let j=0;j<5;j++){let progress=((t*.0002+j*.2+i*.17)%1);point(cx+(nx-cx)*progress,cy+(ny-cy)*progress,1.6,col,9)}point(nx,ny,6,col,14);ellipse(nx,ny,15,15,col,.3);lab.split('\n').forEach((segment,ix)=>textAt(segment,nx,ny+(y<0?-22:28)+ix*12,'#b9dceb',9))}ellipse(cx,cy,39,39,'#78f8ef',.6,1.2);point(cx,cy,17,'#103e57',5);textAt('GMV',cx,cy-5,'#eaffff',11);textAt('13.22M',cx,cy+11,'#a5f6ef',10);return ns.map(([x,y])=>({x,y}))}
 function drawAgent(cx,cy,R,t){const nodes=[];let labels=['REASON','ACT','OBSERVE','SYNTHESIZE'];for(let i=0;i<4;i++){let a=-Math.PI/2+i*Math.PI/2;let x=cx+Math.cos(a)*R*.93,y=cy+Math.sin(a)*R*.87;nodes.push({x,y});for(let p=0;p<4;p++){let progress=(t*.00019+i*.25+p*.25)%1;let theta=a+progress*(Math.PI/2);point(cx+Math.cos(theta)*R*.93,cy+Math.sin(theta)*R*.87,1.4,'#8beff3',8)}point(x,y,6,colors[i],18);textAt(labels[i],x+Math.cos(a)*21,y+Math.sin(a)*15,'#b6dcf0',9)}ellipse(cx,cy,R*.93,R*.87,'#66d1e1',.25);ellipse(cx,cy,R*.56,R*.56,'#75ddf0',.24);let pulse=(Math.sin(t*.0025)+1)/2;ctx.save();let gr=ctx.createRadialGradient(cx-R*.16,cy-R*.22,3,cx,cy,R*.43);gr.addColorStop(0,'#bffffe');gr.addColorStop(.2,'#5cd7e7');gr.addColorStop(.55,'#3442a3');gr.addColorStop(1,'#0c1b49');ctx.fillStyle=gr;ctx.shadowColor='#55dfea';ctx.shadowBlur=18+pulse*14;ctx.beginPath();ctx.arc(cx,cy,R*.38,0,Math.PI*2);ctx.fill();ctx.restore();textAt('NEXUS',cx,cy-3,'#f5ffff',14);textAt('AI',cx,cy+16,'#cbecfa',10);return nodes}
 function frame(now){if(motion)visualTime+=Math.min(40,now-(frame.last||now));frame.last=now;ctx.clearRect(0,0,W,H);const cx=W*.5,cy=H*.49,R=Math.min(W*.29,H*.35,173);backdropGrid(cx,cy,R,visualTime);let nodes;if(current==='quality')nodes=drawQuality(cx,cy,R,visualTime);else if(current==='semantics')nodes=drawSemantic(cx,cy,R,visualTime);else if(current==='agent')nodes=drawAgent(cx,cy,R,visualTime);else nodes=drawGlobe(cx,cy,R*.81,visualTime);canvas._nodes=nodes||[];requestAnimationFrame(frame)}requestAnimationFrame(frame);
-$('pauseViz').addEventListener('click',()=>{motion=!motion;$('pauseViz').textContent=motion?'PAUSE':'RESUME';toast(motion?'Motion resumed':'Animation paused')});$('resetViz').addEventListener('click',()=>{visualTime=0;selectedNode=0;toast('Visualization reset')});canvas.addEventListener('click',ev=>{if(current==='overview'||current==='network'){const r=canvas.getBoundingClientRect();const x=ev.clientX-r.left,y=ev.clientY-r.top;let min=1e10,idx=-1;(canvas._nodes||[]).forEach((n,i)=>{let d=(n.x-x)**2+(n.y-y)**2;if(d<min){min=d;idx=i}});if(idx>=0&&min<2100){selectedNode=idx;if(current==='overview'){selectState(FEATURED_STATES[idx]);toast('State cohort: '+FEATURED_STATES[idx])}else{toast('Selected source domain: '+domains[idx])}}}else if(current==='quality')toast('88 rule definitions: 83 passed, 5 failed in the published run');else if(current==='agent')openDrawer()});
+$('pauseViz').addEventListener('click',()=>{motion=!motion;$('pauseViz').textContent=motion?'PAUSE':'RESUME';toast(motion?'Motion resumed':'Animation paused')});$('resetViz').addEventListener('click',()=>{visualTime=0;selectedNode=0;toast('Visualization reset')});canvas.addEventListener('click',ev=>{if(current==='overview'||current==='network'){const r=canvas.getBoundingClientRect();const x=ev.clientX-r.left,y=ev.clientY-r.top;let min=1e10,idx=-1;(canvas._nodes||[]).forEach((n,i)=>{let d=(n.x-x)**2+(n.y-y)**2;if(d<min){min=d;idx=i}});if(idx>=0&&min<2100){selectedNode=idx;if(current==='overview'){selectState(FEATURED_STATES[idx]);toast('State cohort: '+FEATURED_STATES[idx])}else{inspectDomain(domains[idx],true);toast('Inspecting governed source: '+domains[idx])}}}else if(current==='quality')toast('88 rule definitions: 83 passed, 5 failed in the published run');else if(current==='agent')openDrawer()});
 const backdrop=$('backdrop'),drawer=$('drawer');function openDrawer(){backdrop.classList.add('open');drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');setTimeout(()=>$('question').focus(),300)}function closeDrawer(){backdrop.classList.remove('open');drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true')}
 $('topAsk').onclick=openDrawer;$('launchAsk').onclick=openDrawer;$('investButton').onclick=openDrawer;$('rightAction').onclick=()=>{openDrawer();$('question').value=current==='quality'?'Why were 32 source records quarantined?':current==='semantics'?'Why is delivered item GMV not revenue?':'Compare late delivery rates for RJ and SP';};$('closeDrawer').onclick=closeDrawer;backdrop.onclick=closeDrawer;
 const cases={
@@ -397,7 +621,7 @@ let sequence=0,receiptText='';function escapeText(s){return String(s).replace(/[
    flush();
  }
 async function runRealNexusQuestion(question){
-  const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='AGENT EXECUTING · LIVE';const questionScope=agentStateScope(question);receiptText='';put('agentPlaybackLabel','LIVE AGENT / REQUEST IN PROGRESS');
+  const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='AGENT EXECUTING · LIVE';const questionScope=question===domainInvestigationPrompt?'ALL':agentStateScope(question);receiptText='';put('agentPlaybackLabel','LIVE AGENT / REQUEST IN PROGRESS');
   $('steps').replaceChildren();$('answerBox').style.display='block';$('answerBox').textContent='Reasoning over governed SQL and AI Search…';
   $('evidenceItems').replaceChildren();$('submitAsk').disabled=true;
   try{

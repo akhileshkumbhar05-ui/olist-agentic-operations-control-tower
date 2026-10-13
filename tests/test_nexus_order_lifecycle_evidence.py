@@ -46,7 +46,10 @@ def test_only_allowlisted_original_fields_are_selected_from_published_failure_js
     assert "AS original_order_id" in sql_other
     assert "AS purchased_at" not in sql_other
     sql_product = failed_record_preview_sql("products", "products.category")
-    assert "get_json_object" not in sql_product
+    assert "get_json_object(f.original_values, '$.product_id') AS original_product_id" in sql_product
+    assert "get_json_object(f.original_values, '$.product_category_name') AS original_category_name" in sql_product
+    assert "AS purchased_at" not in sql_product
+    assert "SELECT f.original_values" not in sql_product
 
 
 def test_order_15_inversion_detected_from_actual_recorded_values():

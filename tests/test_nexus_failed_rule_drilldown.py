@@ -51,6 +51,10 @@ def test_sample_queries_scope_failed_rule_and_published_run(
             assert "AS delivered_at" in sql
         else:
             assert "AS approved_at" not in sql
+    elif dataset == "products":
+        assert "get_json_object(f.original_values, '$.product_id') AS original_product_id" in sql
+        assert "get_json_object(f.original_values, '$.product_category_name') AS original_category_name" in sql
+        assert "AS purchased_at" not in sql
     else:
         assert "get_json_object" not in sql
     assert f"LIMIT {MAX_FAILED_RECORD_PREVIEW}" in sql

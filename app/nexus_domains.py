@@ -436,3 +436,128 @@ def failed_rule_records(domain: str, rule_id: str):
             status_code=503,
             detail="Neither detailed failed records nor published rule-result samples are available.",
         ) from exc
+
+
+# Read-only explanations of actual quarantine entries. A child record's
+# recorded accepted_parent rule establishes the pipeline's reason for
+# exclusion; matching a separately quarantined parent business order in the
+# SAME published run provides corroborating lineage.
+QUARANTINE_PREVIEW_LIMIT = 20
+ORDER_CHILD_DATASETS = frozenset(("payments", "order_items", "reviews"))
+
+
+def quarantine_lineage_sql(dataset: str) -> str:
+    if dataset not in SOURCES:
+        raise ValueError("Unknown source dataset")
+    child = dataset in ORDER_CHILD_DATASETS
+    business_id = (
+        "get_json_object(q.original_values, '$.order_id')"
+        if child or dataset == "orders" else "CAST(NULL AS STRING)"
+    )
+    parent_projection = (
+        "po.parent_source_record_id, po.parent_rule_ids"
+        if child else
+        "CAST(NULL AS STRING) AS parent_source_record_id, "
+        "CAST(NULL AS STRING) AS parent_rule_ids"
+    )
+    parent_join = (
+        "LEFT JOIN parent_orders po ON po.run_id = q.run_id "
+        "AND po.original_order_id = get_json_object(q.original_values, '$.order_id') "
+        if child else ""
+    )
+    # These are explicit per-table, per-run SQL statements, not model-authored
+    # SQL. Only two scalar fields are projected from the stored JSON: order_id
+    # and the parent order_id used for the verified join. Neither source row's
+    # raw original_values nor customer or payment data leaves Databricks.
+    return (
+        "WITH parent_orders AS ("
+        "SELECT run_id, get_json_object(original_values, '$.order_id') AS original_order_id, "
+        "MIN(source_record_id) AS parent_source_record_id, "
+        "array_join(sort_array(collect_set(rule_id)), ', ') AS parent_rule_ids "
+        f"FROM {QUARANTINE_TABLE} "
+        "WHERE dataset = 'orders' AND action = 'QUARANTINE' "
+        "AND get_json_object(original_values, '$.order_id') IS NOT NULL "
+        "GROUP BY run_id, get_json_object(original_values, '$.order_id')"
+        ") "
+        "SELECT p.run_id AS published_run, q.dataset, q.source_record_id, "
+        "q.rule_id, q.failure_reason, q.action, "
+        f"{business_id} AS original_order_id, {parent_projection} "
+        f"FROM {QUARANTINE_TABLE} q "
+        f"JOIN {PUBLISHED_TABLE} p ON p.run_id = q.run_id "
+        f"{parent_join}"
+        f"WHERE q.dataset = '{dataset}' AND q.action = 'QUARANTINE' "
+        "ORDER BY q.source_record_id, q.rule_id "
+        f"LIMIT {QUARANTINE_PREVIEW_LIMIT}"
+    )
+
+
+def normalize_quarantine_lineage(dataset: str, rows: list[dict]) -> dict:
+    if dataset not in SOURCES:
+        raise ValueError("Unknown source dataset")
+    if len(rows) > QUARANTINE_PREVIEW_LIMIT:
+        raise RuntimeError("Quarantine preview exceeded bounded limit")
+    run_ids = {str(row.get("published_run") or "") for row in rows}
+    if "" in run_ids or len(run_ids) > 1:
+        raise RuntimeError("Quarantine preview lacks a single published-run provenance")
+    child = dataset in ORDER_CHILD_DATASETS
+    items = []
+    for row in rows:
+        if row.get("dataset") != dataset or row.get("action") != "QUARANTINE":
+            raise RuntimeError("Unexpected dataset or action in quarantine evidence")
+        source_id = str(row.get("source_record_id") or "")
+        rule_id = str(row.get("rule_id") or "")
+        if not source_id or not rule_id:
+            raise RuntimeError("Missing source identifier or quarantine rule")
+        accepted_parent_reason = (
+            child and rule_id == f"{dataset}.accepted_parent"
+            and str(row.get("failure_reason") or "").strip() == "Accepted parent missing: orders"
+        )
+        original_order_id = str(row.get("original_order_id") or "")
+        parent_id = str(row.get("parent_source_record_id") or "")
+        confirmed_parent = (
+            bool(accepted_parent_reason and original_order_id and parent_id)
+        )
+        items.append({
+            "source_record_id": source_id,
+            "original_order_id": original_order_id or None,
+            "rule_id": rule_id,
+            "failure_reason": str(row.get("failure_reason") or ""),
+            "action": "QUARANTINE",
+            "recorded_accepted_parent_reason": accepted_parent_reason,
+            "parent_order_exclusion_verified": confirmed_parent,
+            "parent_order_source_record_id": parent_id if confirmed_parent else None,
+            "parent_order_rule_ids": (
+                [part.strip() for part in str(row.get("parent_rule_ids") or "").split(",")
+                 if part.strip()] if confirmed_parent else []
+            ),
+        })
+    return {
+        "dataset": dataset,
+        "published_run": next(iter(run_ids)) if run_ids else None,
+        "record_preview": items,
+        "preview_limit": QUARANTINE_PREVIEW_LIMIT,
+        "verified_parent_matches": sum(r["parent_order_exclusion_verified"] for r in items),
+        "source": [QUARANTINE_TABLE, PUBLISHED_TABLE],
+        "note": (
+            "Only rows actually present in the active published run's quarantine "
+            "table appear. An accepted_parent failure_reason proves the recorded "
+            "cascade policy; a same-run matching quarantined parent order independently "
+            "corroborates that order's exclusion. Without a matching parent, "
+            "the cause remains recorded but the parent linkage is not independently "
+            "verified. Results are a bounded sample, not an all-record export."
+        ),
+    }
+
+
+@router.get("/api/nexus/domains/{domain}/quarantine-lineage")
+def domain_quarantine_lineage(domain: str):
+    dataset = resolve_domain(domain)
+    from app.main import sql_query
+    try:
+        return normalize_quarantine_lineage(dataset, sql_query(quarantine_lineage_sql(dataset)))
+    except Exception as exc:
+        logger.exception("NEXUS published quarantine lineage unavailable for %s", dataset)
+        raise HTTPException(
+            status_code=503,
+            detail="Published quarantine lineage currently unavailable. No dependency is inferred.",
+        ) from exc

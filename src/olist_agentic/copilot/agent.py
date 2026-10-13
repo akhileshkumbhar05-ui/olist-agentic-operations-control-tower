@@ -274,6 +274,13 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
     q = question.lower()
     available = set(sql_by_tool) - {"publication"}
     selected_route = route(question, context)
+    # The generic router treats the noun "orders" as an analytics signal.
+    # A deliberately selected Data Constellation source-domain explanation is
+    # a knowledge request unless its wording actually asks for trust evidence.
+    # This activates the same source-contract validation used for Payments,
+    # while leaving explicit quality/trust investigations on their original path.
+    if source_contract is not None and selected_route == "ANALYTICS":
+        selected_route = "KNOWLEDGE"
     if selected_route not in ("TRUST", "HYBRID"):
         available.difference_update(("failed_rules", "quarantine_breakdown", "rule_dictionary"))
     if not any(x in q for x in ("gmv", "revenue", "merchandise")):
@@ -531,7 +538,7 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
                           {str(hit["source"]) for hit in semantic_hits})
     return {
         "answer": final_answer,
-        "route": route(question, context),
+        "route": selected_route,
         "published_run": published_run,
         "context": asdict(context),
         "evidence": {

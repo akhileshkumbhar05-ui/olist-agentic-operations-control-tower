@@ -322,7 +322,12 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             + "\nSeparate registry metadata from run-scoped SQL evidence. "
               "Address the source domain, not unrelated national failure "
               "statistics unless explicitly requested. Use the governed field "
-              "dictionary for field semantics and citations.\n"
+              "dictionary for field semantics and citations. "
+              "For this semantic overview, do not infer observed rule failures "
+              "or quarantine outcomes from rule definitions or source fields. "
+              "List important fields as short bullets, never as a Markdown table "
+              "or pipe-delimited rows. Confine claims to source grain, keys, "
+              "registered joins, field meanings and usage cautions.\n"
         )
 
     conversation: list[dict] = [

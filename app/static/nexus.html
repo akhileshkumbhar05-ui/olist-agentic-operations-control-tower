@@ -351,8 +351,8 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
  <article class="semantic-panel" id="semanticDependencies" style="margin-top:12px">
   <h3>Dependency evidence / documented vs executed</h3>
   <p id="semanticLineageQualification" class="semantic-small">Registered project relationships are documentation, not automated runtime-lineage captures.</p>
-  <div id="semanticEdges"></div>
   <div id="semanticFocus" class="semantic-focus" role="status" aria-live="polite">Select a dependency node in the Semantic Mesh to inspect what it represents.</div>
+  <div id="semanticEdges"></div>
  </article>
 </section>
 <section class="domain-inspector" id="domainInspector" hidden aria-label="Governed source domain details">
@@ -1396,14 +1396,14 @@ function semanticFocusNode(index){
  semanticNodeFocused=index;
  semanticMarkFocusedNode();
  put('semanticFocus',desc[index]);
- if(index===0){semanticScrollTo('semanticDependencies');}
+ if(index===0){semanticScrollTo('semanticFocus');}
  else if(index===1){semanticScrollTo('semanticDefinition');}
  else if(index===2){
   // Show the actual target while the SQL call is pending, not the top of the workspace.
   void verifySemanticMetric();
   semanticScrollTo('semanticVerification');
  }
- else if(index===3){semanticScrollTo('semanticDependencies');}
+ else if(index===3){semanticScrollTo('semanticEdges');}
  else if(index===4){semanticAskCurrentDefinition();}
 }
 async function verifySemanticMetric(){

@@ -167,8 +167,10 @@ def test_ui_canvas_selection_launches_real_inspector_and_ai_handoff():
     assert "fetch('/api/nexus/domains/'+domain" in HTML
     assert "fetch('/api/nexus/domains/'+domain+'/governance'" in HTML
     assert "openDrawer();" in HTML
-    assert "domainInvestigationPrompt='For the Olist '" in HTML
-    assert "const questionScope=question===domainInvestigationPrompt?'ALL':agentStateScope(question)" in HTML
+    assert "domainInvestigationPrompt='Explain the Olist '" in HTML
+    assert 'dataset' in HTML
+    assert "source_domain:selectedDomain" in HTML
+    assert "const questionScope=selectedDomain?'ALL':agentStateScope(question)" in HTML
     assert "document.createElement('div')" in HTML
     assert "domainRecord(" in HTML
     assert ".domain-inspector[hidden]{display:none}" in CSS

@@ -20,6 +20,9 @@ router.include_router(domain_router)
 # NEXUS Quality Gate: whole-run governance matrix (independent from source inspector).
 from app.nexus_quality import router as quality_router
 router.include_router(quality_router)
+# Semantic Lineage: dictionary, registered edges, and published-run metric verification.
+from app.nexus_semantics import router as semantic_router
+router.include_router(semantic_router)
 STATES = frozenset("AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split())
 
 # Static read-only SQL, no user-provided identifiers or raw table access.

@@ -886,6 +886,14 @@ function qualityOpenSource(dataset){
  if(!alias)return;
  setView('network');inspectDomain(alias,true);
 }
+async function qualityOpenImpact(dataset){
+ const alias=QUALITY_ALIASES[dataset],expectedRun=qualityData?.published_run;
+ if(!alias||!expectedRun)return;
+ setView('network');
+ await inspectDomain(alias,true);
+ if(domainContractData?.dataset===dataset&&domainLineagePublishedRun===expectedRun)
+  inspectQuarantineLineage(dataset,expectedRun);
+}
 function qualityRule(id){return qualityData?.rules.find(r=>r.rule_id===id);}
 function qualitySelect(id,scroll=false){
  const rule=qualityRule(id);if(!rule)return;
@@ -964,13 +972,48 @@ function renderQualityImpact(){
   name.textContent=dataset+': '+counts[dataset]+' distinct excluded source rows';
   const action=document.createElement('button');action.type='button';
   action.textContent='Inspect exclusion lineage ↗';
-  action.addEventListener('click',()=>qualityOpenSource(dataset));
+  action.addEventListener('click',()=>qualityOpenImpact(dataset));
   row.append(name,action);panel.appendChild(row);
  }
  if(!panel.children.length)panel.textContent='No excluded source records reported.';
 }
 function qualityRender(data){
  qualityData=data;
+ // Do not retain static page copy when the actual published run is available.
+ const ordered=[
+  ['Passed definitions',data.passed_definitions,'emph'],
+  ['Failed definitions',data.failed_definitions,'alert'],
+  ['Failed QUARANTINE',data.failed_quarantine_definitions],
+  ['Failed WARN',data.failed_warn_definitions]
+ ];
+ $('leftSignals').replaceChildren(...ordered.map(([label,value,cls])=>{
+  const row=document.createElement('div');row.className='signal-row';
+  const name=document.createElement('span');name.textContent=label;
+  const number=document.createElement('strong');number.textContent=String(value);
+  if(cls)number.className=cls;row.append(name,number);return row;
+ }));
+ $('leftFoot').textContent='SQL verified · active published run · nationwide';
+ const q=data.quarantine_by_dataset,orders=q.orders||0;
+ const cascaded=data.distinct_quarantined_source_rows-orders;
+ $('rightDesc').textContent='Observed quarantine: '+orders+' direct Orders exclusions, '+
+  cascaded+' other source rows. View the verified parent-order lineage before assigning causes.';
+ const metrics=[
+  ['Direct Orders exclusions',orders,'Quarantined source rows','Orders',orders],
+  ['Other excluded rows',cascaded,'Dependent / other sources','Run-scoped',cascaded]
+ ];
+ for(let i=0;i<metrics.length;i++){
+  const [label,val,foot,den,amount]=metrics[i],n=i+1;
+  put('bar'+n+'Label',label);put('bar'+n+'Value',String(val));
+  put('bar'+n+'Foot',foot);put('bar'+n+'Den',den);
+  $('bar'+n).style.width=Math.max(.5,(amount/Math.max(data.distinct_quarantined_source_rows,1))*100)+'%';
+ }
+ put('deltaValue',String(data.distinct_quarantined_source_rows));
+ put('deltaLabel','DISTINCT EXCLUDED');put('deltaSub','SOURCE RECORDS');
+ if(activeState==='ALL'){
+  put('nexusKpiValue4',data.observed_evaluations+' / '+data.rule_definitions);
+  put('nexusKpiNote4',data.passed_definitions+' passed · '+data.failed_definitions+' failed definitions');
+ }
+
  if(!qualityRule(qualitySelected))
   qualitySelected=(data.rules.find(r=>r.observed_status==='FAILED')||data.rules[0])?.rule_id;
  const total=data.distinct_quarantined_source_rows;

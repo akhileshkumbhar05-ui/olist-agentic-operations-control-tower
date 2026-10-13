@@ -373,7 +373,7 @@ const DOMAIN_LABELS={
  reviews:'Reviews',products:'Products',sellers:'Sellers',geo:'Geolocation',
  translations:'Translations'
 };
-let inspectedDomain='orders',domainContractData=null,domainLoadSequence=0,domainInvestigationPrompt='';
+let inspectedDomain='orders',domainContractData=null,domainLoadSequence=0,domainInvestigationPrompt='',domainPromptDomain=null;
 const domainPicker=$('domainPicker');
 for(const domain of domains){
  const btn=document.createElement('button');btn.type='button';btn.dataset.domain=domain;
@@ -517,15 +517,16 @@ async function inspectDomain(domain,scrollToDetails=false){
 }
 $('domainAsk').addEventListener('click',()=>{
  if(!domainContractData)return;
- domainInvestigationPrompt='For the Olist '+domainContractData.dataset+
-  ' source dataset, explain its grain, candidate keys, documented relationships, '+
-  'relevant source dictionary fields and their usage caveats, and applicable quality rules. '+
-  'Distinguish documented rule definitions from actual failures in the published run; '+
-  'do not attribute any failure or quarantine to this dataset unless run-scoped SQL evidence supports it. '+
-  'Investigate across all customer states and cite the governance sources.';
+ domainPromptDomain=inspectedDomain;
+ domainInvestigationPrompt='Explain the Olist '+domainContractData.dataset+
+  ' source dataset: its documented record grain, candidate key, registered '+
+  'join relationships, and important source dictionary fields with their '+
+  'recommended uses and caveats. Use the reviewed source contract and governed '+
+  'field dictionary as evidence; do not infer joins from the diagram. '+
+  'Focus on source semantics rather than pipeline-wide counts. Cite the sources.';
  $('question').value=domainInvestigationPrompt;
  openDrawer();
- toast('Domain context added to your editable AI question');
+ toast('Dataset semantics loaded for grounded AI investigation');
 });
 
 function resize(){const r=canvas.getBoundingClientRect();W=Math.max(250,r.width);H=Math.max(300,r.height);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
@@ -621,11 +622,11 @@ let sequence=0,receiptText='';function escapeText(s){return String(s).replace(/[
    flush();
  }
 async function runRealNexusQuestion(question){
-  const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='AGENT EXECUTING · LIVE';const questionScope=question===domainInvestigationPrompt?'ALL':agentStateScope(question);receiptText='';put('agentPlaybackLabel','LIVE AGENT / REQUEST IN PROGRESS');
+  const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='AGENT EXECUTING · LIVE';const selectedDomain=question===domainInvestigationPrompt?domainPromptDomain:null;const questionScope=selectedDomain?'ALL':agentStateScope(question);receiptText='';put('agentPlaybackLabel','LIVE AGENT / REQUEST IN PROGRESS');
   $('steps').replaceChildren();$('answerBox').style.display='block';$('answerBox').textContent='Reasoning over governed SQL and AI Search…';
   $('evidenceItems').replaceChildren();$('submitAsk').disabled=true;
   try{
-    const response=await fetch('/api/ask',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,page:'operations',visual:'overview',state:questionScope})});
+    const response=await fetch('/api/ask',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,page:'operations',visual:'overview',state:questionScope,source_domain:selectedDomain})});
     const data=await response.json();if(!response.ok)throw Error(typeof data.detail==='string'?data.detail:'Request failed: HTTP '+response.status);put('agentPlaybackLabel','LIVE AGENT / RESPONSE RECEIVED');
     if(typeof data.answer!=='string')throw Error('Missing grounded answer');
     renderAgentAnswer(data.answer);
@@ -633,9 +634,9 @@ async function runRealNexusQuestion(question){
     const selections=data.evidence?.model_selected_tools||[];
     const gen=data.generation==='agentic_tool_calling'?'AI TOOL CALLING':'DETERMINISTIC FALLBACK';
     $('runStatus').textContent=gen+' · REAL RESPONSE';
-    const evidence=[['Question sent',question],['State context',questionScope],['Purchase-date filter',data.context?.start_date||data.context?.end_date?((data.context?.start_date||'…')+' → '+(data.context?.end_date||'…')):'No explicit period'],['Published run',data.published_run||'Not returned'],['Executed SQL tools',tools.join(', ')||'None'],['Model-selected tools',selections.join(', ')||'None'],['SQL verified correction',data.evidence?.answer_validation==='sql_verified_quality_repair'?'Yes':'No']];
+    const evidence=[['Question sent',question],['State context',questionScope],['Source-domain context',data.evidence?.source_domain||'None'],['Purchase-date filter',data.context?.start_date||data.context?.end_date?((data.context?.start_date||'…')+' → '+(data.context?.end_date||'…')):'No explicit period'],['Published run',data.published_run||'Not returned'],['Executed SQL tools',tools.join(', ')||'None'],['Model-selected tools',selections.join(', ')||'None'],['SQL verified correction',data.evidence?.answer_validation==='sql_verified_quality_repair'?'Yes':'No']];
     for(const [label,value] of evidence){const row=document.createElement('div');row.className='evidence-item';row.textContent=label+' · '+value;$('evidenceItems').appendChild(row)}
-    receiptText=JSON.stringify({question,requested_state:questionScope,context:data.context,generation:data.generation,published_run:data.published_run,evidence:data.evidence},null,2);
+    receiptText=JSON.stringify({question,requested_state:questionScope,source_domain:selectedDomain,context:data.context,generation:data.generation,published_run:data.published_run,evidence:data.evidence},null,2);
   }catch(err){$('runStatus').textContent='LIVE REQUEST FAILED';$('answerBox').textContent=err?.message||'Could not reach the agent';put('agentPlaybackLabel','LIVE AGENT / REQUEST ERROR');receiptText='';}
   finally{$('submitAsk').disabled=false;}
 }

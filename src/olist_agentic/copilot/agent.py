@@ -180,7 +180,7 @@ def _plain_text(response: Any) -> str:
     return "\n".join(x for x in chunks if x)
 
 def run_agent(question: str, context: Context, execute_sql, model_client, model_name: str,
-              search_knowledge=None) -> dict:
+              search_knowledge=None, source_contract: dict | None = None) -> dict:
     """Call a real model with function tools and return verifiable evidence.
 
     Offline tests inject a fake model_client and execute_sql; no inference is
@@ -194,6 +194,19 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
     # scoped GMV template available even when the model requests it implicitly.
     sql_by_tool = statements(question + " GMV", context, "HYBRID")
     assert set(sql_by_tool) == set(TOOL_SOURCES)
+    if source_contract is not None:
+        from olist_agentic.domain.sources import SOURCES
+        dataset = source_contract.get("dataset")
+        if dataset not in SOURCES:
+            raise ValueError("Source domain context is not allowlisted")
+        # Scoped lookup prevents missing Payments because of an arbitrary
+        # cross-domain LIMIT 80. The tool name/SQL safety contract is unchanged.
+        sql_by_tool["source_dictionary"] = (
+            "SELECT dataset, column_name, business_definition, "
+            "recommended_use, avoid_use "
+            "FROM workspace.olist_governance.source_dictionary "
+            f"WHERE dataset = '{dataset}' ORDER BY column_name LIMIT 80"
+        )
 
     observations: dict[str, list[dict]] = {}
     selected_by_model: list[str] = []
@@ -246,6 +259,15 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         raise ValueError("Expected exactly one published Olist snapshot")
     published_run = str(pub[0]["run_id"])
     mandatory = _required_tools(question, context)
+    if source_contract is not None:
+        # The generic KNOWLEDGE route defaults to the rule dictionary. For a
+        # source-semantics request, the scoped source dictionary supersedes it.
+        # Real requests explicitly asking about rules retain the original
+        # guard and run-scoped failure tools.
+        if not any(term in question.lower() for term in
+                   ("rule", "quality", "quarantin", "failed", "rejected")):
+            mandatory.discard("rule_dictionary")
+        mandatory.add("source_dictionary")
     # Narrow the model's tool menu to the question to avoid extra warehouse
     # work and unnecessary model rounds. Publication is already pre-fetched.
     q = question.lower()
@@ -285,6 +307,23 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             },
         })
 
+    # Registry facts are authoritative for grain and join direction; a
+    # hologram is not evidence of a database relationship.
+    domain_facts = ""
+    if source_contract is not None:
+        fields = ("dataset", "grain", "candidate_key", "relationships",
+                  "source_file", "context", "caution", "metadata_origin")
+        facts = {key: source_contract[key] for key in fields
+                 if key in source_contract}
+        domain_facts = (
+            "\nReviewed source registry contract: "
+            + json.dumps(facts, default=str)
+            + "\nSeparate registry metadata from run-scoped SQL evidence. "
+              "Address the source domain, not unrelated national failure "
+              "statistics unless explicitly requested. Use the governed field "
+              "dictionary for field semantics and citations.\n"
+        )
+
     conversation: list[dict] = [
         {"role": "system", "content": SYSTEM_INSTRUCTIONS},
         {"role": "user", "content": (
@@ -292,6 +331,7 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             f"Explicit manually selected dashboard context: {json.dumps(asdict(context))}\n"
             f"Validated published run: {published_run}\n"
             f"Publication status: {json.dumps(pub[0], default=str)}\n"
+            f"{domain_facts}"
             "Select the tools needed, observe their data, and ground your answer."
         )},
     ]
@@ -337,8 +377,8 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             "excluded. Keep conclusions qualified and evidence-specific. "
             "For GMV, copy the exact verified_gmv_display field as currency; "
             "never use scientific notation or exposed floating-point precision. "
-            "Use concise plain text without Markdown tables.\n" +
-            json.dumps(facts, default=str)[:26000]
+            "Use concise plain text without Markdown tables.\n"
+            + domain_facts + json.dumps(facts, default=str)[:26000]
         )
         final_input = conversation + [{"role": "user", "content": prompt}]
         # GPT-OSS may consume the response budget on reasoning without
@@ -479,6 +519,7 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         "context": asdict(context),
         "evidence": {
             "tool_names": list(observations),
+            "source_domain": source_contract["dataset"] if source_contract is not None else None,
             "answer_validation": answer_validation,
             "model_selected_tools": selected_by_model,
             "sources": source_names,

@@ -40,6 +40,7 @@ class AskRequest(BaseModel):
     state: str = "ALL"
     start_date: str | None = None
     end_date: str | None = None
+    source_domain: str | None = None
 
 
 @lru_cache(maxsize=1)
@@ -208,6 +209,13 @@ def _ask(body: AskRequest):
     if empty_cohort is not None:
         return empty_cohort
 
+    source_contract = None
+    if body.source_domain is not None:
+        # Domain context is explicit and allowlisted; not interpreted from the
+        # question or silently reused as a geography/date filter.
+        from app.nexus_domains import contract_payload
+        source_contract = contract_payload(body.source_domain)
+
     model_service = os.getenv("DATABRICKS_MODEL_SERVICE", "").strip()
     semantic_enabled = bool(os.getenv("DATABRICKS_GOVERNANCE_SEARCH_INDEX", "").strip())
     if model_service:
@@ -215,6 +223,7 @@ def _ask(body: AskRequest):
             result = run_agent(
                 body.question, context, sql_query, gateway_model_client(), model_service,
                 search_knowledge=semantic_query if semantic_enabled else None,
+                source_contract=source_contract,
             )
             return {"generation": "agentic_tool_calling", **result}
         except Exception:

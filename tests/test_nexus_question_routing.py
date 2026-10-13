@@ -17,7 +17,9 @@ HTML = (Path(__file__).resolve().parents[1] / "app/static/nexus.html").read_text
 def test_arbitrary_revenue_question_reaches_live_api_unchanged():
     assert "if(nexusLiveAgent){runRealNexusQuestion(q);return}" in HTML
     assert "body:JSON.stringify({question,page:'operations',visual:'overview',state:questionScope})" in HTML
-    assert "const questionScope=agentStateScope(question)" in HTML
+    assert "const questionScope=question===domainInvestigationPrompt?'ALL':agentStateScope(question)" in HTML
+    # General freeform prompts still use the original geographic parser; only the
+    # exact, visibly prefilled domain-wide prompt intentionally scopes to ALL.
     assert "['Question sent',question]" in HTML
     assert "function classify(q)" not in HTML
     assert "let key=classify(q)" not in HTML

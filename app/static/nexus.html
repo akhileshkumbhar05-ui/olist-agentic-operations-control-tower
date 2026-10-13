@@ -72,8 +72,9 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
 
 /* State-code labels are SVG annotations, not additional hit targets. */
 #stateLabels{pointer-events:none}
-#stateLabels .map-state-code{font:700 10.5px var(--mono);letter-spacing:.03em;text-anchor:middle;dominant-baseline:middle;fill:#f2fbff;stroke:#082137;stroke-width:3px;stroke-linejoin:round;paint-order:stroke fill;pointer-events:none;user-select:none}
+#stateLabels .map-state-code{font:700 10.5px var(--mono);letter-spacing:.03em;text-anchor:middle;dominant-baseline:middle;fill:#f2fbff;stroke:#082137;stroke-width:3px;stroke-linejoin:round;paint-order:stroke fill;pointer-events:all;cursor:pointer;user-select:none}
 #stateLabels .map-state-code.callout{font-size:10px;fill:#a8f9f5}
+#stateLabels .map-state-code:hover{fill:#fff;filter:drop-shadow(0 0 4px rgba(133,253,250,.85))}
 #stateLabels .map-state-code.active{fill:#fff;stroke:#116279;stroke-width:3.5px;filter:drop-shadow(0 0 4px rgba(133,253,250,.75))}
 #stateLabels .map-state-leader{stroke:#9addf1;stroke-width:1;stroke-linecap:round;fill:none;opacity:.83;pointer-events:none}
 .map-tooltip{position:absolute;bottom:15px;left:17px;max-width:48%;padding:7px 10px;border:1px solid rgba(113,200,226,.28);border-radius:4px;background:rgba(7,29,46,.87);color:#ccf7fa;font:10px var(--mono);pointer-events:none}
@@ -225,6 +226,9 @@ function renderStateCodes(ns){
   code.setAttribute('x',x);code.setAttribute('y',y);
   code.setAttribute('class','map-state-code'+(px!==undefined?' callout':''));
   code.setAttribute('data-uf',uf);code.textContent=uf;
+  code.addEventListener('click',()=>selectState(uf));
+  code.addEventListener('pointerenter',()=>put('mapTooltip',stateShapes[uf][0]+' / '+uf));
+  code.addEventListener('pointerleave',()=>put('mapTooltip',nameOf(activeState)));
   labels.appendChild(code);
  }
 }

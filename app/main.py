@@ -8,6 +8,8 @@ from __future__ import annotations
 import os
 import sys
 import logging
+import re
+from dataclasses import asdict
 from pathlib import Path
 from functools import lru_cache
 
@@ -18,7 +20,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from olist_agentic.copilot.queries import Context
+from olist_agentic.copilot.queries import Context, route
+from olist_agentic.copilot.time_scope import explicit_calendar_period
 from olist_agentic.copilot.engine import prepare, fallback_answer, model_answer
 from olist_agentic.copilot.sql_diagnostics import sql_failure_category, sql_failure_guidance
 from olist_agentic.copilot.agent import run_agent, TOOL_SOURCES, summarize_failed_rule_definitions, MAX_QUESTION_CHARS
@@ -100,6 +103,78 @@ def health():
             "dashboard_configured": bool(os.getenv("DATABRICKS_DASHBOARD_URL"))}
 
 
+
+# Only period-scoped operational analytics need a SQL cohort-coverage check.
+# Without this guard, a model could mistake an all-time GMV for a date-specific one.
+_PERIOD_METRICS = re.compile(
+    r"\b(?:revenue|gmv|sales|merchandise|orders?|deliver\w*|late)\b", re.I
+)
+
+
+def no_data_for_period(question: str, context: Context) -> dict | None:
+    """Return SQL-grounded no-data response when a requested cohort is empty.
+
+    The SQL observes the SAME published view as the agent tools. It cannot
+    mutate any tables, and every literal comes from validated context fields.
+    """
+    if not (context.start_date or context.end_date) or not _PERIOD_METRICS.search(question):
+        return None
+    parts = []
+    if context.start_date:
+        parts.append(f"purchase_date >= DATE '{context.start_date}'")
+    if context.end_date:
+        parts.append(f"purchase_date <= DATE '{context.end_date}'")
+    if context.state != "ALL":
+        parts.append(f"customer_state = '{context.state}'")
+    where = " AND ".join(parts)
+    statement = (
+        "SELECT p.run_id, "
+        "(SELECT COUNT(*) FROM workspace.olist_semantic.v_published_orders "
+        f"WHERE {where}) AS matching_orders "
+        "FROM workspace.olist_agentic_quality.published_run p"
+    )
+    rows = sql_query(statement)
+    if len(rows) != 1 or not rows[0].get("run_id"):
+        raise RuntimeError("SQL period-coverage check returned no authoritative published run")
+    try:
+        count = int(rows[0]["matching_orders"])
+    except (TypeError, ValueError, KeyError) as exc:
+        raise RuntimeError("SQL period-coverage check returned an invalid count") from exc
+    if count != 0:
+        return None
+
+    start, end = context.start_date or "earliest available", context.end_date or "latest available"
+    area = ("all customer states" if context.state == "ALL"
+            else f"customer state {context.state}")
+    answer = (
+        f"No accepted Olist orders match {area} with purchase dates from "
+        f"{start} to {end} in the published snapshot. "
+        "Consequently, no delivered-item GMV figure is available for this "
+        "requested period and state. Do not use an all-time or different-period "
+        "GMV amount as revenue for this period. Delivered-item GMV excludes "
+        "freight and is not recognized accounting revenue."
+    )
+    return {
+        "answer": answer,
+        "generation": "deterministic_no_matching_period",
+        "route": "ANALYTICS",
+        "published_run": str(rows[0]["run_id"]),
+        "context": asdict(context),
+        "evidence": {
+            "tool_names": ["period_coverage"],
+            "model_selected_tools": [],
+            "sources": ["workspace.olist_semantic.v_published_orders",
+                        "workspace.olist_agentic_quality.published_run"],
+            "answer_validation": "sql_verified_empty_cohort",
+            "verified_metrics": [],
+            "retrieval_mode": "not_used",
+            "retrieval_trigger": "not_used",
+            "limitations": ["Published historical Olist purchase-date cohort.",
+                            "No recognized accounting revenue available."],
+        },
+    }
+
+
 @app.post("/api/ask")
 def ask(body: AskRequest):
     with trace_span("olist.ask", "CHAIN", {"endpoint": "/api/ask"}) as span:
@@ -112,10 +187,26 @@ def ask(body: AskRequest):
 def _ask(body: AskRequest):
 
     try:
+        # Calendar dates stated in the question are not UI-selected filters.
+        # Infer them explicitly; never silently answer a different period.
+        period = (explicit_calendar_period(body.question)
+                  if _PERIOD_METRICS.search(body.question) else None)
+        if period and (body.start_date or body.end_date):
+            if (body.start_date, body.end_date) != period:
+                raise ValueError("The question's calendar period conflicts with the selected date filters.")
+        start_date, end_date = period if period else (body.start_date, body.end_date)
         context = Context(page=body.page, visual=body.visual, state=body.state,
-                          start_date=body.start_date, end_date=body.end_date)
+                          start_date=start_date, end_date=end_date)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    try:
+        empty_cohort = no_data_for_period(body.question, context)
+    except RuntimeError as exc:
+        # Do not fall back to an unfiltered model answer when scoped SQL fails.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    if empty_cohort is not None:
+        return empty_cohort
 
     model_service = os.getenv("DATABRICKS_MODEL_SERVICE", "").strip()
     semantic_enabled = bool(os.getenv("DATABRICKS_GOVERNANCE_SEARCH_INDEX", "").strip())

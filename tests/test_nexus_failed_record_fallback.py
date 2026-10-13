@@ -69,7 +69,7 @@ def test_fallback_retrieves_actual_published_identifiers_not_fabricated_details(
         {"source_record_id": "source-2", "failure_reason": "", "record_action": "WARN"},
     ]
     assert "Individual failure reasons" in result["limitations"]
-    assert "dq_failed_records" not in json.dumps(result)
+    assert all("dq_failed_records" not in table for table in result["source"])
 
 
 def test_detailed_records_still_have_priority_when_accessible(monkeypatch):

@@ -254,7 +254,69 @@ const cases={
 // No keyword-based substitution of questions in live mode.
 let sequence=0,receiptText='';function escapeText(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
-let nexusLiveAgent=false;
+// Hosted NEXUS always calls the real API, even if /api/config is unavailable.
+ // Offline example playback is restricted to local file previews.
+ const nexusLiveAgent=location.protocol==='http:'||location.protocol==='https:';
+ if(nexusLiveAgent){
+   document.querySelector('.simulation-warning').hidden=true;
+   put('agentPlaybackLabel','LIVE AGENT / QUESTIONS SENT UNMODIFIED');
+ }else{
+   document.querySelector('.persona-line .badge').textContent='OFFLINE PREVIEW';
+   put('agentPlaybackLabel','LOCAL DEMO / NO LIVE MODEL');
+ }
+
+ // An explicitly named state in the question takes precedence over map selection.
+ // Comparison questions naming multiple states use the national context.
+ function agentStateScope(question){
+   const normalized=question.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+   const mentions=new Set();
+   for(const uf of new Set([...FEATURED_STATES,...Object.keys(stateShapes)])){
+     const restrict=['AM','GO','TO'].includes(uf); // common English words: require uppercase
+     if(new RegExp('\\b'+uf+'\\b',restrict?'g':'gi').test(question))mentions.add(uf);
+     const name=stateShapes[uf]?.[0];
+     if(name&&normalized.includes(name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()))mentions.add(uf);
+   }
+   return mentions.size===1?[...mentions][0]:(mentions.size>1?'ALL':activeState);
+ }
+
+ // Safe simple Markdown renderer: answer content is NEVER evaluated as HTML.
+ function appendAgentInline(element,value){
+   for(const part of String(value).split(/(\*\*[^*]+\*\*|\*[^*\n]+\*)/g)){
+     if(!part)continue;
+     let child=null;
+     if(part.startsWith('**')&&part.endsWith('**')&&part.length>4){
+       child=document.createElement('strong');child.textContent=part.slice(2,-2);
+     }else if(part.startsWith('*')&&part.endsWith('*')&&part.length>2){
+       child=document.createElement('em');child.textContent=part.slice(1,-1);
+     }
+     element.appendChild(child||document.createTextNode(part));
+   }
+ }
+ function renderAgentAnswer(value){
+   const box=$('answerBox');box.replaceChildren();
+   let paragraph=[],list=null;
+   function flush(){
+     if(!paragraph.length)return;
+     const p=document.createElement('p');
+     appendAgentInline(p,paragraph.join(' ').trim());
+     box.appendChild(p);paragraph=[];
+   }
+   for(const raw of String(value).replace(/\r\n/g,'\n').split('\n')){
+     const line=raw.trim();
+     if(!line){flush();list=null;continue}
+     const header=line.match(/^#{1,4}\s+(.+)$/)||line.match(/^\*\*(.+)\*\*$/);
+     if(header){flush();list=null;const h=document.createElement('h4');appendAgentInline(h,header[1]);box.appendChild(h);continue}
+     const bullet=line.match(/^([-*]|\d+[.)])\s+(.+)$/);
+     if(bullet){
+       flush();const ordered=/^\d/.test(bullet[1]);
+       if(!list||list.tagName!==(ordered?'OL':'UL')){list=document.createElement(ordered?'ol':'ul');box.appendChild(list)}
+       const li=document.createElement('li');appendAgentInline(li,bullet[2]);list.appendChild(li);
+       continue;
+     }
+     list=null;paragraph.push(line);
+   }
+   flush();
+ }
 async function runRealNexusQuestion(question){
   const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='AGENT EXECUTING · LIVE';
   $('steps').replaceChildren();$('answerBox').style.display='block';$('answerBox').textContent='Reasoning over governed SQL and AI Search…';

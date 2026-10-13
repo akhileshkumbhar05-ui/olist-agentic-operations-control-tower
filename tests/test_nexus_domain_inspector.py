@@ -162,7 +162,7 @@ def test_ui_canvas_selection_launches_real_inspector_and_ai_handoff():
     assert 'id="domainInspector" hidden' in HTML
     assert 'id="domainPicker"' in HTML
     assert 'id="domainAsk"' in HTML
-    assert "else{inspectDomain(domains[idx]);" in HTML
+    assert "else{inspectDomain(domains[idx],true);" in HTML
     assert "if(name==='network')inspectDomain('orders')" in HTML
     assert "fetch('/api/nexus/domains/'+domain" in HTML
     assert "fetch('/api/nexus/domains/'+domain+'/governance'" in HTML

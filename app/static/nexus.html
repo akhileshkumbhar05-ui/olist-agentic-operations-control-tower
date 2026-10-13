@@ -256,6 +256,18 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
 .semantic-focus{margin-top:11px;color:#a9c5d4;font:10px/1.65 var(--mono);border:1px solid rgba(81,161,189,.24);padding:10px}
 @media(max-width:840px){.semantic-layout{grid-template-columns:1fr}.semantic-fields{grid-template-columns:1fr}}
 
+
+/* Semantic Mesh node controls: five purposeful actions with keyboard equivalents. */
+.semantic-mesh-controlbar{margin:14px 0 15px;padding:12px 13px;border:1px solid rgba(111,182,211,.3);background:rgba(7,36,56,.67)}
+.semantic-mesh-controlbar h3{font:10px/1.5 var(--mono);color:#96eaf2;letter-spacing:.1em;margin:0 0 8px}
+.semantic-node-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.semantic-node-buttons button{padding:9px 11px;border:1px solid rgba(106,187,216,.35);border-radius:4px;background:rgba(16,64,81,.5);color:#cfedf5;font:10px/1.5 var(--mono)}
+.semantic-node-buttons button:hover,.semantic-node-buttons button:focus-visible,
+.semantic-node-buttons button[aria-pressed="true"]{border-color:#83f4ef;background:rgba(62,156,162,.27);color:#fff}
+.semantic-node-buttons button:disabled{opacity:.55;cursor:not-allowed}
+.semantic-focus strong{display:block;color:#c5f9f2;margin-bottom:5px}
+.semantic-focus p{margin:0}
+
 </style>
 </head>
 <body><script id="geoBoundaryData" type="application/json">{"PB":["Paraíba","M343,119L340,124L343,127L358,119L362,121L361,111L349,110L345,116L339,113L342,108L330,110L329,122L343,119Z"],"TO":["Tocantins","M251,116L251,103L241,102L246,104L237,115L236,128L225,148L225,167L229,163L227,166L235,170L240,166L242,171L250,172L251,169L264,167L264,156L260,153L267,143L262,144L256,134L261,125L256,125L251,116Z"],"MA":["Maranhão","M259,137L265,144L270,122L281,114L292,113L291,92L301,81L286,75L276,81L277,69L266,64L255,89L241,102L251,103L250,117L256,125L260,124L256,134L259,137Z"],"GO":["Goiás","M259,168L251,169L250,172L238,166L235,170L227,164L221,185L202,205L205,217L223,224L228,218L248,216L254,212L253,195L245,193L252,190L253,195L258,193L257,186L264,184L264,167L259,168Z"],"AL":["Alagoas","M334,135L333,137L348,146L359,133L344,137L337,132L334,135Z"],"PA":["Pará","M245,103L241,102L251,95L259,82L263,63L248,60L244,63L244,57L235,57L228,49L212,66L200,44L189,40L187,32L178,33L178,39L166,38L153,44L157,64L172,74L177,72L156,114L164,131L171,137L228,141L245,103Z"],"RS":["Rio Grande do Sul","M175,307L164,318L170,317L178,325L181,323L202,339L207,335L201,349L217,325L219,316L225,320L212,335L223,326L233,304L204,291L188,295L175,307Z"],"SC":["Santa Catarina","M242,286L242,281L225,281L218,287L198,283L197,291L216,294L225,302L232,303L229,310L232,310L241,302L244,294L242,286Z"],"MG":["Minas Gerais","M257,241L260,242L259,249L264,254L297,244L301,232L309,223L307,214L315,211L312,204L318,194L286,184L282,179L264,188L260,183L252,198L254,212L248,216L228,218L221,226L221,230L234,228L240,233L252,229L257,241Z"],"AM":["Amazonas","M57,87L56,93L49,91L31,100L29,111L23,117L56,123L84,140L107,133L111,124L118,124L126,132L157,132L157,113L177,72L172,74L158,65L153,53L143,53L138,63L130,61L130,69L121,62L124,58L119,38L108,38L95,49L95,46L88,48L81,45L79,36L72,40L57,40L57,46L64,49L56,50L61,65L57,87Z"],"SP":["São Paulo","M234,262L236,270L242,270L247,275L281,252L275,250L262,254L259,249L260,242L256,241L252,229L240,233L226,227L203,252L230,254L234,262Z"],"RJ":["Rio de Janeiro","M283,254L299,255L308,247L309,240L301,236L297,244L275,250L281,252L276,258L283,254Z"],"ES":["Espírito Santo","M312,236L319,226L320,215L312,211L307,214L309,223L301,236L309,240L312,236Z"],"MT":["Mato Grosso","M169,135L159,119L157,132L129,132L130,151L144,154L145,162L137,174L141,197L158,197L157,205L165,211L177,204L185,209L198,205L196,211L203,212L202,205L207,197L221,185L228,141L169,135Z"],"CE":["Ceará","M306,82L312,119L326,123L329,110L341,97L318,80L306,82Z"],"RN":["Rio Grande do Norte","M336,101L330,110L342,108L339,113L345,116L349,110L361,111L356,100L341,97L336,101Z"],"SE":["Sergipe","M347,146L334,138L337,145L333,150L338,156L347,146Z"],"BA":["Bahia","M330,133L323,129L312,138L307,131L293,139L287,136L281,147L274,150L267,143L260,153L264,156L261,160L264,188L282,179L286,184L301,186L305,192L315,192L318,195L312,206L320,215L325,209L327,193L326,170L340,155L336,155L333,150L337,145L330,133Z"],"PR":["Paraná","M219,286L225,281L242,281L245,272L236,270L230,254L203,252L192,265L190,278L195,278L198,283L219,286Z"],"MS":["Mato Grosso do Sul","M163,208L165,214L159,227L160,247L179,249L183,264L193,264L212,244L222,224L196,211L198,205L193,209L177,204L165,211L163,208Z"],"PE":["Pernambuco","M346,136L359,133L362,121L358,119L343,127L341,118L325,123L312,119L312,126L305,131L312,138L323,129L332,136L337,132L346,136Z"],"PI":["Piauí","M266,139L265,145L268,143L274,150L284,145L284,137L300,136L312,126L314,114L306,97L305,80L301,79L291,92L291,114L283,114L270,122L265,133L266,139Z"],"AP":["Amapá","M220,21L216,16L205,36L188,34L189,40L200,44L212,66L231,46L220,21Z"],"RO":["Rondônia","M130,151L130,133L118,124L111,124L107,133L98,137L87,137L84,140L96,140L97,155L105,163L137,174L145,162L143,152L130,151Z"],"RR":["Roraima","M144,24L147,21L142,16L141,9L117,24L101,19L107,25L108,33L119,38L124,58L121,62L130,69L130,61L138,63L143,53L153,53L152,44L144,34L144,24Z"],"AC":["Acre","M39,121L23,117L21,121L30,133L28,137L36,138L37,142L52,137L51,151L69,152L85,141L68,134L56,123L39,121Z"],"DF":["Distrito Federal","M247,195L253,195L253,191L246,190L247,195Z"]}</script>
@@ -308,6 +320,16 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
   <button id="semanticRefresh" class="outlinebtn" type="button">Refresh contracts ↻</button>
  </div>
  <p class="semantic-small" id="semanticStatus" role="status">Governed metric definitions not yet loaded.</p>
+ <div class="semantic-mesh-controlbar" aria-label="Semantic Mesh node actions">
+  <h3>SEMANTIC MESH / CLICK A NODE ABOVE OR USE THESE ACTIONS</h3>
+  <div class="semantic-node-buttons" id="semanticNodeActions">
+   <button type="button" data-semantic-node="0" disabled>Published source ↗</button>
+   <button type="button" data-semantic-node="1" disabled>Metric definition ↗</button>
+   <button type="button" data-semantic-node="2" disabled>Verify SQL ↗</button>
+   <button type="button" data-semantic-node="3" disabled>Registered edges ↗</button>
+   <button type="button" data-semantic-node="4" disabled>Ask Investigator ↗</button>
+  </div>
+ </div>
  <div class="semantic-layout">
   <article class="semantic-panel"><h3>Governed metric registry / choose a contract</h3><div id="semanticCatalog" class="semantic-catalog" aria-label="Registered metrics"></div></article>
   <article class="semantic-panel">
@@ -326,11 +348,11 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
    </div>
   </article>
  </div>
- <article class="semantic-panel" style="margin-top:12px">
+ <article class="semantic-panel" id="semanticDependencies" style="margin-top:12px">
   <h3>Dependency evidence / documented vs executed</h3>
   <p id="semanticLineageQualification" class="semantic-small">Registered project relationships are documentation, not automated runtime-lineage captures.</p>
   <div id="semanticEdges"></div>
-  <div id="semanticFocus" class="semantic-focus" role="status">Select a dependency node in the semantic diagram to inspect what it represents.</div>
+  <div id="semanticFocus" class="semantic-focus" role="status" aria-live="polite">Select a dependency node in the Semantic Mesh to inspect what it represents.</div>
  </article>
 </section>
 <section class="domain-inspector" id="domainInspector" hidden aria-label="Governed source domain details">
@@ -1297,9 +1319,10 @@ function semanticStageMetric(){
  put('bar1Den',metric.unit||'');
  $('bar1').style.width='80%';
  put('bar2Label','Denominator / eligible population');
- put('bar2Value',semanticVerification?.denominator!==null?
-   semanticPretty(semanticVerification.denominator,'number'):
-   semanticVerification?'Not applicable':'Awaiting SQL verification');
+ const verifiedDenominator=semanticVerification?.denominator;
+ put('bar2Value',semanticVerification===null?'Awaiting SQL verification':
+   verifiedDenominator===null||verifiedDenominator===undefined?
+     'Not applicable':semanticPretty(verifiedDenominator,'number'));
  put('bar2Foot',semanticVerification?.denominator_label||
    'Not applicable for direct counts and totals');
  put('bar2Den','');
@@ -1309,13 +1332,15 @@ function semanticStageMetric(){
  put('deltaSub',semanticVerification?'PUBLISHED RUN · NATIONAL':'NOT YET VERIFIED');
  put('vizStatus',semanticVerification?'SQL VERIFIED · '+metric.metric_id.toUpperCase():
     'GOVERNED DEFINITION · NOT VERIFIED');
- put('vizCaption','Conceptual system touchpoints; click a node to inspect its evidence type. Not automatically discovered runtime lineage.');
+ put('vizCaption','MESH ACTIONS · SOURCE: provenance · DICTIONARY: contract · SQL: execute · EDGE: registry · INVESTIGATOR: prepare question. No automatic runtime lineage.');
 }
 function semanticSelect(id){
  if(!semanticContracts?.metrics.some(m=>m.metric_id===id))return;
  semanticSelected=id;semanticVerification=null;semanticVerifySeq++;
  $('semanticVerification').hidden=true;
- put('semanticFocus','Click a conceptual dependency node to see what it represents for '+id+'.');
+ semanticNodeFocused=null;
+ put('semanticFocus','Select a Semantic Mesh node to explore the evidence for '+id+'. The five actions above also support keyboard navigation.');
+ semanticMarkFocusedNode();
  semanticDisplayCatalog();
  const metric=semanticMetric(),root=$('semanticDefinition');root.replaceChildren();
  const title=document.createElement('div');title.className='semantic-def-title';title.textContent=metric.metric_name;
@@ -1335,21 +1360,51 @@ function semanticSelect(id){
  $('semanticVerify').disabled=false;$('semanticAsk').disabled=false;
  semanticDisplayEdges();semanticStageMetric();
 }
+function semanticMarkFocusedNode(){
+ document.querySelectorAll('[data-semantic-node]').forEach(button=>{
+  button.setAttribute('aria-pressed',String(Number(button.dataset.semanticNode)===semanticNodeFocused));
+ });
+}
+function semanticScrollTo(id){
+ const destination=$(id);
+ if(destination)destination.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function semanticAskCurrentDefinition(){
+ const m=semanticMetric();if(!m)return;
+ const q='Explain the governed business definition, measurement grain, formula, exclusions and caveats for Olist metric '+
+  m.metric_id+' ('+m.metric_name+'). Use metric_dictionary and cite its governed evidence. '+
+  'Do not invent a verified value or imply financial audit; if SQL tools for this metric are unavailable say so explicitly.';
+ domainInvestigationPrompt='';domainRulePrompt='';domainPromptDomain=null;
+ $('question').value=q;openDrawer();
+}
 function semanticFocusNode(index){
  const metric=semanticMetric();
- if(!metric)return;
+ if(!metric||current!=='semantics')return;
  const desc=[
-  'PUBLISHED ORDER VIEW · The actual verified SQL source is workspace.olist_semantic.v_published_orders. This is the published-run-filtered accepted order-grain view.',
-  'METRIC DICTIONARY · The business definition and exclusions are read from workspace.olist_governance.metric_dictionary.',
-  'SQL VERIFICATION · A fixed read-only query calculates the selected numerator, denominator and result. Check the run ID in the evidence receipt.',
-  'REGISTERED EDGE · Optional project-documented source-to-metric edge, not discovered execution lineage. View available entries below.',
-  'AI INVESTIGATOR · A separate workflow uses governed tools. The conceptual link does not prove the agent used this metric in any particular answer.'
+  'PUBLISHED ORDER VIEW · The approved verification source is workspace.olist_semantic.v_published_orders, at accepted order grain. '+
+   (semanticVerification?'Current verified publication: '+semanticVerification.published_run+'.':
+    'Publication ID appears in the SQL evidence receipt after verification.'),
+  'METRIC DICTIONARY · '+metric.metric_name+': '+metric.business_definition+
+   ' · Exclusions: '+(metric.exclusions||'Not specified')+'. The contract comes from workspace.olist_governance.metric_dictionary.',
+  'SQL VERIFICATION · Running the registered, read-only calculation for '+metric.metric_name+
+   '. Its value, calculation components and published run appear in the verification panel.',
+  'REGISTERED EDGE · The records below are project-documented metric relationships, not automatically captured Databricks execution lineage. Missing entries are not invented.',
+  'AI INVESTIGATOR · A definition-specific question is prepared for '+metric.metric_name+
+   '. The agent will run only if you press Ask AI in the drawer.'
  ];
- const value=desc[index];if(value){
-  semanticNodeFocused=index;
-  put('semanticFocus',value);
-  $('semanticWorkspace').scrollIntoView({behavior:'smooth',block:'start'});
+ if(!Number.isInteger(index)||index<0||index>=desc.length)return;
+ semanticNodeFocused=index;
+ semanticMarkFocusedNode();
+ put('semanticFocus',desc[index]);
+ if(index===0){semanticScrollTo('semanticDependencies');}
+ else if(index===1){semanticScrollTo('semanticDefinition');}
+ else if(index===2){
+  // Show the actual target while the SQL call is pending, not the top of the workspace.
+  void verifySemanticMetric();
+  semanticScrollTo('semanticVerification');
  }
+ else if(index===3){semanticScrollTo('semanticDependencies');}
+ else if(index===4){semanticAskCurrentDefinition();}
 }
 async function verifySemanticMetric(){
  const metric=semanticMetric();if(!metric||current!=='semantics')return;
@@ -1397,6 +1452,8 @@ async function loadSemanticContracts(){
  $('semanticCatalog').replaceChildren();$('semanticDefinition').replaceChildren();
  $('semanticEdges').replaceChildren();$('semanticVerification').hidden=true;
  $('semanticVerify').disabled=true;$('semanticAsk').disabled=true;
+ document.querySelectorAll('[data-semantic-node]').forEach(button=>{button.disabled=true;});
+ semanticNodeFocused=null;semanticMarkFocusedNode();
  put('semanticStatus','Loading governed metric dictionary and documented registry edges…');
  try{
   const res=await fetch('/api/nexus/semantic-contracts',{credentials:'same-origin',cache:'no-store'});
@@ -1407,6 +1464,7 @@ async function loadSemanticContracts(){
       !data.definition_source||data.metrics.length===0)
    throw Error('Governed metric dictionary validation failed');
   semanticContracts=data;
+  document.querySelectorAll('[data-semantic-node]').forEach(button=>{button.disabled=false;});
   if(!data.metrics.some(m=>m.metric_id===semanticSelected))semanticSelected=data.metrics[0].metric_id;
   put('semanticStatus','GOVERNED DICTIONARY LOADED · '+data.metrics.length+' contracts · '+
    (data.edge_registry_accessible?'project lineage registry accessible':
@@ -1426,13 +1484,10 @@ async function loadSemanticContracts(){
 }
 $('semanticRefresh').addEventListener('click',loadSemanticContracts);
 $('semanticVerify').addEventListener('click',verifySemanticMetric);
-$('semanticAsk').addEventListener('click',()=>{
- const m=semanticMetric();if(!m)return;
- const q='Explain the governed business definition, measurement grain, formula, exclusions and caveats for Olist metric '+
-  m.metric_id+' ('+m.metric_name+'). Use metric_dictionary and cite its governed evidence. '+
-  'Do not invent a verified value or imply financial audit; if SQL tools for this metric are unavailable say so explicitly.';
- domainInvestigationPrompt='';domainRulePrompt='';domainPromptDomain=null;
- $('question').value=q;openDrawer();
+$('semanticAsk').addEventListener('click',semanticAskCurrentDefinition);
+document.querySelectorAll('[data-semantic-node]').forEach(button=>{
+ button.setAttribute('aria-pressed','false');
+ button.addEventListener('click',()=>semanticFocusNode(Number(button.dataset.semanticNode)));
 });
 
 function drawSemantic(cx,cy,R,t){
@@ -1454,6 +1509,7 @@ function drawSemantic(cx,cy,R,t){
    point(cx+(nx-cx)*progress,cy+(ny-cy)*progress,1.6,col,9);
   }
   point(nx,ny,6,col,14);ellipse(nx,ny,15,15,col,.3);
+  if(semanticNodeFocused===i)ellipse(nx,ny,21,21,'#e1fffc',.87,1.7);
   lab.split('\n').forEach((segment,ix)=>textAt(segment,nx,ny+(y<0?-22:28)+ix*12,'#b9dceb',9));
  }
  ellipse(cx,cy,42,42,'#78f8ef',.6,1.2);point(cx,cy,17,'#103e57',5);

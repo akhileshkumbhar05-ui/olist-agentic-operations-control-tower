@@ -13,6 +13,10 @@ from fastapi.responses import FileResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# The domain inspector is independent of native dashboard/semantic KPI routes.
+from app.nexus_domains import router as domain_router
+router.include_router(domain_router)
 STATES = frozenset("AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split())
 
 # Static read-only SQL, no user-provided identifiers or raw table access.

@@ -219,6 +219,43 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
 .domain-product-field strong{display:block;font:11px/1.5 var(--mono);color:#e4f7fa;overflow-wrap:anywhere}
 .domain-product-condition{padding:10px 12px;border-left:3px solid #f6af86;background:rgba(125,72,50,.19);color:#f8dfd2;font:11px/1.6 var(--sans)}
 
+
+/* Semantic Lineage: published-run metric definitions and on-demand SQL evidence. */
+.content.semantic-mode .cohort-switch{display:none}
+.semantic-workspace{margin-top:15px;padding:18px;border:1px solid rgba(98,195,217,.34);background:linear-gradient(138deg,rgba(6,26,43,.96),rgba(6,18,35,.95));border-radius:5px}
+.semantic-workspace[hidden],.semantic-verification[hidden]{display:none}
+.semantic-workspace h2{font:600 22px var(--sans);margin:5px 0 10px}
+.semantic-workspace h3{font:11px var(--mono);letter-spacing:.1em;color:#9ceef0;margin:0 0 10px}
+.semantic-head{display:flex;align-items:start;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.semantic-small{font:10px/1.75 var(--mono);color:#a5c4d3;overflow-wrap:anywhere;margin:6px 0 13px}
+.semantic-layout{display:grid;grid-template-columns:minmax(205px,.7fr) minmax(0,1.35fr);gap:12px}
+.semantic-panel{padding:15px;border:1px solid rgba(99,177,204,.27);min-width:0;background:rgba(8,29,47,.76)}
+.semantic-catalog{display:grid;gap:5px;max-height:460px;overflow-y:auto}
+.semantic-catalog button{width:100%;text-align:left;display:flex;justify-content:space-between;gap:9px;align-items:center;padding:11px 10px;border-radius:3px;border:1px solid rgba(111,167,204,.27);color:#d9edf3;background:rgba(9,41,61,.8);font:11px/1.55 var(--mono);overflow-wrap:anywhere}
+.semantic-catalog button:hover,.semantic-catalog button:focus-visible,.semantic-catalog button[aria-pressed="true"]{border-color:#83edef;background:rgba(22,88,102,.55)}
+.semantic-catalog button small{color:#86becf;font-size:10px;white-space:nowrap}
+.semantic-def-title{color:#e9fbff;font-size:19px;font-weight:600;margin:1px 0 7px}
+.semantic-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:13px 0}
+.semantic-field{padding:10px;border:1px solid rgba(106,168,201,.21);background:rgba(4,23,38,.56);min-width:0}
+.semantic-field small{display:block;color:#83b5c9;font:9px/1.5 var(--mono);letter-spacing:.05em;margin-bottom:5px}
+.semantic-field strong{display:block;font:11px/1.55 var(--mono);color:#d8f3f8;font-weight:500;overflow-wrap:anywhere;white-space:pre-wrap}
+.semantic-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+.semantic-actions button{border:1px solid rgba(100,205,217,.47);background:rgba(27,91,110,.48);border-radius:4px;padding:9px 12px;font:10px var(--mono);color:#c2f3f4}
+.semantic-actions button:disabled{opacity:.5;cursor:not-allowed}
+.semantic-verification{margin-top:13px;border:1px solid rgba(103,215,204,.29);padding:14px;background:rgba(7,47,51,.28)}
+.semantic-number{font-size:29px;color:#8cf8e2;font-weight:600;letter-spacing:-.025em;overflow-wrap:anywhere}
+.semantic-numbers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:11px}
+.semantic-numbers>div{padding:10px;border:1px solid rgba(88,172,195,.25);min-width:0}
+.semantic-numbers small{display:block;font:10px/1.55 var(--mono);color:#96bccd;overflow-wrap:anywhere}
+.semantic-numbers strong{font:600 16px/1.6 var(--mono);color:#ecfbff;overflow-wrap:anywhere}
+.semantic-provenance{margin-top:12px;border-top:1px solid rgba(87,177,195,.24);padding-top:11px}
+.semantic-edge-row{padding:10px;border:1px solid rgba(94,172,201,.25);background:rgba(10,43,61,.68);font:10px/1.7 var(--mono);color:#c1e4e9;margin:7px 0;overflow-wrap:anywhere}
+.semantic-edge-row strong{color:#e6ffff}
+.semantic-edge-row small{display:block;color:#91b6cb}
+.semantic-caveat{padding:10px 13px;border-left:3px solid #f0bb80;color:#f2dcbc;background:rgba(111,75,45,.17);margin-top:11px;font:11px/1.65 var(--sans)}
+.semantic-focus{margin-top:11px;color:#a9c5d4;font:10px/1.65 var(--mono);border:1px solid rgba(81,161,189,.24);padding:10px}
+@media(max-width:840px){.semantic-layout{grid-template-columns:1fr}.semantic-fields{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body><script id="geoBoundaryData" type="application/json">{"PB":["Paraíba","M343,119L340,124L343,127L358,119L362,121L361,111L349,110L345,116L339,113L342,108L330,110L329,122L343,119Z"],"TO":["Tocantins","M251,116L251,103L241,102L246,104L237,115L236,128L225,148L225,167L229,163L227,166L235,170L240,166L242,171L250,172L251,169L264,167L264,156L260,153L267,143L262,144L256,134L261,125L256,125L251,116Z"],"MA":["Maranhão","M259,137L265,144L270,122L281,114L292,113L291,92L301,81L286,75L276,81L277,69L266,64L255,89L241,102L251,103L250,117L256,125L260,124L256,134L259,137Z"],"GO":["Goiás","M259,168L251,169L250,172L238,166L235,170L227,164L221,185L202,205L205,217L223,224L228,218L248,216L254,212L253,195L245,193L252,190L253,195L258,193L257,186L264,184L264,167L259,168Z"],"AL":["Alagoas","M334,135L333,137L348,146L359,133L344,137L337,132L334,135Z"],"PA":["Pará","M245,103L241,102L251,95L259,82L263,63L248,60L244,63L244,57L235,57L228,49L212,66L200,44L189,40L187,32L178,33L178,39L166,38L153,44L157,64L172,74L177,72L156,114L164,131L171,137L228,141L245,103Z"],"RS":["Rio Grande do Sul","M175,307L164,318L170,317L178,325L181,323L202,339L207,335L201,349L217,325L219,316L225,320L212,335L223,326L233,304L204,291L188,295L175,307Z"],"SC":["Santa Catarina","M242,286L242,281L225,281L218,287L198,283L197,291L216,294L225,302L232,303L229,310L232,310L241,302L244,294L242,286Z"],"MG":["Minas Gerais","M257,241L260,242L259,249L264,254L297,244L301,232L309,223L307,214L315,211L312,204L318,194L286,184L282,179L264,188L260,183L252,198L254,212L248,216L228,218L221,226L221,230L234,228L240,233L252,229L257,241Z"],"AM":["Amazonas","M57,87L56,93L49,91L31,100L29,111L23,117L56,123L84,140L107,133L111,124L118,124L126,132L157,132L157,113L177,72L172,74L158,65L153,53L143,53L138,63L130,61L130,69L121,62L124,58L119,38L108,38L95,49L95,46L88,48L81,45L79,36L72,40L57,40L57,46L64,49L56,50L61,65L57,87Z"],"SP":["São Paulo","M234,262L236,270L242,270L247,275L281,252L275,250L262,254L259,249L260,242L256,241L252,229L240,233L226,227L203,252L230,254L234,262Z"],"RJ":["Rio de Janeiro","M283,254L299,255L308,247L309,240L301,236L297,244L275,250L281,252L276,258L283,254Z"],"ES":["Espírito Santo","M312,236L319,226L320,215L312,211L307,214L309,223L301,236L309,240L312,236Z"],"MT":["Mato Grosso","M169,135L159,119L157,132L129,132L130,151L144,154L145,162L137,174L141,197L158,197L157,205L165,211L177,204L185,209L198,205L196,211L203,212L202,205L207,197L221,185L228,141L169,135Z"],"CE":["Ceará","M306,82L312,119L326,123L329,110L341,97L318,80L306,82Z"],"RN":["Rio Grande do Norte","M336,101L330,110L342,108L339,113L345,116L349,110L361,111L356,100L341,97L336,101Z"],"SE":["Sergipe","M347,146L334,138L337,145L333,150L338,156L347,146Z"],"BA":["Bahia","M330,133L323,129L312,138L307,131L293,139L287,136L281,147L274,150L267,143L260,153L264,156L261,160L264,188L282,179L286,184L301,186L305,192L315,192L318,195L312,206L320,215L325,209L327,193L326,170L340,155L336,155L333,150L337,145L330,133Z"],"PR":["Paraná","M219,286L225,281L242,281L245,272L236,270L230,254L203,252L192,265L190,278L195,278L198,283L219,286Z"],"MS":["Mato Grosso do Sul","M163,208L165,214L159,227L160,247L179,249L183,264L193,264L212,244L222,224L196,211L198,205L193,209L177,204L165,211L163,208Z"],"PE":["Pernambuco","M346,136L359,133L362,121L358,119L343,127L341,118L325,123L312,119L312,126L305,131L312,138L323,129L332,136L337,132L346,136Z"],"PI":["Piauí","M266,139L265,145L268,143L274,150L284,145L284,137L300,136L312,126L314,114L306,97L305,80L301,79L291,92L291,114L283,114L270,122L265,133L266,139Z"],"AP":["Amapá","M220,21L216,16L205,36L188,34L189,40L200,44L212,66L231,46L220,21Z"],"RO":["Rondônia","M130,151L130,133L118,124L111,124L107,133L98,137L87,137L84,140L96,140L97,155L105,163L137,174L145,162L143,152L130,151Z"],"RR":["Roraima","M144,24L147,21L142,16L141,9L117,24L101,19L107,25L108,33L119,38L124,58L121,62L130,69L130,61L138,63L143,53L153,53L152,44L144,34L144,24Z"],"AC":["Acre","M39,121L23,117L21,121L30,133L28,137L36,138L37,142L52,137L51,151L69,152L85,141L68,134L56,123L39,121Z"],"DF":["Distrito Federal","M247,195L253,195L253,191L246,190L247,195Z"]}</script>
@@ -258,6 +295,42 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,te
  </div>
  <article class="quality-box quality-impact"><h3>Quarantine impact / distinct excluded records by dataset</h3>
   <p class="quality-note">Trace the recorded exclusion reason in the Data Constellation. Matching counts alone do not prove parent dependencies.</p><div id="qualityImpact"></div>
+ </article>
+</section>
+
+<section id="semanticWorkspace" class="semantic-workspace" hidden aria-label="Governed metric dictionary and SQL verification">
+ <div class="semantic-head">
+  <div>
+   <span class="kicker">SEMANTIC CONTRACTS / NATIONAL PUBLISHED SNAPSHOT</span>
+   <h2>Verify the number. Read the contract.</h2>
+   <p class="semantic-small">Select any registered business metric. The dictionary defines meaning; an independent read-only SQL query reproduces the published value and its arithmetic components.</p>
+  </div>
+  <button id="semanticRefresh" class="outlinebtn" type="button">Refresh contracts ↻</button>
+ </div>
+ <p class="semantic-small" id="semanticStatus" role="status">Governed metric definitions not yet loaded.</p>
+ <div class="semantic-layout">
+  <article class="semantic-panel"><h3>Governed metric registry / choose a contract</h3><div id="semanticCatalog" class="semantic-catalog" aria-label="Registered metrics"></div></article>
+  <article class="semantic-panel">
+   <h3>Metric definition / source of truth</h3>
+   <div id="semanticDefinition" aria-live="polite"><p class="semantic-small">Choose a metric to inspect its governed meaning.</p></div>
+   <div class="semantic-actions">
+    <button type="button" id="semanticVerify" disabled>Verify this metric with SQL ↗</button>
+    <button type="button" id="semanticAsk" disabled>Explain definition with AI ↗</button>
+   </div>
+   <div id="semanticVerification" class="semantic-verification" hidden>
+    <h3>Live SQL verification / published run</h3>
+    <p id="semanticVerificationStatus" class="semantic-small" role="status"></p>
+    <div class="semantic-number" id="semanticMetricValue">—</div>
+    <div class="semantic-numbers"><div><small id="semanticNumeratorLabel">Numerator</small><strong id="semanticNumerator">—</strong></div><div><small id="semanticDenominatorLabel">Denominator</small><strong id="semanticDenominator">—</strong></div></div>
+    <p class="semantic-small" id="semanticRunSource"></p>
+   </div>
+  </article>
+ </div>
+ <article class="semantic-panel" style="margin-top:12px">
+  <h3>Dependency evidence / documented vs executed</h3>
+  <p id="semanticLineageQualification" class="semantic-small">Registered project relationships are documentation, not automated runtime-lineage captures.</p>
+  <div id="semanticEdges"></div>
+  <div id="semanticFocus" class="semantic-focus" role="status">Select a dependency node in the semantic diagram to inspect what it represents.</div>
  </article>
 </section>
 <section class="domain-inspector" id="domainInspector" hidden aria-label="Governed source domain details">
@@ -488,8 +561,9 @@ $('refreshDashboard').addEventListener('click',()=>activateDashboard(true));
 $('retryDashboard').addEventListener('click',()=>activateDashboard(true));
 resolveDashboardConfig();
 let current='overview';let motion=true;let visualTime=0;let phaseStart=performance.now();let selectedNode=0;
+let semanticContracts=null,semanticSelected='gmv',semanticVerification=null,semanticLoadSeq=0,semanticVerifySeq=0,semanticNodeFocused=null;
 let qualityData=null,qualitySelected=null,qualityFilter='FAILED',qualitySeq=0,qualityPreviewSeq=0;
-function setView(name){if(name==='dashboard'){showNativeView();return;}if(!pages[name])return;document.querySelector('.content').classList.remove('nexus-hidden');$('liveView').classList.remove('active');$('liveView').hidden=true;current=name;const d=pages[name];document.querySelector('.content').classList.toggle('quality-mode',name==='quality');$('qualityWorkspace').hidden=name!=='quality';$('qualityTip').hidden=true;if(name==='quality'){selectState('ALL');loadQualityGate()}if(name==='overview')requestAnimationFrame(()=>selectState(activeState));document.querySelectorAll('.railbutton[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===name);b.setAttribute('aria-current',b.dataset.view===name?'page':'false')});$('sectionKicker').textContent=d.kicker;$('mainTitle').innerHTML=d.title;$('mainLead').textContent=d.desc;$('leftTag').textContent=d.leftTag;$('leftSector').textContent=d.sector;$('leftTitle').innerHTML=d.leftTitle;$('leftDesc').textContent=d.leftDesc;$('leftSignals').replaceChildren(...d.signals.map(([label,val,klass])=>{const row=document.createElement('div');row.className='signal-row';const s=document.createElement('span');s.textContent=label;const b=document.createElement('strong');b.textContent=val;if(klass)b.className=klass;row.append(s,b);return row}));$('leftFoot').textContent=d.foot;$('rightTag').textContent=d.rightTag;$('rightBadge').textContent=d.badge;$('rightTitle').textContent=d.rightTitle;$('rightDesc').textContent=d.rightDesc;d.bars.forEach((bar,i)=>{let n=i+1;$('bar'+n+'Label').textContent=bar[0];$('bar'+n+'Value').textContent=bar[1];$('bar'+n+'Foot').textContent=bar[2];$('bar'+n+'Den').textContent=bar[3];$('bar'+n).style.width=Math.max(.5,bar[4])+'%'});$('deltaLabel').textContent=d.deltaLabel;$('deltaValue').textContent=(name==='overview'?'+':'')+d.delta+(name==='overview'?' pp':'');$('deltaSub').textContent=d.deltaSub;$('vizPrefix').textContent=d.vizPrefix;$('vizStatus').textContent=d.vizStatus;$('vizCaption').textContent=d.vizCaption;selectedNode=0;phaseStart=performance.now();$('domainInspector').hidden=name!=='network';if(name==='network')inspectDomain('orders');if(name==='agent'){openDrawer()} }
+function setView(name){if(name==='dashboard'){showNativeView();return;}if(!pages[name])return;document.querySelector('.content').classList.remove('nexus-hidden');$('liveView').classList.remove('active');$('liveView').hidden=true;current=name;const d=pages[name];document.querySelector('.content').classList.toggle('quality-mode',name==='quality');document.querySelector('.content').classList.toggle('semantic-mode',name==='semantics');$('qualityWorkspace').hidden=name!=='quality';$('semanticWorkspace').hidden=name!=='semantics';$('qualityTip').hidden=true;if(name==='quality'){selectState('ALL');loadQualityGate()}if(name==='semantics'){selectState('ALL');loadSemanticContracts()}if(name==='overview')requestAnimationFrame(()=>selectState(activeState));document.querySelectorAll('.railbutton[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===name);b.setAttribute('aria-current',b.dataset.view===name?'page':'false')});$('sectionKicker').textContent=d.kicker;$('mainTitle').innerHTML=d.title;$('mainLead').textContent=d.desc;$('leftTag').textContent=d.leftTag;$('leftSector').textContent=d.sector;$('leftTitle').innerHTML=d.leftTitle;$('leftDesc').textContent=d.leftDesc;$('leftSignals').replaceChildren(...d.signals.map(([label,val,klass])=>{const row=document.createElement('div');row.className='signal-row';const s=document.createElement('span');s.textContent=label;const b=document.createElement('strong');b.textContent=val;if(klass)b.className=klass;row.append(s,b);return row}));$('leftFoot').textContent=d.foot;$('rightTag').textContent=d.rightTag;$('rightBadge').textContent=d.badge;$('rightTitle').textContent=d.rightTitle;$('rightDesc').textContent=d.rightDesc;d.bars.forEach((bar,i)=>{let n=i+1;$('bar'+n+'Label').textContent=bar[0];$('bar'+n+'Value').textContent=bar[1];$('bar'+n+'Foot').textContent=bar[2];$('bar'+n+'Den').textContent=bar[3];$('bar'+n).style.width=Math.max(.5,bar[4])+'%'});$('deltaLabel').textContent=d.deltaLabel;$('deltaValue').textContent=(name==='overview'?'+':'')+d.delta+(name==='overview'?' pp':'');$('deltaSub').textContent=d.deltaSub;$('vizPrefix').textContent=d.vizPrefix;$('vizStatus').textContent=d.vizStatus;$('vizCaption').textContent=d.vizCaption;selectedNode=0;phaseStart=performance.now();$('domainInspector').hidden=name!=='network';if(name==='network')inspectDomain('orders');if(name==='agent'){openDrawer()} }
 document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>setView(btn.dataset.view)));document.querySelectorAll('[data-jump]').forEach(btn=>btn.addEventListener('click',()=>setView(btn.dataset.jump)));
 // Abstract holographic 3D constellation — deliberately NOT a geographic map or a live data feed.
 const canvas=$('holo');const ctx=canvas.getContext('2d');let W=600,H=450,dpr=1;const domains=['orders','customers','items','payments','reviews','products','sellers','geo','translations'];const colors=['#7ce9ec','#76b8ff','#b99bff','#80e3c5','#fa94ab','#f8be7d','#73dfed','#a6a0ff','#e3c7fc'];

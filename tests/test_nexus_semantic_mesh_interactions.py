@@ -82,10 +82,10 @@ const trace=[],nodes=Array.from({{length:5}},(_,i)=>({{
  setAttribute:(name,val)=>trace.push('aria:'+i+':'+val)
 }}));
 const targets=Object.fromEntries(
- ['semanticDependencies','semanticDefinition','semanticVerification']
+ ['semanticFocus','semanticDefinition','semanticVerification','semanticEdges']
  .map(id=>[id,{{scrollIntoView:()=>trace.push('scroll:'+id)}}])
 );
-targets.semanticFocus={{}};
+
 targets.question={{value:''}};
 const ctx={{
  current:'semantics',
@@ -106,7 +106,7 @@ const ctx={{
 vm.runInNewContext(code,ctx);
 const events=()=>trace.filter(x=>!x.startsWith('aria:')&&!x.startsWith('explain:'));
 vm.runInNewContext('semanticFocusNode(0)',ctx);
-assert.deepEqual(events(),['scroll:semanticDependencies']);
+assert.deepEqual(events(),['scroll:semanticFocus']);
 trace.length=0;
 vm.runInNewContext('semanticFocusNode(1)',ctx);
 assert.deepEqual(events(),['scroll:semanticDefinition']);
@@ -115,7 +115,7 @@ vm.runInNewContext('semanticFocusNode(2)',ctx);
 assert.deepEqual(events(),['verify-sql','scroll:semanticVerification']);
 trace.length=0;
 vm.runInNewContext('semanticFocusNode(3)',ctx);
-assert.deepEqual(events(),['scroll:semanticDependencies']);
+assert.deepEqual(events(),['scroll:semanticEdges']);
 trace.length=0;
 vm.runInNewContext('semanticFocusNode(4)',ctx);
 assert.deepEqual(events(),['open-investigator']);

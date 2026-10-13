@@ -74,7 +74,7 @@ def test_domain_investigation_preserves_focus_and_tools_and_avoids_global_qualit
     )
     assert result["answer"].startswith("Payments has one record per payment sequence")
     assert result["evidence"]["source_domain"] == "payments"
-    assert result["evidence"]["answer_validation"] == "not_applicable"
+    assert result["evidence"]["answer_validation"] == "verified_source_semantics"
     assert result["evidence"]["model_selected_tools"] == ["source_dictionary"]
     assert result["evidence"]["tool_names"] == ["publication", "source_dictionary"]
     assert len(statements) == 2

@@ -17,6 +17,7 @@ from .engine import retrieve_knowledge
 from .queries import Context, MAX_QUESTION_CHARS, assert_read_only, route, statements
 from .tracing import trace_span, set_span_attributes
 from .quality_guard import validate_quality_answer
+from .domain_guard import validate_source_domain_answer
 
 # Hard limits bound cost/latency; terminal synthesis is allowed after the final tool round.
 MAX_MODEL_STEPS = 5
@@ -321,7 +322,12 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
             + "\nSeparate registry metadata from run-scoped SQL evidence. "
               "Address the source domain, not unrelated national failure "
               "statistics unless explicitly requested. Use the governed field "
-              "dictionary for field semantics and citations.\n"
+              "dictionary for field semantics and citations. "
+              "For this semantic overview, do not infer observed rule failures "
+              "or quarantine outcomes from rule definitions or source fields. "
+              "List important fields as short bullets, never as a Markdown table "
+              "or pipe-delimited rows. Confine claims to source grain, keys, "
+              "registered joins, field meanings and usage cautions.\n"
         )
 
     conversation: list[dict] = [
@@ -509,6 +515,17 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         )
         if answer_validation == "sql_verified_quality_repair":
             logger.warning("Olist quality response repaired from run-scoped SQL evidence")
+
+    if source_contract is not None and selected_route == "KNOWLEDGE":
+        # The field dictionary and reviewed contracts establish source
+        # semantics but cannot prove observed quality-rule failures. A tailored
+        # post-generation guard keeps the working quality investigation flow
+        # unchanged and repairs any unsupported claim or unreadable field table.
+        final_answer, answer_validation = validate_source_domain_answer(
+            final_answer, source_contract, observations
+        )
+        if answer_validation == "source_contract_repair":
+            logger.warning("Olist domain answer restored from verified source metadata")
 
     source_names = sorted(set(s for name in observations for s in TOOL_SOURCES[name]) |
                           {str(hit["source"]) for hit in semantic_hits})

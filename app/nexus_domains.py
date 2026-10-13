@@ -11,6 +11,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from olist_agentic.domain.sources import RELATIONSHIPS, SOURCES
+from olist_agentic.domain.rules import RULES
 from olist_agentic.governance.semantics import SOURCE_NOTES
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,8 @@ RULE_TABLE = "workspace.olist_governance.dq_rules"
 RESULT_TABLE = "workspace.olist_agentic_quality.dq_rule_results"
 PUBLISHED_TABLE = "workspace.olist_agentic_quality.published_run"
 QUARANTINE_TABLE = "workspace.olist_agentic_quality.quarantine"
+FAILED_RECORD_TABLE = "workspace.olist_agentic_quality.dq_failed_records"
+MAX_FAILED_RECORD_PREVIEW = 20
 
 
 def resolve_domain(domain: str) -> str:
@@ -183,4 +186,86 @@ def domain_governance(domain: str):
         raise HTTPException(
             status_code=503,
             detail="Published governance evidence temporarily unavailable; source contracts remain accessible.",
+        ) from exc
+
+
+def failed_record_preview_sql(dataset: str, rule_id: str) -> str:
+    """Verified published-run rule failures only, never raw source payloads.
+
+    Both SQL literals are selected from our code-owned source/rule registries,
+    never interpolated from arbitrary user text. The SQL itself is SELECT-only.
+    """
+    if dataset not in SOURCES:
+        raise ValueError("Unknown source dataset")
+    if not any(r.dataset == dataset and r.rule_id == rule_id for r in RULES):
+        raise HTTPException(status_code=404, detail="Rule not registered for this domain")
+    return (
+        "SELECT p.run_id AS published_run, r.dataset, r.rule_id, "
+        "r.action AS rule_action, r.records_failed AS failed_evaluations, "
+        "f.source_record_id, f.failure_reason, f.action AS record_action "
+        f"FROM {RESULT_TABLE} r "
+        f"JOIN {PUBLISHED_TABLE} p ON r.run_id = p.run_id "
+        f"LEFT JOIN {FAILED_RECORD_TABLE} f "
+        "ON f.run_id = r.run_id AND f.rule_id = r.rule_id AND f.dataset = r.dataset "
+        f"WHERE r.dataset = '{dataset}' AND r.rule_id = '{rule_id}' "
+        "AND r.status = 'FAILED' "
+        f"ORDER BY f.source_record_id LIMIT {MAX_FAILED_RECORD_PREVIEW}"
+    )
+
+
+def normalize_failed_record_preview(dataset: str, rule_id: str, rows: list[dict]) -> dict:
+    """Keep rule evaluations distinct from example failed source records."""
+    if not rows:
+        raise HTTPException(status_code=404, detail="Rule has no failure in the active published run")
+    valid = {
+        (str(row.get("published_run")), str(row.get("dataset")),
+         str(row.get("rule_id")), str(row.get("rule_action")),
+         int(row["failed_evaluations"]))
+        for row in rows
+    }
+    if len(valid) != 1:
+        raise RuntimeError("Inconsistent published failure evidence")
+    run_id, observed_dataset, observed_rule, action, evaluations = next(iter(valid))
+    if observed_dataset != dataset or observed_rule != rule_id or not run_id or run_id == "None":
+        raise RuntimeError("Unexpected rule or published run in record preview")
+    if evaluations <= 0:
+        raise RuntimeError("Expected positive failed-evaluation count for FAILED rule")
+    sample = [{
+        "source_record_id": str(row["source_record_id"]),
+        "failure_reason": str(row.get("failure_reason") or ""),
+        "record_action": str(row.get("record_action") or ""),
+    } for row in rows if row.get("source_record_id") is not None]
+    return {
+        "dataset": dataset,
+        "rule_id": rule_id,
+        "published_run": run_id,
+        "configured_action": action,
+        "failed_evaluations": evaluations,
+        "record_preview": sample,
+        "preview_limit": MAX_FAILED_RECORD_PREVIEW,
+        "source": [RESULT_TABLE, FAILED_RECORD_TABLE, PUBLISHED_TABLE],
+        "limitations": (
+            "This is a bounded preview of rule-flagged source record identifiers, "
+            "not all failed records or their original values. Rule evaluations "
+            "may overlap; WARN findings are not automatically excluded. "
+            "Downstream cascade quarantine is recorded separately."
+        ),
+    }
+
+
+@router.get("/api/nexus/domains/{domain}/failed-rules/{rule_id}/records")
+def failed_rule_records(domain: str, rule_id: str):
+    dataset = resolve_domain(domain)
+    statement = failed_record_preview_sql(dataset, rule_id)
+    from app.main import sql_query
+    try:
+        rows = sql_query(statement)
+        return normalize_failed_record_preview(dataset, rule_id, rows)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("NEXUS failed-record preview unavailable for %s", dataset)
+        raise HTTPException(
+            status_code=503,
+            detail="Published failed-record evidence temporarily unavailable. No record preview is shown.",
         ) from exc

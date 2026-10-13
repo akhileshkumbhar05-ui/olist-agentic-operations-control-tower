@@ -512,6 +512,7 @@ def run_agent(question: str, context: Context, execute_sql, model_client, model_
         "context": asdict(context),
         "evidence": {
             "tool_names": list(observations),
+            "source_domain": source_contract["dataset"] if source_contract is not None else None,
             "answer_validation": answer_validation,
             "model_selected_tools": selected_by_model,
             "sources": source_names,

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import json
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
 
@@ -200,10 +201,25 @@ def failed_record_preview_sql(dataset: str, rule_id: str) -> str:
         raise ValueError("Unknown source dataset")
     if not any(r.dataset == dataset and r.rule_id == rule_id for r in RULES):
         raise HTTPException(status_code=404, detail="Rule not registered for this domain")
+    # Only project-approved fields are extracted from the row JSON. Never
+    # SELECT or return original_values itself: source rows may contain PII.
+    order_fields = ""
+    if dataset == "orders":
+        order_fields = (
+            ", get_json_object(f.original_values, '$.order_id') AS original_order_id"
+        )
+        if rule_id == "orders.lifecycle":
+            order_fields += (
+                ", get_json_object(f.original_values, '$.order_purchase_timestamp') AS purchased_at"
+                ", get_json_object(f.original_values, '$.order_approved_at') AS approved_at"
+                ", get_json_object(f.original_values, '$.order_delivered_carrier_date') AS carrier_handoff_at"
+                ", get_json_object(f.original_values, '$.order_delivered_customer_date') AS delivered_at"
+            )
     return (
         "SELECT p.run_id AS published_run, r.dataset, r.rule_id, "
         "r.action AS rule_action, r.records_failed AS failed_evaluations, "
         "f.source_record_id, f.failure_reason, f.action AS record_action "
+        f"{order_fields} "
         f"FROM {RESULT_TABLE} r "
         f"JOIN {PUBLISHED_TABLE} p ON r.run_id = p.run_id "
         f"LEFT JOIN {FAILED_RECORD_TABLE} f "
@@ -281,6 +297,77 @@ def normalize_failed_record_sample(dataset: str, rule_id: str, rows: list[dict])
     }
 
 
+
+# The lifecycle rule in domain/rules.py evaluates consecutive known events.
+# Source timestamps lack an agreed timezone, so compare their recorded local
+# values only; never convert them to UTC or infer business causation.
+LIFECYCLE_STAGES = (
+    ("purchased_at", "Purchase"),
+    ("approved_at", "Approval"),
+    ("carrier_handoff_at", "Carrier handoff"),
+    ("delivered_at", "Customer delivery"),
+)
+
+
+def _recorded_time(value: object) -> str | None:
+    if value is None or not str(value).strip():
+        return None
+    text = str(value).strip()
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    # No UTC conversion: historical Olist timestamps do not establish a zone.
+    if parsed.tzinfo is not None:
+        return None
+    return text
+
+
+def recorded_lifecycle_evidence(row: dict) -> dict:
+    """Retain only allowed timestamps and verified adjacent-order violations."""
+    stages = []
+    for column, label in LIFECYCLE_STAGES:
+        stages.append({
+            "field": column,
+            "label": label,
+            "value": _recorded_time(row.get(column)),
+        })
+    problems = []
+    for earlier, later in zip(stages, stages[1:]):
+        left, right = earlier["value"], later["value"]
+        if left is None or right is None:
+            continue
+        if datetime.fromisoformat(left) > datetime.fromisoformat(right):
+            problems.append({
+                "earlier_stage": earlier["label"],
+                "earlier_time": left,
+                "later_stage": later["label"],
+                "later_time": right,
+                "explanation": (
+                    f"{later['label']} ({right}) is recorded before "
+                    f"{earlier['label']} ({left})."
+                ),
+            })
+    return {"recorded_timestamps": stages, "chronology_violations": problems}
+
+
+def _failed_record_example(dataset: str, rule_id: str, row: dict) -> dict:
+    record = {
+        "source_record_id": str(row["source_record_id"]),
+        "failure_reason": str(row.get("failure_reason") or ""),
+        "record_action": str(row.get("record_action") or ""),
+    }
+    if dataset == "orders":
+        original_id = row.get("original_order_id")
+        if original_id:
+            record["original_order_id"] = str(original_id)
+        if rule_id == "orders.lifecycle" and any(
+            field in row for field, _ in LIFECYCLE_STAGES
+        ):
+            record.update(recorded_lifecycle_evidence(row))
+    return record
+
+
 def normalize_failed_record_preview(dataset: str, rule_id: str, rows: list[dict]) -> dict:
     """Keep rule evaluations distinct from example failed source records."""
     if not rows:
@@ -298,11 +385,8 @@ def normalize_failed_record_preview(dataset: str, rule_id: str, rows: list[dict]
         raise RuntimeError("Unexpected rule or published run in record preview")
     if evaluations <= 0:
         raise RuntimeError("Expected positive failed-evaluation count for FAILED rule")
-    sample = [{
-        "source_record_id": str(row["source_record_id"]),
-        "failure_reason": str(row.get("failure_reason") or ""),
-        "record_action": str(row.get("record_action") or ""),
-    } for row in rows if row.get("source_record_id") is not None]
+    sample = [_failed_record_example(dataset, rule_id, row)
+              for row in rows if row.get("source_record_id") is not None]
     return {
         "dataset": dataset,
         "rule_id": rule_id,
@@ -314,8 +398,9 @@ def normalize_failed_record_preview(dataset: str, rule_id: str, rows: list[dict]
         "preview_source": "detailed_failed_records",
         "source": [RESULT_TABLE, FAILED_RECORD_TABLE, PUBLISHED_TABLE],
         "limitations": (
-            "This is a bounded preview of rule-flagged source record identifiers, "
-            "not all failed records or their original values. Rule evaluations "
+            "This is a bounded preview of rule-flagged source records, not an "
+            "export of original row JSON. Where available, only approved "
+            "business identifiers and lifecycle timestamps are exposed. Rule evaluations "
             "may overlap; WARN findings are not automatically excluded. "
             "Downstream cascade quarantine is recorded separately."
         ),

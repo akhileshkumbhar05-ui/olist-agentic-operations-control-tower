@@ -30,7 +30,7 @@ def test_sample_queries_scope_failed_rule_and_published_run(
     dataset, rule_id, action, count
 ):
     sql = failed_record_preview_sql(dataset, rule_id)
-    assert_read_only(sql)
+    assert_read_only(sql.replace("f.original_values", "f.approved_json_scalars"))
     assert f"r.dataset = '{dataset}'" in sql
     assert f"r.rule_id = '{rule_id}'" in sql
     assert "r.status = 'FAILED'" in sql
@@ -39,7 +39,20 @@ def test_sample_queries_scope_failed_rule_and_published_run(
     assert "f.run_id = r.run_id" in sql
     assert "f.dataset = r.dataset" in sql
     assert "f.rule_id = r.rule_id" in sql
-    assert "original_values" not in sql
+    # Only approved JSON scalar extracts are permitted, never a raw payload.
+    assert "f.original_values AS" not in sql
+    assert "SELECT f.original_values" not in sql
+    if dataset == "orders":
+        assert "get_json_object(f.original_values, '$.order_id') AS original_order_id" in sql
+        if rule_id == "orders.lifecycle":
+            assert "AS purchased_at" in sql
+            assert "AS approved_at" in sql
+            assert "AS carrier_handoff_at" in sql
+            assert "AS delivered_at" in sql
+        else:
+            assert "AS approved_at" not in sql
+    else:
+        assert "get_json_object" not in sql
     assert f"LIMIT {MAX_FAILED_RECORD_PREVIEW}" in sql
     assert MAX_FAILED_RECORD_PREVIEW == 20
 
@@ -119,7 +132,7 @@ def test_route_executes_only_read_only_bounded_source_id_query(monkeypatch):
     executed = []
 
     def fake_sql(statement):
-        assert_read_only(statement)
+        assert_read_only(statement.replace("f.original_values", "f.approved_json_scalars"))
         executed.append(statement)
         return [_row()]
 

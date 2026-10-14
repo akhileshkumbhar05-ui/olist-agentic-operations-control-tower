@@ -16,12 +16,14 @@ HTML = (Path(__file__).resolve().parents[1] / "app/static/nexus.html").read_text
 
 def test_arbitrary_revenue_question_reaches_live_api_unchanged():
     assert "if(nexusLiveAgent){runRealNexusQuestion(q);return}" in HTML
-    assert "body:JSON.stringify({question,page:'operations',visual:'overview',state:questionScope,source_domain:selectedDomain})" in HTML
+    assert "body:JSON.stringify({question,page:selectedPage,visual:'overview',state:questionScope,source_domain:selectedDomain})" in HTML
     assert "const selectedDomain=question===domainInvestigationPrompt?domainPromptDomain:null" in HTML
-    assert "const questionScope=selectedDomain||question===domainRulePrompt?'ALL':agentStateScope(question)" in HTML
+    assert "const questionScope=(selectedDomain||question===domainRulePrompt)?'ALL':agentStateScope(question,selectedFallback)" in HTML
     # General freeform prompts still use the original geographic parser; only the
     # exact, visibly prefilled domain-wide prompt intentionally scopes to ALL.
     assert "['Question sent',question]" in HTML
+    assert "const preferredState=$('agentStateSelect').value" in HTML
+    assert "const selectedPage=$('agentPageSelect').value" in HTML
     assert "function classify(q)" not in HTML
     assert "let key=classify(q)" not in HTML
 
@@ -49,8 +51,8 @@ def test_nexus_script_syntax_and_dynamic_state_scoping():
     check = subprocess.run(["node", "--check", "-"], input=script, text=True, capture_output=True)
     assert check.returncode == 0, check.stderr
 
-    start = script.index("function agentStateScope(question){")
-    stop = script.index("// Safe simple Markdown renderer", start)
+    start = script.index("function agentStateScope(question,fallback=activeState){")
+    stop = script.index("// Safe Markdown, code and tables:", start)
     helper = script[start:stop]
     runner = (
         "const FEATURED_STATES=['RJ','SP','MG','BA','PR','RS','SC','PE','DF'];"
@@ -65,18 +67,19 @@ def test_nexus_script_syntax_and_dynamic_state_scoping():
         "agentStateScope('What is the GMV for Rio de Janeiro?'),"
         "agentStateScope('how much GMV did the state of sp generate?'),"
         "agentStateScope('We need to improve the delivery rate'),"
-        "agentStateScope('The merchandise should go to the customer')"
+        "agentStateScope('The merchandise should go to the customer'),"
+        "agentStateScope('What is delivered-item GMV?','ALL')"
         "]));"
     )
     result = subprocess.run(["node", "-e", runner], text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     values = json.loads(result.stdout)
-    assert values == ["RJ", "ALL", "SP", "RJ", "SP", "SP", "SP"]
+    assert values == ["RJ", "ALL", "SP", "RJ", "SP", "SP", "SP", "ALL"]
 
 
 def test_safe_markdown_rendering_instead_of_raw_markdown_or_html():
     assert "renderAgentAnswer(data.answer)" in HTML
-    assert "child.textContent=part.slice(2,-2)" in HTML
+    assert "node.textContent=part.slice(2,-2)" in HTML
     assert "box.replaceChildren()" in HTML
     assert "pre.textContent=data.answer" not in HTML
     assert "innerHTML=data.answer" not in HTML

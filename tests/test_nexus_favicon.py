@@ -5,7 +5,7 @@ from xml.etree import ElementTree as ET
 from fastapi.responses import FileResponse
 
 from app.main import app
-from app.nexus_api import nexus_favicon
+from app.nexus_api import nexus_favicon, router as nexus_router
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,7 +35,7 @@ def test_page_declares_correct_svg_favicon():
 
 
 def test_favicon_route_returns_read_only_svg_file_response():
-    assert "/nexus/favicon.svg" in {route.path for route in app.routes}
+    assert "/nexus/favicon.svg" in {getattr(route, "path", None) for route in nexus_router.routes}
     response = nexus_favicon()
     assert isinstance(response, FileResponse)
     assert Path(response.path) == SVG_PATH
@@ -44,9 +44,9 @@ def test_favicon_route_returns_read_only_svg_file_response():
 
 
 def test_original_nexus_page_and_api_are_preserved():
-    routes = {route.path for route in app.routes}
+    routes = {getattr(route, "path", None) for route in app.routes}
     assert "/nexus" in routes
     assert "/" in routes
     assert "/api/ask" in routes
-    assert "/api/nexus/state-kpis" in routes
+    assert "/api/nexus/state-kpis" in {getattr(route, "path", None) for route in nexus_router.routes}
     assert "/healthz" in routes

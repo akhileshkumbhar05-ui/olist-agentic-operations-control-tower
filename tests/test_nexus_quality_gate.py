@@ -191,3 +191,17 @@ def test_canvas_script_syntax_still_valid(tmp_path):
     path.write_text(HTML.rsplit("<script>", 1)[1].split("</script>", 1)[0])
     result = subprocess.run(["node", "--check", str(path)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+def test_shared_kpi_strip_shows_passed_controls_on_all_nexus_workspaces():
+    """The headline ratio denotes passes, not the number of evaluated rules."""
+    assert 'id="nexusKpiLabel4">Controls passed</div>' in HTML
+    assert 'id="nexusKpiValue4">83 / 88</div>' in HTML
+    assert 'id="nexusKpiNote4">5 failed definitions</div>' in HTML
+    assert "put('nexusKpiLabel4',uf==='ALL'?'Controls passed':'Late delivery rate')" in HTML
+    assert "qualityData?.passed_definitions ?? 83" in HTML
+    assert "qualityData?.rule_definitions ?? 88" in HTML
+    assert "qualityData?.failed_definitions ?? 5" in HTML
+    assert "put('nexusKpiValue4',data.passed_definitions+' / '+data.rule_definitions)" in HTML
+    assert "put('nexusKpiNote4',data.failed_definitions+' failed definitions')" in HTML
+    assert "put('nexusKpiValue4',data.observed_evaluations+' / '+data.rule_definitions)" not in HTML
+    assert "percent(row?.late_delivery_rate_pct)" in HTML  # State-scoped KPI remains unchanged.

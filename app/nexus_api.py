@@ -75,6 +75,13 @@ def state_kpis():
         raise HTTPException(status_code=503, detail="Governed state KPIs temporarily unavailable") from exc
 
 
+@router.get("/nexus/favicon.svg", include_in_schema=False)
+def nexus_favicon():
+    """Serve the NEXUS-branded favicon without mounting static source files."""
+    path = Path(__file__).resolve().parent / "static" / "nexus_favicon.svg"
+    return FileResponse(path, media_type="image/svg+xml")
+
+
 @router.get("/nexus/br_states_paths.json", include_in_schema=False)
 def brazil_state_geometry():
     path = Path(__file__).resolve().parent / "static" / "br_states_paths.json"

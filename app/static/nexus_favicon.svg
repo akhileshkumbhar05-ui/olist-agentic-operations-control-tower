@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="NEXUS emblem">
+  <rect width="64" height="64" rx="15" fill="#071421"/>
+  <rect x="5.5" y="5.5" width="53" height="53" rx="14" fill="none" stroke="#5ac9ee" stroke-width="2"/>
+  <rect x="20.5" y="20.5" width="23" height="23" rx="3.3" transform="rotate(45 32 32)" fill="none" stroke="#80f4f2" stroke-width="2.3"/>
+  <circle cx="32" cy="32" r="4.7" fill="#fd5672"/>
+</svg>

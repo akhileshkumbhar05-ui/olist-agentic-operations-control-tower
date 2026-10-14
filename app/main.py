@@ -293,7 +293,7 @@ def config():
             "semantic_search_configured": bool(os.getenv("DATABRICKS_GOVERNANCE_SEARCH_INDEX"))}
 
 
-# Optional alternate frontend: the existing '/' route and all APIs stay unchanged.
+# NEXUS is the single frontend; all governed API contracts stay unchanged.
 from app.nexus_api import router as nexus_router
 app.include_router(nexus_router)
 
@@ -303,6 +303,8 @@ def nexus_home():
     return (ROOT / "app" / "static" / "nexus.html").read_text(encoding="utf-8")
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", include_in_schema=False)
 def home():
-    return (ROOT / "app" / "static" / "index.html").read_text(encoding="utf-8")
+    # Preserve existing App root bookmarks while showing only NEXUS.
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/nexus", status_code=307)

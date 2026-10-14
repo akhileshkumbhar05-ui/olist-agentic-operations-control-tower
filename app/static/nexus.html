@@ -1784,25 +1784,64 @@ function renderAgentAnswer(value){
  flush();
 }
 async function runRealNexusQuestion(question){
-  const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='AGENT EXECUTING · LIVE';const selectedDomain=question===domainInvestigationPrompt?domainPromptDomain:null;const questionScope=selectedDomain||question===domainRulePrompt?'ALL':agentStateScope(question);receiptText='';put('agentPlaybackLabel','LIVE AGENT / REQUEST IN PROGRESS');
-  $('steps').replaceChildren();$('answerBox').style.display='block';$('answerBox').textContent='Reasoning over governed SQL and AI Search…';
-  $('evidenceItems').replaceChildren();$('submitAsk').disabled=true;
-  try{
-    const response=await fetch('/api/ask',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,page:'operations',visual:'overview',state:questionScope,source_domain:selectedDomain})});
-    const data=await response.json();if(!response.ok)throw Error(typeof data.detail==='string'?data.detail:'Request failed: HTTP '+response.status);put('agentPlaybackLabel','LIVE AGENT / RESPONSE RECEIVED');
-    if(typeof data.answer!=='string')throw Error('Missing grounded answer');
-    renderAgentAnswer(data.answer);
-    const tools=data.evidence?.tool_names||[];
-    const selections=data.evidence?.model_selected_tools||[];
-    const gen=data.generation==='agentic_tool_calling'?'AI TOOL CALLING':'DETERMINISTIC FALLBACK';
-    $('runStatus').textContent=gen+' · REAL RESPONSE';
-    const evidence=[['Question sent',question],['State context',questionScope],['Source-domain context',data.evidence?.source_domain||'None'],['Purchase-date filter',data.context?.start_date||data.context?.end_date?((data.context?.start_date||'…')+' → '+(data.context?.end_date||'…')):'No explicit period'],['Published run',data.published_run||'Not returned'],['Executed SQL tools',tools.join(', ')||'None'],['Model-selected tools',selections.join(', ')||'None'],['SQL verified correction',data.evidence?.answer_validation==='sql_verified_quality_repair'?'Yes':'No'],['Source-domain validation',data.evidence?.answer_validation==='source_contract_repair'?'Reviewed source contract · corrected':data.evidence?.answer_validation==='verified_source_semantics'?'Reviewed source contract · preserved AI response':'Not applicable']];
-    for(const [label,value] of evidence){const row=document.createElement('div');row.className='evidence-item';row.textContent=label+' · '+value;$('evidenceItems').appendChild(row)}
-    receiptText=JSON.stringify({question,requested_state:questionScope,source_domain:selectedDomain,context:data.context,generation:data.generation,published_run:data.published_run,evidence:data.evidence},null,2);
-  }catch(err){$('runStatus').textContent='LIVE REQUEST FAILED';$('answerBox').textContent=err?.message||'Could not reach the agent';put('agentPlaybackLabel','LIVE AGENT / REQUEST ERROR');receiptText='';}
-  finally{$('submitAsk').disabled=false;}
+ const out=$('caseOutput');out.classList.add('visible');
+ $('runStatus').textContent='AGENT EXECUTING · LIVE';
+ const selectedDomain=question===domainInvestigationPrompt?domainPromptDomain:null;
+ const preferredState=$('agentStateSelect').value;
+ const selectedFallback=preferredState==='AUTO'?activeState:preferredState;
+ const questionScope=(selectedDomain||question===domainRulePrompt)?'ALL':agentStateScope(question,selectedFallback);
+ const selectedPage=$('agentPageSelect').value;
+ receiptText='';resetAgentEvidence();put('agentPlaybackLabel','LIVE AGENT / REQUEST IN PROGRESS');
+ $('steps').replaceChildren();$('answerBox').style.display='block';
+ $('answerBox').textContent='Reasoning over governed SQL and AI Search…';
+ $('evidenceItems').replaceChildren();$('submitAsk').disabled=true;
+ try{
+  if(!question.trim())throw Error('Enter a question before asking the agent.');
+  if(question.length>MAX_AGENT_CHARS)throw Error('Question is too long ('+question.length+' characters). Limit: '+MAX_AGENT_CHARS);
+  const response=await fetch('/api/ask',{method:'POST',credentials:'same-origin',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({question,page:selectedPage,visual:'overview',state:questionScope,source_domain:selectedDomain})});
+  const data=await response.json().catch(()=>null);
+  if(!response.ok)throw Error(nexusApiError(data,response.status));
+  if(typeof data?.answer!=='string')throw Error('Missing grounded answer from the backend');
+  put('agentPlaybackLabel','LIVE AGENT / RESPONSE RECEIVED');
+  renderAgentAnswer(data.answer);lastAgentAnswer=data.answer;$('copyAgentAnswer').disabled=false;
+  const tools=data.evidence?.tool_names||[];
+  const selections=data.evidence?.model_selected_tools||[];
+  const gen=data.generation==='agentic_tool_calling'?'AI TOOL CALLING':'DETERMINISTIC FALLBACK';
+  $('runStatus').textContent=gen+' · REAL RESPONSE';
+  const evidence=[
+   ['Question sent',question],
+   ['State context',questionScope],['Analysis context',selectedPage],
+   ['Source-domain context',data.evidence?.source_domain||'None'],
+   ['Purchase-date filter',data.context?.start_date||data.context?.end_date?
+    ((data.context?.start_date||'…')+' → '+(data.context?.end_date||'…')):'No explicit period'],
+   ['Published run',data.published_run||'Not returned'],
+   ['Executed SQL tools',tools.join(', ')||'None'],
+   ['Model-selected tools',selections.join(', ')||'None'],
+   ['SQL verified correction',data.evidence?.answer_validation==='sql_verified_quality_repair'?'Yes':'No'],
+   ['Source-domain validation',data.evidence?.answer_validation==='source_contract_repair'?
+    'Reviewed source contract · corrected':data.evidence?.answer_validation==='verified_source_semantics'?
+    'Reviewed source contract · preserved AI response':'Not applicable']
+  ];
+  for(const [label,value] of evidence){
+   const row=document.createElement('div');row.className='evidence-item';
+   row.textContent=label+' · '+value;$('evidenceItems').appendChild(row);
+  }
+  renderAgentEvidence(data.evidence);
+  receiptText=JSON.stringify({question,answer:data.answer,requested_state:questionScope,
+   selected_page:selectedPage,source_domain:selectedDomain,
+   context:data.context,generation:data.generation,published_run:data.published_run,
+   evidence:data.evidence},null,2);
+ }catch(err){
+  $('runStatus').textContent='LIVE REQUEST FAILED';
+  $('answerBox').textContent=err?.message||'Could not reach the agent';
+  put('agentPlaybackLabel','LIVE AGENT / REQUEST ERROR');
+  receiptText='';resetAgentEvidence();
+ }finally{
+  $('submitAsk').disabled=false;updateAgentQuestionCount();
+ }
 }
-
 async function runCase(which){if(nexusLiveAgent){return runRealNexusQuestion(which==='custom'?$('question').value:(cases[which]?.question||$('question').value))}const spec=cases[which];let seq=++sequence;const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='SIMULATING / OFFLINE PREVIEW';$('steps').replaceChildren();$('answerBox').style.display='none';$('evidenceItems').replaceChildren();$('submitAsk').disabled=true;for(let i=0;i<spec.steps.length;i++){let [title,desc]=spec.steps[i];let row=document.createElement('div');row.className='step';row.innerHTML=`<div class="step-num">${String(i+1).padStart(2,'0')}</div><div><strong>${escapeText(title)}</strong><small>${escapeText(desc)}</small></div>`;$('steps').appendChild(row)}out.scrollIntoView({behavior:'smooth',block:'nearest'});const els=Array.from($('steps').children);for(let i=0;i<els.length;i++){if(seq!==sequence)return;els[i].classList.add('active');await new Promise(r=>setTimeout(r,390+i*130));if(seq!==sequence)return;els[i].classList.remove('active');els[i].classList.add('done');els[i].querySelector('.step-num').textContent='✓'}$('runStatus').textContent='PLAYBACK COMPLETE';$('answerBox').innerHTML=spec.answer;$('answerBox').style.display='block';for(const [source,desc] of spec.evidence){const div=document.createElement('div');div.className='evidence-item';let name=document.createElement('span');name.textContent=source;let sub=document.createElement('small');sub.textContent=desc;div.append(name,sub);$('evidenceItems').appendChild(div)}const temp=document.createElement('div');temp.innerHTML=spec.answer;receiptText='OLIST NEXUS — ILLUSTRATIVE EVIDENCE RECEIPT\nScenario: '+spec.question+'\n\n'+temp.textContent+'\n\n'+spec.evidence.map(e=>e.join(' — ')).join('\n')+'\n\nDemonstration playback, not a live Databricks execution.';$('submitAsk').disabled=false}
 $('submitAsk').addEventListener('click',()=>{const q=$('question').value.trim();if(!q){toast('Enter a question');return}if(nexusLiveAgent){runRealNexusQuestion(q);return}const key=Object.keys(cases).find(k=>cases[k].question.trim().toLowerCase()===q.toLowerCase());if(key){runCase(key);return}$('caseOutput').classList.add('visible');$('runStatus').textContent='OFFLINE PREVIEW';$('steps').replaceChildren();$('answerBox').style.display='block';$('answerBox').textContent='Local preview has no AI backend. Open the deployed Databricks App to ask any question.';$('evidenceItems').replaceChildren()});
 document.querySelectorAll('[data-scenario]').forEach(btn=>btn.addEventListener('click',()=>{const key=btn.dataset.scenario;$('question').value=cases[key].question;runCase(key)}));$('copyReceipt').onclick=async()=>{if(!receiptText){toast('Run a scenario first');return}try{await navigator.clipboard.writeText(receiptText);toast(nexusLiveAgent?'Live evidence receipt copied':'Illustrative evidence receipt copied')}catch(e){toast('Clipboard access unavailable; select text manually')}};

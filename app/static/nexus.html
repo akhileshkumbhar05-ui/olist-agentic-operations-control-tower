@@ -1622,6 +1622,73 @@ const cases={
  rules:{question:'What happened when all 88 governed quality rules were evaluated?',steps:[['Find publication','Identify authoritative published run'],['Query quality results','Retrieve all 88 status outcomes'],['Inspect failed rules','Group failures by configured action'],['Reconcile quarantine','Distinguish failed evaluations from excluded rows']],answer:'<h4>Quality controls for the published run</h4><p>All <b>88 active governed rule definitions</b> were evaluated: <b>83 PASSED</b>, <b>5 FAILED</b>, with <b>0 errors</b> and <b>0 skipped</b>.</p><p>The five failing definitions were orders.delivered_time (QUARANTINE, 8 evaluations), orders.lifecycle (WARN, 1,373), products.category (WARN, 610), orders.payment_reconciliation (WARN, 303), and products.fk_product_category_name (WARN, 13). These total <b>2,307 failed rule evaluations</b>, not 2,307 distinct quarantined rows.</p>',evidence:[['dq_rules','88 unique active rule IDs in governance table'],['dq_rule_results','83 passed / 5 failed / 0 error / 0 skipped'],['published_run','Run pointer to authoritative snapshot'],['quarantine','32 distinct excluded source rows']]}
 };
 // No keyword-based substitution of questions in live mode.
+
+const MAX_AGENT_CHARS=2000;
+const ALL_BRAZIL_STATES="AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split(" ");
+for(const uf of ALL_BRAZIL_STATES){
+ const opt=document.createElement('option');opt.value=uf;opt.textContent=uf;$('agentStateSelect').appendChild(opt);
+}
+function updateAgentQuestionCount(){
+ const count=$('agentQuestionCount'),value=$('question').value;
+ count.textContent=value.length+' / '+MAX_AGENT_CHARS+' characters';
+}
+$('question').addEventListener('input',updateAgentQuestionCount);
+updateAgentQuestionCount();
+let lastAgentAnswer='';
+function resetAgentEvidence(){
+ lastAgentAnswer='';$('copyAgentAnswer').disabled=true;
+ $('agentEvidenceSummary').replaceChildren();
+ $('agentEvidenceJson').textContent='No evidence retrieved.';
+ $('agentEvidenceDetails').open=false;$('agentRawEvidence').open=false;
+}
+function renderAgentEvidence(evidence){
+ const root=$('agentEvidenceSummary');root.replaceChildren();
+ const groups=[
+  ['Verified governed business metrics',(evidence?.verified_metrics||[]).map(m=>String(m.display||'')+' · '+String(m.source||''))],
+  ['Semantic retrieval mechanism',evidence?.retrieval_mode==='ai_search_hybrid'?
+    [(evidence?.retrieval_trigger==='model_selected'?'Model-selected':'Mandatory evidence guard')+' · hybrid AI Search']:[]],
+  ['Model-selected agent tools',evidence?.model_selected_tools||[]],
+  ['Executed governed SQL tools',evidence?.tool_names||[]],
+  ['Unity Catalog evidence sources',evidence?.sources||[]]
+ ];
+ for(const [label,values] of groups){
+  if(!values.length)continue;
+  const card=document.createElement('div');card.className='agent-evidence-group';
+  const title=document.createElement('b');title.textContent=label;card.appendChild(title);
+  values.forEach(value=>{
+   const line=document.createElement('p');line.textContent=String(value);card.appendChild(line);
+  });
+  root.appendChild(card);
+ }
+ const hits=(evidence?.knowledge||[]).filter(k=>k.retrieval==='ai_search_hybrid').slice(0,4);
+ if(hits.length){
+  const card=document.createElement('div');card.className='agent-evidence-group';
+  const label=document.createElement('b');label.textContent='AI Search governance passages';card.appendChild(label);
+  for(const hit of hits){
+   const p=document.createElement('p');
+   p.textContent=String(hit.id||'')+' · '+String(hit.source||'')+'\n'+String(hit.text||'').slice(0,280);
+   card.appendChild(p);
+  }
+  root.appendChild(card);
+ }
+ if(!root.children.length)root.textContent='No detailed retrieval evidence returned by the backend.';
+ $('agentEvidenceJson').textContent=JSON.stringify(evidence||{},null,2);
+}
+$('copyAgentAnswer').addEventListener('click',async()=>{
+ if(!lastAgentAnswer)return;
+ try{await navigator.clipboard.writeText(lastAgentAnswer);toast('Answer copied');}
+ catch(e){toast('Clipboard unavailable; select the answer text to copy');}
+});
+function nexusApiError(data,status){
+ const detail=data?.detail;
+ if(Array.isArray(detail))return detail.slice(0,4).map(x=>{
+  const loc=Array.isArray(x.loc)?x.loc.filter(v=>v!=='body').join('.'):'request';
+  return (loc?loc+': ':'')+String(x.msg||'Invalid input');
+ }).join('; ');
+ if(typeof detail==='string'&&detail.trim())return detail;
+ return 'Request failed: HTTP '+status+'. Check Databricks App Logs.';
+}
+
 let sequence=0,receiptText='';function escapeText(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 // Hosted NEXUS always calls the real API, even if /api/config is unavailable.
@@ -1637,7 +1704,7 @@ let sequence=0,receiptText='';function escapeText(s){return String(s).replace(/[
 
  // An explicitly named state in the question takes precedence over map selection.
  // Comparison questions naming multiple states use the national context.
- function agentStateScope(question){
+ function agentStateScope(question,fallback=activeState){
    const normalized=question.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
    const mentions=new Set();
    for(const uf of new Set([...FEATURED_STATES,...Object.keys(stateShapes)])){
@@ -1646,7 +1713,7 @@ let sequence=0,receiptText='';function escapeText(s){return String(s).replace(/[
      const name=stateShapes[uf]?.[0];
      if(name&&normalized.includes(name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()))mentions.add(uf);
    }
-   return mentions.size===1?[...mentions][0]:(mentions.size>1?'ALL':activeState);
+   return mentions.size===1?[...mentions][0]:(mentions.size>1?'ALL':fallback);
  }
 
  // Safe simple Markdown renderer: answer content is NEVER evaluated as HTML.

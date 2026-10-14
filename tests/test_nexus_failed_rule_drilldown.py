@@ -183,7 +183,7 @@ def test_ui_failed_summary_record_drilldown_and_ai_actions():
     assert "evidence.published_run!==runId" in HTML
     assert "++domainPreviewSequence" in HTML
     assert "domainRulePrompt='For the active published Olist run '" in HTML
-    assert "const questionScope=selectedDomain||question===domainRulePrompt?'ALL'" in HTML
+    assert "const questionScope=(selectedDomain||question===domainRulePrompt)?'ALL'" in HTML
     assert "domainInvestigationPrompt='';domainPromptDomain=null" in HTML
     assert "document.createElement('article')" in HTML
     assert "innerHTML=evidence" not in HTML
@@ -192,7 +192,7 @@ def test_ui_failed_summary_record_drilldown_and_ai_actions():
 
 def test_native_dashboard_and_existing_investigator_are_unchanged():
     assert '<iframe id="nativeDashboard"' in HTML
-    assert "body:JSON.stringify({question,page:'operations',visual:'overview',state:questionScope,source_domain:selectedDomain})" in HTML
+    assert "body:JSON.stringify({question,page:selectedPage,visual:'overview',state:questionScope,source_domain:selectedDomain})" in HTML
     assert "renderAgentAnswer(data.answer)" in HTML
     assert "fetch('/api/ask'" in HTML
 

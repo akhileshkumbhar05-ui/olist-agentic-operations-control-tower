@@ -1716,44 +1716,73 @@ let sequence=0,receiptText='';function escapeText(s){return String(s).replace(/[
    return mentions.size===1?[...mentions][0]:(mentions.size>1?'ALL':fallback);
  }
 
- // Safe simple Markdown renderer: answer content is NEVER evaluated as HTML.
- function appendAgentInline(element,value){
-   for(const part of String(value).split(/(\*\*[^*]+\*\*|\*[^*\n]+\*)/g)){
-     if(!part)continue;
-     let child=null;
-     if(part.startsWith('**')&&part.endsWith('**')&&part.length>4){
-       child=document.createElement('strong');child.textContent=part.slice(2,-2);
-     }else if(part.startsWith('*')&&part.endsWith('*')&&part.length>2){
-       child=document.createElement('em');child.textContent=part.slice(1,-1);
-     }
-     element.appendChild(child||document.createTextNode(part));
-   }
+ // Safe Markdown, code and tables: model-controlled HTML is never executed.
+function appendAgentInline(element,value){
+ for(const part of String(value).split(/(\*\*[^*]+\*\*|\x60[^\x60]+\x60|\*[^*\n]+\*)/g)){
+  if(!part)continue;
+  let node=null;
+  if(part.startsWith('**')&&part.endsWith('**')&&part.length>4){
+   node=document.createElement('strong');node.textContent=part.slice(2,-2);
+  }else if(part.charCodeAt(0)===96&&part.charCodeAt(part.length-1)===96&&part.length>2){
+   node=document.createElement('code');node.textContent=part.slice(1,-1);
+  }else if(part.startsWith('*')&&part.endsWith('*')&&part.length>2){
+   node=document.createElement('em');node.textContent=part.slice(1,-1);
+  }
+  element.appendChild(node||document.createTextNode(part));
  }
- function renderAgentAnswer(value){
-   const box=$('answerBox');box.replaceChildren();
-   let paragraph=[],list=null;
-   function flush(){
-     if(!paragraph.length)return;
-     const p=document.createElement('p');
-     appendAgentInline(p,paragraph.join(' ').trim());
-     box.appendChild(p);paragraph=[];
-   }
-   for(const raw of String(value).replace(/\r\n/g,'\n').split('\n')){
-     const line=raw.trim();
-     if(!line){flush();list=null;continue}
-     const header=line.match(/^#{1,4}\s+(.+)$/)||line.match(/^\*\*(.+)\*\*$/);
-     if(header){flush();list=null;const h=document.createElement('h4');appendAgentInline(h,header[1]);box.appendChild(h);continue}
-     const bullet=line.match(/^([-*]|\d+[.)])\s+(.+)$/);
-     if(bullet){
-       flush();const ordered=/^\d/.test(bullet[1]);
-       if(!list||list.tagName!==(ordered?'OL':'UL')){list=document.createElement(ordered?'ol':'ul');box.appendChild(list)}
-       const li=document.createElement('li');appendAgentInline(li,bullet[2]);list.appendChild(li);
-       continue;
-     }
-     list=null;paragraph.push(line);
-   }
-   flush();
+}
+function renderAgentAnswer(value){
+ const box=$('answerBox');box.replaceChildren();
+ const lines=String(value||'').replace(/\r\n/g,'\n').split('\n');
+ let paragraph=[],list=null,table=null,body=null;
+ function flush(){
+  if(!paragraph.length)return;
+  const p=document.createElement('p');appendAgentInline(p,paragraph.join(' ').trim());
+  box.appendChild(p);paragraph=[];
  }
+ function tableCells(line){
+  const cells=line.trim().split('|').map(x=>x.trim());
+  if(cells[0]==='')cells.shift();
+  if(cells[cells.length-1]==='')cells.pop();
+  return cells;
+ }
+ for(const raw of lines){
+  const line=raw.trim();
+  if(!line){flush();list=null;table=null;body=null;continue;}
+  if(line.startsWith('|')&&line.includes('|',1)){
+   flush();list=null;
+   if(/^[\s|:\-]+$/.test(line))continue;
+   const cells=tableCells(line);
+   if(!table){
+    table=document.createElement('table');
+    const head=document.createElement('thead'),tr=document.createElement('tr');
+    for(const value of cells){const th=document.createElement('th');appendAgentInline(th,value);tr.appendChild(th);}
+    head.appendChild(tr);table.appendChild(head);body=document.createElement('tbody');
+    table.appendChild(body);box.appendChild(table);
+   }else{
+    const tr=document.createElement('tr');
+    for(const value of cells){const td=document.createElement('td');appendAgentInline(td,value);tr.appendChild(td);}
+    body.appendChild(tr);
+   }
+   continue;
+  }
+  table=null;body=null;
+  const heading=line.match(/^#{1,4}\s+(.+)$/)||line.match(/^\*\*(.+)\*\*$/);
+  if(heading){
+   flush();list=null;
+   const h=document.createElement('h4');appendAgentInline(h,heading[1]);box.appendChild(h);continue;
+  }
+  const bullet=line.match(/^([-*]|\d+[.)])\s+(.+)$/);
+  if(bullet){
+   flush();const ordered=/^\d/.test(bullet[1]);const kind=ordered?'OL':'UL';
+   if(!list||list.tagName!==kind){list=document.createElement(ordered?'ol':'ul');box.appendChild(list);}
+   const li=document.createElement('li');appendAgentInline(li,bullet[2]);list.appendChild(li);
+   continue;
+  }
+  list=null;paragraph.push(line);
+ }
+ flush();
+}
 async function runRealNexusQuestion(question){
   const out=$('caseOutput');out.classList.add('visible');$('runStatus').textContent='AGENT EXECUTING · LIVE';const selectedDomain=question===domainInvestigationPrompt?domainPromptDomain:null;const questionScope=selectedDomain||question===domainRulePrompt?'ALL':agentStateScope(question);receiptText='';put('agentPlaybackLabel','LIVE AGENT / REQUEST IN PROGRESS');
   $('steps').replaceChildren();$('answerBox').style.display='block';$('answerBox').textContent='Reasoning over governed SQL and AI Search…';

@@ -170,7 +170,7 @@ def test_ui_canvas_selection_launches_real_inspector_and_ai_handoff():
     assert "domainInvestigationPrompt='Explain the Olist '" in HTML
     assert 'dataset' in HTML
     assert "source_domain:selectedDomain" in HTML
-    assert "const questionScope=selectedDomain||question===domainRulePrompt?'ALL':agentStateScope(question)" in HTML
+    assert "const questionScope=(selectedDomain||question===domainRulePrompt)?'ALL':agentStateScope(question,selectedFallback)" in HTML
     assert "document.createElement('div')" in HTML
     assert "domainRecord(" in HTML
     assert ".domain-inspector[hidden]{display:none}" in CSS
